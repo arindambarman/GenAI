@@ -1,0 +1,2 @@
+duckduckgo-search>=7.0.0  # provides the DDGS class for web search
+requests>=2.31.0
