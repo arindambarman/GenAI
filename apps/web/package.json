@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@adaptlearn/agent-master": "workspace:*",
+    "@adaptlearn/agent-scout": "workspace:*",
     "@adaptlearn/shared": "workspace:*",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.1",

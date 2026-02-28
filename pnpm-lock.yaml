@@ -101,6 +101,9 @@ importers:
       '@adaptlearn/agent-master':
         specifier: workspace:*
         version: link:../../agents/master
+      '@adaptlearn/agent-scout':
+        specifier: workspace:*
+        version: link:../../agents/scout
       '@adaptlearn/shared':
         specifier: workspace:*
         version: link:../../agents/shared
