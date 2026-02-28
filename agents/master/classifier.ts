@@ -3,6 +3,7 @@ import {
   LLMIntentClassificationSchema,
   type LLMIntentClassification,
 } from "@adaptlearn/shared/types";
+import { parseJsonFromLLM } from "@adaptlearn/shared/llm-json";
 
 const SYSTEM_PROMPT = `You are the intent classifier for AdaptLearn, an adaptive learning platform for banking professionals.
 
@@ -51,7 +52,7 @@ export async function classifyIntent(
     throw new Error("No text response from Claude intent classifier");
   }
 
-  const parsed: unknown = JSON.parse(textBlock.text);
+  const parsed: unknown = parseJsonFromLLM(textBlock.text);
   return LLMIntentClassificationSchema.parse(parsed);
 }
 

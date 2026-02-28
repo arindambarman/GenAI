@@ -7,6 +7,7 @@ import {
   type Outcome,
   type Recommendation,
 } from "@adaptlearn/shared/types";
+import { parseJsonFromLLM } from "@adaptlearn/shared/llm-json";
 
 let anthropicClient: Anthropic | null = null;
 
@@ -106,7 +107,7 @@ export async function analyzeGaps(
     throw new Error("No text response from Claude gap analysis");
   }
 
-  const parsed: unknown = JSON.parse(textBlock.text);
+  const parsed: unknown = parseJsonFromLLM(textBlock.text);
   return LLMAssessmentScoringSchema.parse(parsed);
 }
 

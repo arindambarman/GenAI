@@ -7,7 +7,8 @@
   "exports": {
     "./types": "./types/index.ts",
     "./bus": "./bus.ts",
-    "./db": "./db.ts"
+    "./db": "./db.ts",
+    "./llm-json": "./llm-json.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

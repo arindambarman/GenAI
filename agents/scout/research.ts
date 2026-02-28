@@ -3,6 +3,7 @@ import {
   LLMSkillMapOutputSchema,
   type LLMSkillMapOutput,
 } from "@adaptlearn/shared/types";
+import { parseJsonFromLLM } from "@adaptlearn/shared/llm-json";
 
 // ─── External API Clients ───────────────────────────────────────────────────
 
@@ -140,7 +141,7 @@ export async function synthesizeSkillMap(
     throw new Error("No text response from Claude skill map synthesis");
   }
 
-  const parsed: unknown = JSON.parse(textBlock.text);
+  const parsed: unknown = parseJsonFromLLM(textBlock.text);
   return LLMSkillMapOutputSchema.parse(parsed);
 }
 
