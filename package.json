@@ -1,0 +1,16 @@
+{
+  "name": "adaptlearn-poc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AdaptLearn — AI-powered adaptive learning platform for banking professionals",
+  "scripts": {
+    "dev": "pnpm --filter @adaptlearn/web dev",
+    "build": "pnpm --filter @adaptlearn/web build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

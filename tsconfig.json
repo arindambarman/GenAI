@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "jsx": "preserve",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "paths": {
+      "@adaptlearn/shared/*": ["agents/shared/*"],
+      "@adaptlearn/web/*": ["apps/web/*"]
+    }
+  },
+  "include": [
+    "agents/**/*.ts",
+    "apps/web/**/*.ts",
+    "apps/web/**/*.tsx"
+  ],
+  "exclude": ["node_modules", "dist", ".next"]
+}
