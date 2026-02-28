@@ -1,4 +1,7 @@
 packages:
-  - "apps/*"
-  - "agents/*"
-  - "agents/shared"
+  - apps/*
+  - agents/*
+  - agents/shared
+
+ignoredBuiltDependencies:
+  - esbuild
