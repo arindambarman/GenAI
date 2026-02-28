@@ -2,15 +2,29 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "jsx": "preserve",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "plugins": [{ "name": "next" }],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
-      "@/*": ["./*"],
-      "@adaptlearn/shared/*": ["../../agents/shared/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@adaptlearn/shared/*": [
+        "../../agents/shared/*"
+      ]
     },
-    "noEmit": true
+    "noEmit": true,
+    "allowJs": true,
+    "incremental": true
   },
   "include": [
     "next-env.d.ts",
@@ -18,5 +32,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

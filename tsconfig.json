@@ -7,8 +7,10 @@
     "noEmit": true,
     "paths": {
       "@adaptlearn/shared/*": ["agents/shared/*"],
+      "@adaptlearn/agent-master": ["agents/master/index.ts"],
       "@adaptlearn/web/*": ["apps/web/*"]
-    }
+    },
+    "types": ["vitest/globals"]
   },
   "include": [
     "agents/**/*.ts",

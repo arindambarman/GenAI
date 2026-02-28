@@ -10,6 +10,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@adaptlearn/shared": path.resolve(__dirname, "agents/shared"),
+      "@adaptlearn/agent-master": path.resolve(__dirname, "agents/master"),
     },
   },
 });
