@@ -2,6 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 
+interface AgentResult {
+  topic?: string;
+  skill_count?: number;
+  summary?: string;
+  skill_map_id?: string;
+  cached?: boolean;
+}
+
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -10,6 +18,8 @@ interface ChatMessage {
   topic?: string;
   confidence?: number;
   dispatchedTo?: string | null;
+  completedSteps?: string[];
+  agentResult?: AgentResult;
 }
 
 interface ChatProps {
@@ -69,6 +79,8 @@ export default function Chat({ userId }: ChatProps) {
         topic: data.topic,
         confidence: data.confidence,
         dispatchedTo: data.dispatchedTo,
+        completedSteps: data.completedSteps,
+        agentResult: data.agentResult,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
@@ -101,6 +113,40 @@ export default function Chat({ userId }: ChatProps) {
               }`}
             >
               <p className="whitespace-pre-wrap">{msg.content}</p>
+
+              {/* Completed steps progress */}
+              {msg.completedSteps && msg.completedSteps.length > 0 && (
+                <div className="mt-3 border-t border-gray-100 pt-3 space-y-2">
+                  {msg.completedSteps.map((step, i) => {
+                    const isNext = step.startsWith("Next step:");
+                    return (
+                      <div key={i} className="flex items-start gap-2 text-sm">
+                        <span className={`mt-0.5 flex-shrink-0 ${isNext ? "text-blue-500" : "text-green-500"}`}>
+                          {isNext ? "\u25B6" : "\u2713"}
+                        </span>
+                        <span className={isNext ? "text-blue-700" : "text-gray-700"}>
+                          {step}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Agent result summary */}
+              {msg.agentResult?.summary && (
+                <div className="mt-3 rounded bg-gray-50 p-3 text-sm text-gray-700 border border-gray-100">
+                  <p className="font-medium text-gray-900 mb-1">Research Summary</p>
+                  <p>{msg.agentResult.summary}</p>
+                  {msg.agentResult.skill_count != null && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {msg.agentResult.skill_count} skills identified
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Intent / topic / confidence chips */}
               {msg.intent && msg.role === "assistant" && (
                 <div className="mt-2 flex gap-2 flex-wrap">
                   <span className="inline-block rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">

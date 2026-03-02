@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
 
     // Invoke the dispatched agent in-process (per execution model in CLAUDE.md)
     let agentResult: Record<string, unknown> | undefined;
+    let completedSteps: string[] | undefined;
 
     if (result.dispatchedTo === "scout" && result.agentMessageId) {
       try {
@@ -45,6 +46,9 @@ export async function POST(req: NextRequest) {
           );
 
           if (skillMapReady) {
+            completedSteps = skillMapReady.payload.completed_steps as
+              | string[]
+              | undefined;
             agentResult = skillMapReady.payload;
           }
         }
@@ -61,6 +65,7 @@ export async function POST(req: NextRequest) {
       dispatchedTo: result.dispatchedTo,
       response: result.response,
       agentResult,
+      completedSteps,
     });
   } catch (err) {
     if (err instanceof z.ZodError) {

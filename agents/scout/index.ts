@@ -73,6 +73,11 @@ export async function handleMessage(msg: AgentMessage): Promise<void> {
           summary: cached.source_summary,
           user_id: payload.user_id,
           cached: true,
+          completed_steps: [
+            `Research on "${topic}" is already available (cached).`,
+            "Skill assessment is complete.",
+            "Next step: Content preparation will begin.",
+          ],
         },
         status: "pending",
       });
@@ -112,6 +117,11 @@ export async function handleMessage(msg: AgentMessage): Promise<void> {
         skill_count: skillMapOutput.skills.length,
         summary: skillMapOutput.summary,
         user_id: payload.user_id,
+        completed_steps: [
+          `Research on "${topic}" has been completed by the Scout Agent.`,
+          `Skill assessment is complete — ${skillMapOutput.skills.length} skills identified.`,
+          "Next step: Content preparation will begin.",
+        ],
       },
       status: "pending",
     });

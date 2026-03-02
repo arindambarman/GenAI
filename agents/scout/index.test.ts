@@ -127,6 +127,11 @@ describe("Scout Agent handleMessage", () => {
           topic_id: TOPIC_UUID,
           skill_map_id: "skillmap-uuid-789",
           skill_count: 2,
+          completed_steps: [
+            'Research on "Agentic AI" has been completed by the Scout Agent.',
+            "Skill assessment is complete — 2 skills identified.",
+            "Next step: Content preparation will begin.",
+          ],
         }),
       })
     );
@@ -215,7 +220,7 @@ describe("Scout Agent handleMessage", () => {
     // Research should NOT be called — cache was used
     expect(researchTopic).not.toHaveBeenCalled();
 
-    // SkillMapReady should be dispatched with cached data
+    // SkillMapReady should be dispatched with cached data and steps
     expect(dispatchMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         from_agent: "scout",
@@ -224,6 +229,11 @@ describe("Scout Agent handleMessage", () => {
         payload: expect.objectContaining({
           skill_map_id: "cached-skillmap-id",
           cached: true,
+          completed_steps: [
+            'Research on "Agentic AI" is already available (cached).',
+            "Skill assessment is complete.",
+            "Next step: Content preparation will begin.",
+          ],
         }),
       })
     );
