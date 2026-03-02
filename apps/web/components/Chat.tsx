@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import ScoutProgressBar from "./ScoutProgressBar";
 
 interface AgentResult {
   topic?: string;
@@ -26,6 +27,9 @@ interface ChatProps {
   userId: string;
 }
 
+/** How long to show the 100% done state before revealing the full response. */
+const DONE_DISPLAY_MS = 1500;
+
 export default function Chat({ userId }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -37,11 +41,23 @@ export default function Chat({ userId }: ChatProps) {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  /** Tracks whether scout is active (show progress bar instead of "Thinking..."). */
+  const [scoutActive, setScoutActive] = useState(false);
+  /** True once the API responds — makes the progress bar snap to 100%. */
+  const [scoutDone, setScoutDone] = useState(false);
+  /** The topic being researched (displayed in progress bar). */
+  const [scoutTopic, setScoutTopic] = useState<string | undefined>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, scoutActive, scoutDone]);
+
+  const resetScoutState = useCallback(() => {
+    setScoutActive(false);
+    setScoutDone(false);
+    setScoutTopic(undefined);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,6 +73,14 @@ export default function Chat({ userId }: ChatProps) {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
+    resetScoutState();
+
+    // Detect research-like intent from the user message to show progress bar early
+    const looksLikeResearch =
+      /research|search|find|explore|discover|skills|trend|impact/i.test(trimmed);
+    if (looksLikeResearch) {
+      setScoutActive(true);
+    }
 
     try {
       const res = await fetch("/api/chat", {
@@ -69,6 +93,18 @@ export default function Chat({ userId }: ChatProps) {
 
       if (!res.ok) {
         throw new Error(data.error ?? "Something went wrong");
+      }
+
+      // If scout was dispatched, show 100% completion before revealing the message
+      const isScoutResult = data.dispatchedTo === "scout" && data.completedSteps;
+
+      if (isScoutResult) {
+        setScoutActive(true);
+        setScoutTopic(data.topic);
+        setScoutDone(true);
+
+        // Hold the 100% state briefly, then reveal the full response
+        await new Promise((resolve) => setTimeout(resolve, DONE_DISPLAY_MS));
       }
 
       const assistantMsg: ChatMessage = {
@@ -93,6 +129,7 @@ export default function Chat({ userId }: ChatProps) {
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setLoading(false);
+      resetScoutState();
     }
   }
 
@@ -167,12 +204,18 @@ export default function Chat({ userId }: ChatProps) {
             </div>
           </div>
         ))}
+
+        {/* Loading indicator */}
         {loading && (
-          <div className="flex justify-start">
-            <div className="rounded-lg bg-white border border-gray-200 px-4 py-2 text-gray-400">
-              Thinking...
+          scoutActive ? (
+            <ScoutProgressBar done={scoutDone} topic={scoutTopic} />
+          ) : (
+            <div className="flex justify-start">
+              <div className="rounded-lg bg-white border border-gray-200 px-4 py-2 text-gray-400">
+                Thinking...
+              </div>
             </div>
-          </div>
+          )
         )}
         <div ref={messagesEndRef} />
       </div>
