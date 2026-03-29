@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.env
+output/*.pptx
+output/*.html
+output/*.md
+output/*.json
+!output/.gitkeep
+.venv/
+*.egg-info/
+dist/
+build/
