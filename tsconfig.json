@@ -10,12 +10,13 @@
       "@adaptlearn/agent-master": ["agents/master/index.ts"],
       "@adaptlearn/web/*": ["apps/web/*"]
     },
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals", "node"]
   },
   "include": [
     "agents/**/*.ts",
     "apps/web/**/*.ts",
-    "apps/web/**/*.tsx"
+    "apps/web/**/*.tsx",
+    "scripts/course-agent/src/**/*.ts"
   ],
   "exclude": ["node_modules", "dist", ".next"]
 }

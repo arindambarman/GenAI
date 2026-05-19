@@ -1,0 +1,16 @@
+graph LR
+  C1[Capstone 1: Coding Agent]:::current
+  C2[Capstone 2: Research Agent]
+  C3[Capstone 3: Domain Multi-Agent]
+  M1[Module 1-3: foundations] --> C1
+  M4[Module 4: single-agent] --> C1
+  M5[Module 5: RAG] --> C2
+  M6[Module 6: multi-agent] --> C3
+  M7[Module 7: MCP] --> C2
+  M7 --> C3
+  M8[Module 8: eval] --> C1
+  M8 --> C2
+  M8 --> C3
+  M9[Module 9: production] --> C3
+  M10[Module 10: safety] --> C3
+  classDef current fill:#fc6,stroke:#a60,stroke-width:3px

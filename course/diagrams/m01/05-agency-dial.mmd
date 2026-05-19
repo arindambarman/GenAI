@@ -1,0 +1,10 @@
+graph LR
+  D0[Dial 0: Script]:::low --> D1[Dial 1: LLM as function]:::low
+  D1 --> D2[Dial 2: LLM picks step]:::mid
+  D2 --> D3[Dial 3: LLM owns loop]:::mid
+  D3 --> D4[Dial 4: LLM owns goal]:::high
+  D0 -.predictability.-> P[Predictable - auditable - cheap]:::low
+  D4 -.predictability.-> U[Unpredictable - surprising - expensive]:::high
+  classDef low fill:#cfc,stroke:#393
+  classDef mid fill:#ffd,stroke:#a80
+  classDef high fill:#fee,stroke:#c33

@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson 3.4 · Prompt Engineering for Agents · AdaptLearn</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-light.css" />
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+  --max-content: 760px;
+  --sidebar-w: 280px;
+  --header-h: 120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: 8px 12px; z-index: 100;
+}
+.skip:focus { left: 12px; top: 12px; }
+
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.92);
+}
+.page-header-inner {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto; padding: 14px 32px;
+}
+.breadcrumb {
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.page-meta { font-size: 13px; color: var(--text-muted); }
+.page-meta .dot { margin: 0 8px; opacity: 0.5; }
+
+.progress-bar { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+.layout {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 40px;
+  padding: 32px;
+}
+
+.sidebar { position: sticky; top: calc(var(--header-h) + 16px); align-self: start; max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; }
+.toc h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; border-radius: 6px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { background: var(--accent-soft); color: var(--text); }
+.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.toc-num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.toc a.active .toc-num { color: var(--accent); }
+
+.content { min-width: 0; max-width: var(--max-content); }
+
+.intro, .lesson-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: var(--header-h);
+}
+.lesson-section[data-theme="scenario"]    { border-left: 4px solid #ef4444; }
+.lesson-section[data-theme="bridge"]      { border-left: 4px solid #94a3b8; }
+.lesson-section[data-theme="mindmap"]     { border-left: 4px solid #8b5cf6; }
+.lesson-section[data-theme="elaboration"] { border-left: 4px solid #2563eb; }
+.lesson-section[data-theme="problem"]     { border-left: 4px solid #f59e0b; }
+.lesson-section[data-theme="solution"]    { border-left: 4px solid #10b981; }
+.lesson-section[data-theme="math"]        { border-left: 4px solid #6366f1; }
+.lesson-section[data-theme="tech"]        { border-left: 4px solid #64748b; }
+.lesson-section[data-theme="unlocks"]     { border-left: 4px solid #ec4899; }
+.lesson-section[data-theme="orient"]      { border-left: 4px solid #0ea5e9; }
+.intro { border-left: 4px solid #0ea5e9; }
+
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon { font-size: 22px; }
+.section-badge {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.section-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.section-body h3 { margin-top: 32px; font-size: 18px; font-weight: 700; }
+.section-body h4 { margin-top: 24px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.section-body p { margin: 12px 0; }
+.section-body ul, .section-body ol { margin: 12px 0; padding-left: 24px; }
+.section-body li { margin: 4px 0; }
+
+.section-body a { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(37,99,235,0.3); text-underline-offset: 2px; }
+.section-body a:hover { text-decoration-color: var(--accent); }
+
+.section-body strong { font-weight: 700; }
+.section-body em { font-style: italic; }
+
+.section-body blockquote {
+  margin: 16px 0; padding: 12px 20px;
+  background: #f5f6f8; border-left: 3px solid var(--text-muted);
+  border-radius: 4px; color: var(--text); font-size: 0.95em;
+}
+.section-body blockquote p:first-child { margin-top: 0; }
+.section-body blockquote p:last-child { margin-bottom: 0; }
+
+.section-body img {
+  display: block; max-width: 100%; height: auto;
+  margin: 20px auto; padding: 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+}
+
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 0.9em;
+}
+.section-body th, .section-body td {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-body th { background: #f5f6f8; font-weight: 600; }
+
+.section-body code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: #f1f3f5; padding: 1px 6px; border-radius: 3px;
+}
+.section-body pre {
+  background: #f6f8fa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font-size: 13px;
+  margin: 16px 0;
+}
+.section-body pre code { background: transparent; padding: 0; }
+
+.section-body details {
+  margin: 16px 0; padding: 10px 14px;
+  background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px;
+}
+.section-body details summary {
+  cursor: pointer; font-weight: 600; font-size: 13px;
+  color: var(--text-muted);
+}
+.section-body details[open] summary { margin-bottom: 8px; }
+
+.section-body hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+
+.section-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+
+.lesson-footer {
+  text-align: center; padding: 32px;
+  color: var(--text-muted); font-size: 14px;
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+.lesson-footer .muted { font-size: 12px; opacity: 0.7; }
+kbd {
+  background: var(--surface); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+  .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toc li { flex: 0 0 auto; }
+  .toc a { padding: 4px 8px; font-size: 12px; }
+  .intro, .lesson-section { padding: 20px; }
+  .page-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="../../index.html">AdaptLearn</a>
+        <span class="sep">›</span>
+        <a href="../index.html">Module 3</a>
+        <span class="sep">›</span>
+        <span class="current">Lesson 3.4</span>
+      </nav>
+      <h1 class="page-title">Prompt Engineering for Agents</h1>
+      <div class="page-meta">
+        <span>Lesson 3.4</span>
+        <span class="dot">·</span>
+        <span>9 sections</span>
+        <span class="dot">·</span>
+        <span>~25 min read</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc" aria-label="Lesson sections">
+        <h3>Sections</h3>
+        <ol>
+      <li><a href="#section-1" data-section="1"><span class="toc-num">§1</span><span class="toc-title">Business Scenario</span></a></li>
+      <li><a href="#section-2" data-section="2"><span class="toc-num">§2</span><span class="toc-title">Bridge to Topic</span></a></li>
+      <li><a href="#section-3" data-section="3"><span class="toc-num">§3</span><span class="toc-title">Mind Map</span></a></li>
+      <li><a href="#section-4" data-section="4"><span class="toc-num">§4</span><span class="toc-title">Elaboration</span></a></li>
+      <li><a href="#section-5" data-section="5"><span class="toc-num">§5</span><span class="toc-title">Problem Statement</span></a></li>
+      <li><a href="#section-6" data-section="6"><span class="toc-num">§6</span><span class="toc-title">Solution Walkthrough</span></a></li>
+      <li><a href="#section-7" data-section="7"><span class="toc-num">§7</span><span class="toc-title">Mathematical Foundation</span></a></li>
+      <li><a href="#section-8" data-section="8"><span class="toc-num">§8</span><span class="toc-title">Technical Deep-Dive</span></a></li>
+      <li><a href="#section-9" data-section="9"><span class="toc-num">§9</span><span class="toc-title">What This Unlocks</span></a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main id="main" class="content">
+      <section class="intro" id="section-intro">
+        <header class="section-header">
+          <span class="section-icon">📍</span>
+          <h2>How to use this lesson</h2>
+        </header>
+        <div class="section-body">
+<blockquote>
+<p><strong>§0 · From last time.</strong> Lessons 3.1–3.3 covered the mechanics: attention, function calling, constrained output. Now we put them together. <em>Prompt engineering for agents</em> is different from prompt engineering for chat — the prompt persists across many tool turns, and the model must follow it under context pressure.</p>
+</blockquote>
+
+        </div>
+      </section>
+      <section id="section-1" class="lesson-section" data-theme="scenario" data-section="1">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🏢</span>
+          <span class="section-badge">§1</span>
+          <h2>Business Scenario</h2>
+        </header>
+        <div class="section-body">
+<p><em>All three orgs, simultaneously.</em></p>
+<p>A new model release (Claude Sonnet 4.7 ships next month). Daniel, Tom, and Lin all ask the same question: <em>&quot;will our prompts still work?&quot;</em></p>
+<p>Most won&#39;t. Some will. The difference is whether the prompt was written for <em>this</em> model or for <em>agents in general</em>. The latter survives model upgrades; the former gets rewritten every time.</p>
+
+        </div>
+      </section>
+
+      <section id="section-2" class="lesson-section" data-theme="bridge" data-section="2">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🔗</span>
+          <span class="section-badge">§2</span>
+          <h2>Bridge to Topic</h2>
+        </header>
+        <div class="section-body">
+<p>Robust agent prompts share a structure: stable scaffolding, model-agnostic rules, externalised examples. Knowing the structure is how you write prompts that survive 2+ model generations and run across providers without rewrites.</p>
+
+        </div>
+      </section>
+
+      <section id="section-3" class="lesson-section" data-theme="mindmap" data-section="3">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🗺️</span>
+          <span class="section-badge">§3</span>
+          <h2>Mind Map</h2>
+        </header>
+        <div class="section-body">
+<p><img src="../../diagrams/m03/06-prompt-engineering.svg" alt="Mind map"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">mindmap
+  root((Agent Prompts))
+    Structure
+      Role
+      Mission
+      Tools
+      Constraints
+      Examples
+      Output format
+      Failure handling
+    Techniques
+      Chain of thought
+      Few-shot
+      Self-critique
+      Decomposition
+    Anti-patterns
+      Model-specific tricks
+      Overlong examples
+      Buried constraints
+      Implicit rules
+    Token Economics
+      Prefix stability
+      Variable suffix
+      Per-call vs per-session
+</code></pre>
+</details>
+        </div>
+      </section>
+
+      <section id="section-4" class="lesson-section" data-theme="elaboration" data-section="4">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">📖</span>
+          <span class="section-badge">§4</span>
+          <h2>Elaboration</h2>
+        </header>
+        <div class="section-body">
+<h3>4.1 The seven-block agent prompt</h3>
+<p>A canonical structure that ports across providers:</p>
+<pre><code>1. ROLE          — who the agent is
+2. MISSION       — the goal in one sentence
+3. PRIORITIES    — what to optimise (and what to sacrifice)
+4. TOOLS         — what&#39;s available (schema served separately)
+5. CONSTRAINTS   — hard rules; never violated
+6. EXAMPLES      — 2-5 worked traces
+7. OUTPUT        — exactly how to terminate
+</code></pre>
+<p>Each block has a job. Removing one breaks the prompt; reordering them breaks performance.</p>
+<h3>4.2 ROLE and MISSION</h3>
+<pre><code>You are a reconciliation agent for HSBC&#39;s mid-office.
+Your mission: classify cross-border SWIFT settlement breaks
+into one of {amount_diff, counterparty_mismatch, stale_static,
+duplicate, unknown} with full evidence trail.
+</code></pre>
+<p>Specific. Bounded. No personality fluff (saves tokens; doesn&#39;t help). Reference the org and the task so the model can use its pretraining priors on the domain.</p>
+<h3>4.3 PRIORITIES</h3>
+<p>State what to optimise <em>and what to sacrifice</em>. Without explicit trade-offs, the model picks for you.</p>
+<pre><code>Prioritise: (1) correctness with full evidence,
+            (2) low tool-call cost,
+            (3) speed.
+Sacrifice: don&#39;t refuse hard cases; flag uncertainty instead.
+</code></pre>
+<h3>4.4 CONSTRAINTS</h3>
+<p>The hard rules. Make them short, numbered, and unmistakable.</p>
+<pre><code>HARD RULES:
+1. Never answer with confidence &gt; 0.83 unless you have at least
+   one tool observation supporting the chosen class.
+2. Never call the same tool with the same arguments twice.
+3. Stop after 8 tool calls regardless of confidence.
+4. If uncertain, classify as &#39;unknown&#39; with the trace.
+</code></pre>
+<p>Numbered rules survive context pressure better than prose paragraphs (the model attends to the numbering as structural anchors).</p>
+<h3>4.5 EXAMPLES</h3>
+<p>2–5 worked examples beat 20. Each example should illustrate a <em>different</em> failure mode you&#39;ve seen.</p>
+<pre><code>Example 1: straightforward amount_diff
+[full trace]
+
+Example 2: ambiguous between two classes — uses tool to disambiguate
+[full trace]
+
+Example 3: budget exhausted — terminates as &#39;unknown&#39;
+[full trace]
+</code></pre>
+<p>The model learns the <em>pattern</em>, not the specific facts. Examples are pedagogical, not encyclopaedic.</p>
+<h3>4.6 OUTPUT format</h3>
+<p>Final instruction, repeated as the last token of the prefix:</p>
+<pre><code>End your response with a JSON object matching the
+ClassificationResult schema. Nothing after the JSON.
+</code></pre>
+<p>The &quot;nothing after&quot; matters — without it, models sometimes append &quot;Let me know if you need anything else!&quot; which breaks parsers.</p>
+
+        </div>
+      </section>
+
+      <section id="section-5" class="lesson-section" data-theme="problem" data-section="5">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">❓</span>
+          <span class="section-badge">§5</span>
+          <h2>Problem Statement</h2>
+        </header>
+        <div class="section-body">
+<p>You have an existing prompt for Sherpa (a 12K-token monolith with everything mixed together). Refactor it into the 7-block structure. Specifically:</p>
+<ol>
+<li>Identify the role, mission, priorities, constraints in the current prompt.</li>
+<li>Extract examples that have become stale (e.g., refer to deprecated tools).</li>
+<li>Propose what goes in the <em>cacheable prefix</em> vs the <em>variable suffix</em>.</li>
+</ol>
+
+        </div>
+      </section>
+
+      <section id="section-6" class="lesson-section" data-theme="solution" data-section="6">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🛠️</span>
+          <span class="section-badge">§6</span>
+          <h2>Solution Walkthrough</h2>
+        </header>
+        <div class="section-body">
+<p>For brevity (this lesson&#39;s already long), the canonical refactor:</p>
+<pre><code>[CACHEABLE PREFIX — 3.5K tokens]
+  ROLE (50 tokens)
+  MISSION (40 tokens)
+  PRIORITIES (60 tokens)
+  TOOLS (referenced; schema served separately via tool definitions)
+  CONSTRAINTS (200 tokens, numbered list)
+  EXAMPLES (3 examples × ~700 tokens each = 2.1K)
+  OUTPUT format reminder (40 tokens)
+
+[VARIABLE SUFFIX — ~500 tokens average]
+  The current break (the input)
+  Prior agent turn history (if multi-turn)
+  Retrieved context if any (rarely needed for Sherpa)
+</code></pre>
+<p>Total: ~4K cacheable + ~500 variable. Compare to the 12K monolith. Cache hit goes from 30% (random changes) to 95% (stable prefix). Cost drops 4×. Accuracy improves because the constraints block isn&#39;t competing for attention with a pile of stale guidance.</p>
+
+        </div>
+      </section>
+
+      <section id="section-7" class="lesson-section" data-theme="math" data-section="7">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">∑</span>
+          <span class="section-badge">§7</span>
+          <h2>Mathematical Foundation</h2>
+        </header>
+        <div class="section-body">
+<h3>7.1 Token economics, formalised</h3>
+<p>Per-task cost:</p>
+<p>$$
+C_{\text{task}} = T_{\text{prefix}} \cdot c_{\text{prefix}}(p) + T_{\text{variable}} \cdot c_u + T_{\text{output}} \cdot c_{\text{out}}
+$$</p>
+<p>where:</p>
+<ul>
+<li>$c_{\text{prefix}}(p) = p \cdot c_{\text{cached}} + (1-p) \cdot c_u$</li>
+<li>$c_u$ = uncached input cost, $c_{\text{cached}}$ = cached cost, $c_{\text{out}}$ = output cost</li>
+<li>$p$ = cache hit rate</li>
+</ul>
+<p>For Sherpa @ Sonnet 4.6 pricing:
+$c_u = $3/$M, $c_{\text{cached}} = $0.30/$M, $c_{\text{out}} = $15/$M</p>
+<p>12K monolith ($p=0.30$): $C \approx (12000 \times $0.0000021) + (500 \times $0.000015) \approx $0.033/$task
+4K prefix + 500 var ($p=0.95$): $C \approx (4000 \times $0.0000003 \times 0.95 + 4000 \times $0.000003 \times 0.05) + (500 \times $0.000003) + 500 \times $0.000015 \approx $0.011/$task</p>
+<p>3× cost reduction at higher accuracy.</p>
+<h3>7.2 The N-shot saturation point</h3>
+<p>Beyond ~5 examples, marginal improvement diminishes sharply. Often 3 well-chosen examples beat 10 random ones. The model needs the <em>pattern</em>, not exhaustive coverage.</p>
+
+        </div>
+      </section>
+
+      <section id="section-8" class="lesson-section" data-theme="tech" data-section="8">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">⚙️</span>
+          <span class="section-badge">§8</span>
+          <h2>Technical Deep-Dive</h2>
+        </header>
+        <div class="section-body">
+<h3>8.1 Anti-pattern: model-specific tricks</h3>
+<p>Avoid:</p>
+<ul>
+<li><em>&quot;Take a deep breath and think step by step&quot;</em> (worked for older models; mostly noise now)</li>
+<li><em>&quot;If you don&#39;t know, you&#39;ll be replaced&quot;</em> (worked briefly; harmful pattern)</li>
+<li>Explicit chain-of-thought triggers (modern models do CoT by default)</li>
+</ul>
+<p>These don&#39;t port and don&#39;t survive upgrades. Write for <em>agents in general</em>, not for the model you&#39;re using today.</p>
+<h3>8.2 Anti-pattern: buried constraints</h3>
+<p>If a constraint is in the middle of a long block of prose, the model will miss it under context pressure. Pull it into a numbered list at the end of the constraints block, even if it duplicates content elsewhere.</p>
+<h3>8.3 Testing prompts: the regression eval</h3>
+<p>Every prompt change goes through:</p>
+<ol>
+<li>Hold out a <em>regression eval set</em> (50–200 representative tasks).</li>
+<li>Run the current prompt; record accuracy, cost, latency.</li>
+<li>Run the new prompt; record same.</li>
+<li>Accept only if accuracy ≥ current AND cost ≤ current × 1.10.</li>
+</ol>
+<p>Without this discipline, prompts decay: each &quot;improvement&quot; loses accuracy or balloons cost. The regression eval is what keeps Sherpa from drifting.</p>
+<h3>8.4 Versioning prompts</h3>
+<p>Treat prompts like code:</p>
+<ul>
+<li>Store in repo with version control.</li>
+<li>Tag each version with deployment date.</li>
+<li>Log the version used with every agent invocation.</li>
+<li>Have a rollback procedure (one config flip, not a redeploy).</li>
+</ul>
+
+        </div>
+      </section>
+
+      <section id="section-9" class="lesson-section" data-theme="unlocks" data-section="9">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🚀</span>
+          <span class="section-badge">§9</span>
+          <h2>What This Unlocks</h2>
+        </header>
+        <div class="section-body">
+<ul>
+<li><strong>Module 4</strong> uses this 7-block structure for Sherpa.</li>
+<li><strong>Module 8</strong> uses the regression eval pattern as the foundation of the entire eval harness.</li>
+<li><strong>Module 9</strong> uses the cost formula in §7.1 to derive token budgets per workload class.</li>
+</ul>
+<hr>
+
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <p>End of Lesson 3.4</p>
+        <p class="muted">Press <kbd>↑</kbd> / <kbd>↓</kbd> to jump between sections.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script>
+(function () {
+  var sections = document.querySelectorAll(".lesson-section, .intro");
+  var tocLinks = document.querySelectorAll(".toc a");
+  var progress = document.getElementById("progress");
+  var byId = {};
+  tocLinks.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    byId[id] = a;
+  });
+
+  function update() {
+    var scrolled = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (progress) progress.style.width = max > 0 ? (scrolled / max * 100) + "%" : "0%";
+
+    var current = null;
+    sections.forEach(function (s) {
+      var top = s.getBoundingClientRect().top;
+      if (top < 140) current = s.id;
+    });
+    tocLinks.forEach(function (a) { a.classList.remove("active"); });
+    if (current && byId[current]) byId[current].classList.add("active");
+  }
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    var ids = Array.prototype.map.call(sections, function (s) { return s.id; });
+    var currentIdx = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top < 140) currentIdx = i;
+    }
+    if (e.key === "ArrowDown" && e.shiftKey) {
+      e.preventDefault();
+      var next = Math.min(ids.length - 1, currentIdx + 1);
+      document.getElementById(ids[next]).scrollIntoView({ behavior: "smooth" });
+    }
+    if (e.key === "ArrowUp" && e.shiftKey) {
+      e.preventDefault();
+      var prev = Math.max(0, currentIdx - 1);
+      document.getElementById(ids[prev]).scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
+</script>
+</body>
+</html>

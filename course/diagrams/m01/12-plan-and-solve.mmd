@@ -1,0 +1,10 @@
+flowchart TD
+  Start([Task]) --> Plan[Generate plan]
+  Plan --> Step1[Execute step 1]
+  Step1 --> Check1{Step OK?}
+  Check1 -->|yes| Step2[Execute step 2]
+  Check1 -->|no| Replan[Re-plan]
+  Step2 --> CheckN{Done?}
+  CheckN -->|no| Step1
+  CheckN -->|yes| Answer([Answer])
+  Replan --> Plan

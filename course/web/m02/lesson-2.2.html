@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson 2.2 · POMDPs: Belief States Under Partial Observability · AdaptLearn</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-light.css" />
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+  --max-content: 760px;
+  --sidebar-w: 280px;
+  --header-h: 120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: 8px 12px; z-index: 100;
+}
+.skip:focus { left: 12px; top: 12px; }
+
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.92);
+}
+.page-header-inner {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto; padding: 14px 32px;
+}
+.breadcrumb {
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.page-meta { font-size: 13px; color: var(--text-muted); }
+.page-meta .dot { margin: 0 8px; opacity: 0.5; }
+
+.progress-bar { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+.layout {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 40px;
+  padding: 32px;
+}
+
+.sidebar { position: sticky; top: calc(var(--header-h) + 16px); align-self: start; max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; }
+.toc h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; border-radius: 6px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { background: var(--accent-soft); color: var(--text); }
+.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.toc-num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.toc a.active .toc-num { color: var(--accent); }
+
+.content { min-width: 0; max-width: var(--max-content); }
+
+.intro, .lesson-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: var(--header-h);
+}
+.lesson-section[data-theme="scenario"]    { border-left: 4px solid #ef4444; }
+.lesson-section[data-theme="bridge"]      { border-left: 4px solid #94a3b8; }
+.lesson-section[data-theme="mindmap"]     { border-left: 4px solid #8b5cf6; }
+.lesson-section[data-theme="elaboration"] { border-left: 4px solid #2563eb; }
+.lesson-section[data-theme="problem"]     { border-left: 4px solid #f59e0b; }
+.lesson-section[data-theme="solution"]    { border-left: 4px solid #10b981; }
+.lesson-section[data-theme="math"]        { border-left: 4px solid #6366f1; }
+.lesson-section[data-theme="tech"]        { border-left: 4px solid #64748b; }
+.lesson-section[data-theme="unlocks"]     { border-left: 4px solid #ec4899; }
+.lesson-section[data-theme="orient"]      { border-left: 4px solid #0ea5e9; }
+.intro { border-left: 4px solid #0ea5e9; }
+
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon { font-size: 22px; }
+.section-badge {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.section-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.section-body h3 { margin-top: 32px; font-size: 18px; font-weight: 700; }
+.section-body h4 { margin-top: 24px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.section-body p { margin: 12px 0; }
+.section-body ul, .section-body ol { margin: 12px 0; padding-left: 24px; }
+.section-body li { margin: 4px 0; }
+
+.section-body a { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(37,99,235,0.3); text-underline-offset: 2px; }
+.section-body a:hover { text-decoration-color: var(--accent); }
+
+.section-body strong { font-weight: 700; }
+.section-body em { font-style: italic; }
+
+.section-body blockquote {
+  margin: 16px 0; padding: 12px 20px;
+  background: #f5f6f8; border-left: 3px solid var(--text-muted);
+  border-radius: 4px; color: var(--text); font-size: 0.95em;
+}
+.section-body blockquote p:first-child { margin-top: 0; }
+.section-body blockquote p:last-child { margin-bottom: 0; }
+
+.section-body img {
+  display: block; max-width: 100%; height: auto;
+  margin: 20px auto; padding: 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+}
+
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 0.9em;
+}
+.section-body th, .section-body td {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-body th { background: #f5f6f8; font-weight: 600; }
+
+.section-body code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: #f1f3f5; padding: 1px 6px; border-radius: 3px;
+}
+.section-body pre {
+  background: #f6f8fa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font-size: 13px;
+  margin: 16px 0;
+}
+.section-body pre code { background: transparent; padding: 0; }
+
+.section-body details {
+  margin: 16px 0; padding: 10px 14px;
+  background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px;
+}
+.section-body details summary {
+  cursor: pointer; font-weight: 600; font-size: 13px;
+  color: var(--text-muted);
+}
+.section-body details[open] summary { margin-bottom: 8px; }
+
+.section-body hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+
+.section-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+
+.lesson-footer {
+  text-align: center; padding: 32px;
+  color: var(--text-muted); font-size: 14px;
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+.lesson-footer .muted { font-size: 12px; opacity: 0.7; }
+kbd {
+  background: var(--surface); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+  .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toc li { flex: 0 0 auto; }
+  .toc a { padding: 4px 8px; font-size: 12px; }
+  .intro, .lesson-section { padding: 20px; }
+  .page-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="../../index.html">AdaptLearn</a>
+        <span class="sep">›</span>
+        <a href="../index.html">Module 2</a>
+        <span class="sep">›</span>
+        <span class="current">Lesson 2.2</span>
+      </nav>
+      <h1 class="page-title">POMDPs: Belief States Under Partial Observability</h1>
+      <div class="page-meta">
+        <span>Lesson 2.2</span>
+        <span class="dot">·</span>
+        <span>9 sections</span>
+        <span class="dot">·</span>
+        <span>~25 min read</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc" aria-label="Lesson sections">
+        <h3>Sections</h3>
+        <ol>
+      <li><a href="#section-1" data-section="1"><span class="toc-num">§1</span><span class="toc-title">Business Scenario</span></a></li>
+      <li><a href="#section-2" data-section="2"><span class="toc-num">§2</span><span class="toc-title">Bridge to Topic</span></a></li>
+      <li><a href="#section-3" data-section="3"><span class="toc-num">§3</span><span class="toc-title">Mind Map</span></a></li>
+      <li><a href="#section-4" data-section="4"><span class="toc-num">§4</span><span class="toc-title">Elaboration</span></a></li>
+      <li><a href="#section-5" data-section="5"><span class="toc-num">§5</span><span class="toc-title">Problem Statement</span></a></li>
+      <li><a href="#section-6" data-section="6"><span class="toc-num">§6</span><span class="toc-title">Solution Walkthrough</span></a></li>
+      <li><a href="#section-7" data-section="7"><span class="toc-num">§7</span><span class="toc-title">Mathematical Foundation</span></a></li>
+      <li><a href="#section-8" data-section="8"><span class="toc-num">§8</span><span class="toc-title">Technical Deep-Dive</span></a></li>
+      <li><a href="#section-9" data-section="9"><span class="toc-num">§9</span><span class="toc-title">What This Unlocks</span></a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main id="main" class="content">
+      <section class="intro" id="section-intro">
+        <header class="section-header">
+          <span class="section-icon">📍</span>
+          <h2>How to use this lesson</h2>
+        </header>
+        <div class="section-body">
+<blockquote>
+<p><strong>§0 · From last time.</strong> Lesson 2.1 modelled agent decisions as an MDP and derived Daniel&#39;s budget rule. That model assumed the agent could <em>see</em> the true state of the world. For an LLM agent, this is never true — the agent sees tool outputs, not the underlying truth. POMDPs (Partially Observable MDPs) are the formalism for this case, and they&#39;re the formal model that ReAct, Plan-and-Solve, and Reflexion are all approximating.</p>
+</blockquote>
+
+        </div>
+      </section>
+      <section id="section-1" class="lesson-section" data-theme="scenario" data-section="1">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🏢</span>
+          <span class="section-badge">§1</span>
+          <h2>Business Scenario</h2>
+        </header>
+        <div class="section-body">
+<p><em>Helix Research, Monday morning standup.</em></p>
+<p>Tom Rivera is showing Maya his literature-triage agent&#39;s traces. One trace stands out:</p>
+<blockquote>
+<p><em>Read paper 1 — relevance score 0.4. Read paper 2 — relevance 0.7. Read paper 3 — relevance 0.3. Read paper 4 — relevance 0.8. Read paper 5 — relevance 0.6.</em></p>
+<p>Final answer: &quot;5 out of 5 papers reviewed; 2 highly relevant (paper 2, paper 4).&quot;</p>
+</blockquote>
+<blockquote>
+<p><em>&quot;This was a query about a specific gene target,&quot;</em> Tom says. <em>&quot;After paper 2, the agent knew the target was probably relevant. Why did it keep reading? Each paper costs us 800ms and $0.04. We did this 14,000 times this week. That&#39;s £1,800 we might not need to spend.&quot;</em></p>
+</blockquote>
+<p>The agent kept reading because it didn&#39;t update its <em>belief</em> about what it was looking for after each observation. It treated each paper independently. The POMDP framework explains exactly when to stop.</p>
+
+        </div>
+      </section>
+
+      <section id="section-2" class="lesson-section" data-theme="bridge" data-section="2">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🔗</span>
+          <span class="section-badge">§2</span>
+          <h2>Bridge to Topic</h2>
+        </header>
+        <div class="section-body">
+<p>In an MDP you know the state. In a POMDP you have to <em>infer</em> the state from observations. The agent&#39;s &quot;knowledge state&quot; is a probability distribution over true states — called a <em>belief</em>. Acting optimally in a POMDP means acting on your current belief, and updating that belief with every observation. Knowing this math is what turns &quot;the agent kept reading&quot; from a vibe into a quantifiable design defect.</p>
+
+        </div>
+      </section>
+
+      <section id="section-3" class="lesson-section" data-theme="mindmap" data-section="3">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🗺️</span>
+          <span class="section-badge">§3</span>
+          <h2>Mind Map</h2>
+        </header>
+        <div class="section-body">
+<p><img src="../../diagrams/m02/04-pomdp-mindmap.svg" alt="Mind map"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">mindmap
+  root((POMDP))
+    Extra ingredients
+      Observation O
+      Observation model Omega
+    Belief
+      Distribution over S
+      Updated via Bayes
+    Belief MDP
+      Continuous state space
+      Same Bellman logic
+    Solution methods
+      Point-based VI
+      QMDP heuristic
+      LLM as approximator
+</code></pre>
+</details>
+
+<p><em>Takeaway: a POMDP is an MDP whose state is a probability distribution. That&#39;s it. Everything else follows.</em></p>
+
+        </div>
+      </section>
+
+      <section id="section-4" class="lesson-section" data-theme="elaboration" data-section="4">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">📖</span>
+          <span class="section-badge">§4</span>
+          <h2>Elaboration</h2>
+        </header>
+        <div class="section-body">
+<h3>4.1 Definition</h3>
+<p>A POMDP is a tuple $\langle S, A, T, R, \Omega, O, \gamma \rangle$:</p>
+<ul>
+<li>$S, A, T, R, \gamma$ — same as MDP</li>
+<li>$\Omega$ — set of possible observations</li>
+<li>$O(o \mid s&#39;, a)$ — probability of seeing observation $o$ after taking action $a$ and arriving at state $s&#39;$</li>
+</ul>
+<p>The agent never sees $s$ directly. It sees a sequence of observations and must infer $s$.</p>
+<h3>4.2 The belief state</h3>
+<p>The agent&#39;s belief at time $t$ is $b_t \in \Delta(S)$ — a probability distribution over states. After taking action $a$ and observing $o$, the belief updates by Bayes&#39; rule:</p>
+<p>$$
+b&#39;(s&#39;) = \eta \cdot O(o \mid s&#39;, a) \sum_s T(s&#39; \mid s, a) b(s)
+$$</p>
+<p>where $\eta$ is a normalising constant.</p>
+<p>This is the central equation of POMDP theory. <em>Every observation is a chance to update the belief.</em> An agent that doesn&#39;t update is leaving information on the table.</p>
+<h3>4.3 Acting on the belief</h3>
+<p>Once you have $b$, the optimal action is the one that maximises:</p>
+<p>$$
+Q^<em>(b, a) = \sum_s b(s) R(s, a) + \gamma \sum_o P(o \mid b, a) V^</em>(b&#39;_{b, a, o})
+$$</p>
+<p>where $b&#39;_{b, a, o}$ is the post-update belief. This is the Bellman equation in <em>belief space</em> — and belief space is continuous, even when state space is discrete. POMDPs are computationally hard in general (PSPACE-hard).</p>
+<p>But you don&#39;t need optimality; you need <em>good enough</em>. LLM agents approximate this with implicit belief and learned heuristics. The math gives you the framework for analysing whether they&#39;re approximating well.</p>
+<h3>4.4 The &quot;stop or continue&quot; question</h3>
+<p>The most useful POMDP idea for LLM-agent design is the <em>expected value of information</em> (EVoI):</p>
+<p>$$
+\text{EVoI}(a) = \mathbb{E}<em>o [V(b&#39;</em>{b, a, o})] - V(b) - c(a)
+$$</p>
+<p>In English: how much does your value improve by taking the action (gathering this observation), minus the cost of taking it?</p>
+<p>Stop when $\text{EVoI}(a) \leq 0$ for every $a$. That is: when no action&#39;s expected information gain pays for its cost.</p>
+<p>This is the principled answer to Tom&#39;s question. After paper 2, the agent&#39;s belief about &quot;is this target relevant?&quot; was already strong. Reading paper 3 had near-zero EVoI because the marginal observation was unlikely to change the belief enough to change the answer.</p>
+
+        </div>
+      </section>
+
+      <section id="section-5" class="lesson-section" data-theme="problem" data-section="5">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">❓</span>
+          <span class="section-badge">§5</span>
+          <h2>Problem Statement</h2>
+        </header>
+        <div class="section-body">
+<p>Tom&#39;s literature triage agent is asked: &quot;Find all papers relevant to BRCA2 in clinical trials from 2024.&quot; Five candidate papers. After reading each, the agent emits a relevance score.</p>
+<ol>
+<li>Compute the belief update after each paper, assuming a Bayesian observer.</li>
+<li>Identify the step at which EVoI ≤ 0 and the agent should stop.</li>
+<li>Propose a termination rule the LLM agent can follow (since it can&#39;t compute EVoI explicitly).</li>
+</ol>
+<p>Use the trace: 0.4, 0.7, 0.3, 0.8, 0.6. Assume the true latent variable is &quot;average relevance across the population of candidate papers&quot; and the prior is uniform on [0, 1].</p>
+
+        </div>
+      </section>
+
+      <section id="section-6" class="lesson-section" data-theme="solution" data-section="6">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🛠️</span>
+          <span class="section-badge">§6</span>
+          <h2>Solution Walkthrough</h2>
+        </header>
+        <div class="section-body">
+<h3>Belief update (Beta-Bernoulli model)</h3>
+<p>Treat each paper&#39;s relevance score as a Bernoulli-like observation (&gt;0.5 = relevant). The posterior over &quot;fraction of papers relevant&quot; is Beta-distributed.</p>
+<p>Prior: Beta(1, 1) (uniform). After observations:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Papers seen</th>
+<th>Relevant</th>
+<th>Not rel</th>
+<th>Posterior mean</th>
+<th>Posterior 95% CI</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0.50</td>
+<td>[0.025, 0.975]</td>
+</tr>
+<tr>
+<td>1</td>
+<td>1 (0.4)</td>
+<td>0</td>
+<td>1</td>
+<td>0.33</td>
+<td>[0.06, 0.81]</td>
+</tr>
+<tr>
+<td>2</td>
+<td>2 (0.7)</td>
+<td>1</td>
+<td>1</td>
+<td>0.50</td>
+<td>[0.16, 0.84]</td>
+</tr>
+<tr>
+<td>3</td>
+<td>3 (0.3)</td>
+<td>1</td>
+<td>2</td>
+<td>0.40</td>
+<td>[0.14, 0.74]</td>
+</tr>
+<tr>
+<td>4</td>
+<td>4 (0.8)</td>
+<td>2</td>
+<td>2</td>
+<td>0.50</td>
+<td>[0.21, 0.78]</td>
+</tr>
+<tr>
+<td>5</td>
+<td>5 (0.6)</td>
+<td>3</td>
+<td>2</td>
+<td>0.57</td>
+<td>[0.25, 0.84]</td>
+</tr>
+</tbody></table>
+<p>After 3 papers the belief has stabilised meaningfully (mean 0.40, narrow CI). After 4 papers it&#39;s tighter still. After 5, the marginal change is small.</p>
+<h3>EVoI computation</h3>
+<p>Cost per paper: $0.04 + 0.8s × labour. Value of the decision: depends on what downstream uses the score for, but assume each correctly-classified paper saves $0.20 of researcher time (the time they&#39;d have spent reading themselves).</p>
+<p>EVoI of reading paper $k+1$, given $k$ papers seen:</p>
+<p>$$
+\text{EVoI}(k+1) \approx 0.20 \cdot \mathbb{P}(\text{misclassification flips}) - 0.04
+$$</p>
+<p>For $k=2$, the CI is wide; another paper has high information gain. EVoI &gt; 0.
+For $k=3$, narrower CI; EVoI ≈ 0.20 × 0.15 − 0.04 = −0.01. <em>Stop.</em></p>
+<p>So the agent should have stopped after paper 3.</p>
+<h3>Termination rule for the LLM agent</h3>
+<p>Since the LLM can&#39;t compute Beta posteriors, give it a <em>heuristic that approximates the EVoI condition</em>:</p>
+<blockquote>
+<p><em>&quot;Stop reading after at least 3 papers if the relevance scores have stabilised (no flips between relevant and not-relevant in the last 2 papers) OR if you&#39;ve read 5 papers regardless.&quot;</em></p>
+</blockquote>
+<p>This catches Tom&#39;s scenario: after paper 3, the pattern was rel/not/not (mixed but not flipping), so the rule would have stopped. Saves ~£700 of the £1,800.</p>
+<p>The general lesson: <strong>whenever an LLM agent does N tool calls in a row of decreasing marginal information, you have a missing termination heuristic.</strong> The POMDP framework tells you what the heuristic should look like.</p>
+
+        </div>
+      </section>
+
+      <section id="section-7" class="lesson-section" data-theme="math" data-section="7">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">∑</span>
+          <span class="section-badge">§7</span>
+          <h2>Mathematical Foundation</h2>
+        </header>
+        <div class="section-body">
+<h3>7.1 The belief MDP</h3>
+<p>Any POMDP can be converted into an MDP whose state space is the <em>belief space</em>:</p>
+<p>$$
+\langle \Delta(S), A, T_b, R_b, \gamma \rangle
+$$</p>
+<p>where $T_b(b&#39; \mid b, a)$ comes from the belief update equation and $R_b(b, a) = \sum_s b(s) R(s, a)$. This is conceptually clean but computationally brutal — belief space is continuous (infinite states) even for finite $S$.</p>
+<h3>7.2 Approximation methods</h3>
+<p>You don&#39;t need exact POMDP solutions for production. Useful approximations:</p>
+<ul>
+<li><strong>QMDP</strong>: assume the world becomes fully observable after one step. Solve the MDP, use $Q^*_{MDP}$ as a heuristic. Cheap and often good enough.</li>
+<li><strong>Point-based value iteration (PBVI)</strong>: maintain $V$ at a sample of belief points; interpolate.</li>
+<li><strong>POMCP</strong> (POMDP Monte Carlo Planning): MCTS in belief space.</li>
+<li><strong>LLM as policy</strong>: the model has implicit beliefs and implicit values. We use this in this course because it scales beyond any explicit POMDP solver.</li>
+</ul>
+<h3>7.3 The value of perfect information</h3>
+<p>A useful bound: the value of <em>one more</em> observation is at most the <em>value of perfect information</em> — what you&#39;d gain if you could just observe the true state directly.</p>
+<p>$$
+\text{VoPI}(b) = \mathbb{E}<em>{s \sim b}[\max_a R(s, a)] - \max_a \mathbb{E}</em>{s \sim b}[R(s, a)]
+$$</p>
+<p>If VoPI is small, no observation is worth taking; you should commit on the current belief. This is the formal version of &quot;the agent has converged.&quot;</p>
+
+        </div>
+      </section>
+
+      <section id="section-8" class="lesson-section" data-theme="tech" data-section="8">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">⚙️</span>
+          <span class="section-badge">§8</span>
+          <h2>Technical Deep-Dive</h2>
+        </header>
+        <div class="section-body">
+<h3>8.1 The implicit belief in LLM agents</h3>
+<p>LLM agents maintain belief <em>implicitly</em> in their context window. The context contains:</p>
+<ul>
+<li>The original task</li>
+<li>All tool calls made</li>
+<li>All observations received</li>
+<li>Any intermediate reasoning</li>
+</ul>
+<p>This is the agent&#39;s &quot;belief state&quot; — not a probability distribution, but a structured information set that the model can condition on. The Markov property holds (the model only sees what&#39;s in context).</p>
+<p>You can extract a <em>fuzzy</em> belief by asking the model directly: <em>&quot;On a scale of 0–1, how confident are you that this is amount_diff?&quot;</em> These elicited beliefs are well-calibrated on common tasks and poorly calibrated on rare ones — exactly the calibration profile of any belief estimator.</p>
+<h3>8.2 The &quot;context as belief&quot; trade-off</h3>
+<p>Implicit beliefs in context have advantages:</p>
+<ul>
+<li>Trivially capture all history (no need to summarise into a sufficient statistic).</li>
+<li>Reasoning over the belief is just inference (the model does it natively).</li>
+<li>No state-design decisions needed.</li>
+</ul>
+<p>And disadvantages:</p>
+<ul>
+<li>Context grows linearly with observations; cost grows quadratically (attention).</li>
+<li>Belief is opaque (no inspectable probability distribution).</li>
+<li>No formal stopping criterion (you can&#39;t compute EVoI directly).</li>
+</ul>
+<p>The art is knowing when to <em>summarise</em> (compact the belief into a shorter sufficient statistic) versus <em>carry</em> (keep raw observations in context). Module 5 covers memory architectures that do this.</p>
+<h3>8.3 Production POMDP for Sherpa</h3>
+<p>In Module 4, Sherpa&#39;s termination policy uses an <em>elicited-confidence + step-cap</em> rule:</p>
+<pre><code class="language-typescript">function shouldStop(belief: ElicitedBelief, step: number): boolean {
+  const maxConfidence = Math.max(...Object.values(belief));
+  return maxConfidence &gt; 0.83 || step &gt;= 8;
+}
+</code></pre>
+<p>This is a heuristic approximation of &quot;answer when VoPI &lt; cost of next call.&quot; It&#39;s not optimal but it&#39;s defensible, cheap, and you can tune the 0.83 threshold per task class.</p>
+
+        </div>
+      </section>
+
+      <section id="section-9" class="lesson-section" data-theme="unlocks" data-section="9">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🚀</span>
+          <span class="section-badge">§9</span>
+          <h2>What This Unlocks</h2>
+        </header>
+        <div class="section-body">
+<ul>
+<li><strong>Lesson 2.3</strong> picks up the Bayesian thread — how to update beliefs when observations are noisy.</li>
+<li><strong>Lesson 2.4</strong> gives us the information-theoretic version of &quot;stop when no more learning is possible.&quot;</li>
+<li><strong>Module 4</strong> uses the POMDP frame to <em>design</em> Sherpa&#39;s termination policy from first principles.</li>
+<li><strong>Module 5</strong> treats <em>retrieval</em> as a POMDP — the relevant document is the hidden state; each query is an action; each search result is an observation.</li>
+<li><strong>Module 8</strong> uses the POMDP framework to design eval metrics: regret (gap from optimal belief-state policy), calibration (does elicited confidence match actual accuracy?).</li>
+</ul>
+<hr>
+
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <p>End of Lesson 2.2</p>
+        <p class="muted">Press <kbd>↑</kbd> / <kbd>↓</kbd> to jump between sections.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script>
+(function () {
+  var sections = document.querySelectorAll(".lesson-section, .intro");
+  var tocLinks = document.querySelectorAll(".toc a");
+  var progress = document.getElementById("progress");
+  var byId = {};
+  tocLinks.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    byId[id] = a;
+  });
+
+  function update() {
+    var scrolled = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (progress) progress.style.width = max > 0 ? (scrolled / max * 100) + "%" : "0%";
+
+    var current = null;
+    sections.forEach(function (s) {
+      var top = s.getBoundingClientRect().top;
+      if (top < 140) current = s.id;
+    });
+    tocLinks.forEach(function (a) { a.classList.remove("active"); });
+    if (current && byId[current]) byId[current].classList.add("active");
+  }
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    var ids = Array.prototype.map.call(sections, function (s) { return s.id; });
+    var currentIdx = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top < 140) currentIdx = i;
+    }
+    if (e.key === "ArrowDown" && e.shiftKey) {
+      e.preventDefault();
+      var next = Math.min(ids.length - 1, currentIdx + 1);
+      document.getElementById(ids[next]).scrollIntoView({ behavior: "smooth" });
+    }
+    if (e.key === "ArrowUp" && e.shiftKey) {
+      e.preventDefault();
+      var prev = Math.max(0, currentIdx - 1);
+      document.getElementById(ids[prev]).scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
+</script>
+</body>
+</html>

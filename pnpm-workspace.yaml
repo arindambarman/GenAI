@@ -2,6 +2,7 @@ packages:
   - apps/*
   - agents/*
   - agents/shared
+  - scripts/course-agent
 
 ignoredBuiltDependencies:
   - esbuild

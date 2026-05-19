@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson 1.3 · Agent vs Workflow vs Pipeline: A Decision Framework · AdaptLearn</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-light.css" />
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+  --max-content: 760px;
+  --sidebar-w: 280px;
+  --header-h: 120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: 8px 12px; z-index: 100;
+}
+.skip:focus { left: 12px; top: 12px; }
+
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.92);
+}
+.page-header-inner {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto; padding: 14px 32px;
+}
+.breadcrumb {
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.page-meta { font-size: 13px; color: var(--text-muted); }
+.page-meta .dot { margin: 0 8px; opacity: 0.5; }
+
+.progress-bar { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+.layout {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 40px;
+  padding: 32px;
+}
+
+.sidebar { position: sticky; top: calc(var(--header-h) + 16px); align-self: start; max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; }
+.toc h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; border-radius: 6px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { background: var(--accent-soft); color: var(--text); }
+.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.toc-num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.toc a.active .toc-num { color: var(--accent); }
+
+.content { min-width: 0; max-width: var(--max-content); }
+
+.intro, .lesson-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: var(--header-h);
+}
+.lesson-section[data-theme="scenario"]    { border-left: 4px solid #ef4444; }
+.lesson-section[data-theme="bridge"]      { border-left: 4px solid #94a3b8; }
+.lesson-section[data-theme="mindmap"]     { border-left: 4px solid #8b5cf6; }
+.lesson-section[data-theme="elaboration"] { border-left: 4px solid #2563eb; }
+.lesson-section[data-theme="problem"]     { border-left: 4px solid #f59e0b; }
+.lesson-section[data-theme="solution"]    { border-left: 4px solid #10b981; }
+.lesson-section[data-theme="math"]        { border-left: 4px solid #6366f1; }
+.lesson-section[data-theme="tech"]        { border-left: 4px solid #64748b; }
+.lesson-section[data-theme="unlocks"]     { border-left: 4px solid #ec4899; }
+.lesson-section[data-theme="orient"]      { border-left: 4px solid #0ea5e9; }
+.intro { border-left: 4px solid #0ea5e9; }
+
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon { font-size: 22px; }
+.section-badge {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.section-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.section-body h3 { margin-top: 32px; font-size: 18px; font-weight: 700; }
+.section-body h4 { margin-top: 24px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.section-body p { margin: 12px 0; }
+.section-body ul, .section-body ol { margin: 12px 0; padding-left: 24px; }
+.section-body li { margin: 4px 0; }
+
+.section-body a { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(37,99,235,0.3); text-underline-offset: 2px; }
+.section-body a:hover { text-decoration-color: var(--accent); }
+
+.section-body strong { font-weight: 700; }
+.section-body em { font-style: italic; }
+
+.section-body blockquote {
+  margin: 16px 0; padding: 12px 20px;
+  background: #f5f6f8; border-left: 3px solid var(--text-muted);
+  border-radius: 4px; color: var(--text); font-size: 0.95em;
+}
+.section-body blockquote p:first-child { margin-top: 0; }
+.section-body blockquote p:last-child { margin-bottom: 0; }
+
+.section-body img {
+  display: block; max-width: 100%; height: auto;
+  margin: 20px auto; padding: 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+}
+
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 0.9em;
+}
+.section-body th, .section-body td {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-body th { background: #f5f6f8; font-weight: 600; }
+
+.section-body code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: #f1f3f5; padding: 1px 6px; border-radius: 3px;
+}
+.section-body pre {
+  background: #f6f8fa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font-size: 13px;
+  margin: 16px 0;
+}
+.section-body pre code { background: transparent; padding: 0; }
+
+.section-body details {
+  margin: 16px 0; padding: 10px 14px;
+  background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px;
+}
+.section-body details summary {
+  cursor: pointer; font-weight: 600; font-size: 13px;
+  color: var(--text-muted);
+}
+.section-body details[open] summary { margin-bottom: 8px; }
+
+.section-body hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+
+.section-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+
+.lesson-footer {
+  text-align: center; padding: 32px;
+  color: var(--text-muted); font-size: 14px;
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+.lesson-footer .muted { font-size: 12px; opacity: 0.7; }
+kbd {
+  background: var(--surface); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+  .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toc li { flex: 0 0 auto; }
+  .toc a { padding: 4px 8px; font-size: 12px; }
+  .intro, .lesson-section { padding: 20px; }
+  .page-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="../../index.html">AdaptLearn</a>
+        <span class="sep">›</span>
+        <a href="../index.html">Module 1</a>
+        <span class="sep">›</span>
+        <span class="current">Lesson 1.3</span>
+      </nav>
+      <h1 class="page-title">Agent vs Workflow vs Pipeline: A Decision Framework</h1>
+      <div class="page-meta">
+        <span>Lesson 1.3</span>
+        <span class="dot">·</span>
+        <span>9 sections</span>
+        <span class="dot">·</span>
+        <span>~25 min read</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc" aria-label="Lesson sections">
+        <h3>Sections</h3>
+        <ol>
+      <li><a href="#section-1" data-section="1"><span class="toc-num">§1</span><span class="toc-title">Business Scenario</span></a></li>
+      <li><a href="#section-2" data-section="2"><span class="toc-num">§2</span><span class="toc-title">Bridge to Topic</span></a></li>
+      <li><a href="#section-3" data-section="3"><span class="toc-num">§3</span><span class="toc-title">Mind Map</span></a></li>
+      <li><a href="#section-4" data-section="4"><span class="toc-num">§4</span><span class="toc-title">Elaboration</span></a></li>
+      <li><a href="#section-5" data-section="5"><span class="toc-num">§5</span><span class="toc-title">Problem Statement</span></a></li>
+      <li><a href="#section-6" data-section="6"><span class="toc-num">§6</span><span class="toc-title">Solution Walkthrough</span></a></li>
+      <li><a href="#section-7" data-section="7"><span class="toc-num">§7</span><span class="toc-title">Mathematical Foundation</span></a></li>
+      <li><a href="#section-8" data-section="8"><span class="toc-num">§8</span><span class="toc-title">Technical Deep-Dive</span></a></li>
+      <li><a href="#section-9" data-section="9"><span class="toc-num">§9</span><span class="toc-title">What This Unlocks</span></a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main id="main" class="content">
+      <section class="intro" id="section-intro">
+        <header class="section-header">
+          <span class="section-icon">📍</span>
+          <h2>How to use this lesson</h2>
+        </header>
+        <div class="section-body">
+<blockquote>
+<p><strong>§0 · From last time.</strong> Lesson 1.2 gave us the historical lineage: which prior failure modes LLM agents solve, which they don&#39;t, and which new ones they introduce. Daniel&#39;s answer to the CRO used a &quot;failure modes inherited / introduced / mitigated&quot; structure. Now we need to operationalise that into a <em>prospective</em> decision tool — given a new task, how do you choose between a workflow, a pipeline, and an agent <em>before</em> deploying it?</p>
+</blockquote>
+
+        </div>
+      </section>
+      <section id="section-1" class="lesson-section" data-theme="scenario" data-section="1">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🏢</span>
+          <span class="section-badge">§1</span>
+          <h2>Business Scenario</h2>
+        </header>
+        <div class="section-body">
+<p><em>Acme E-Commerce HQ, Tuesday standup.</em></p>
+<p>Ronnie Park (head of CX) walks into Lin Chen&#39;s standup with a problem:</p>
+<blockquote>
+<p><em>&quot;I&#39;ve got two backlogs eating my team alive. The first is refund processing — 12,000 requests a week, 90% of them fit the same five patterns. The second is what we call &#39;weird issues&#39; — escalations Tier 1 can&#39;t handle. 800 a week, each one different. Same AI for both? Different? I&#39;m getting four different vendor pitches and I can&#39;t tell what I&#39;m comparing.&quot;</em></p>
+</blockquote>
+<p>Lin needs to give Ronnie a framework, not a vibe. The framework needs to:</p>
+<ol>
+<li>Take any task description and produce a <em>workflow / pipeline / agent</em> recommendation.</li>
+<li>Be defensible to procurement (i.e. not &quot;we picked X because it felt right&quot;).</li>
+<li>Account for the <em>cost of agency</em> — the operational debt taken on when dialling up autonomy.</li>
+</ol>
+
+        </div>
+      </section>
+
+      <section id="section-2" class="lesson-section" data-theme="bridge" data-section="2">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🔗</span>
+          <span class="section-badge">§2</span>
+          <h2>Bridge to Topic</h2>
+        </header>
+        <div class="section-body">
+<p>The vendors are selling three architecturally different things using overlapping marketing. To choose well, Lin needs a five-question test that takes only minutes per task and produces a defensible recommendation. The five questions are derived from the cost-of-agency lessons in 1.1 and the historical failure modes in 1.2.</p>
+
+        </div>
+      </section>
+
+      <section id="section-3" class="lesson-section" data-theme="mindmap" data-section="3">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🗺️</span>
+          <span class="section-badge">§3</span>
+          <h2>Mind Map</h2>
+        </header>
+        <div class="section-body">
+<p><img src="../../diagrams/m01/08-decision-framework.svg" alt="Mind map"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">mindmap
+  root((Choose Architecture))
+    Workflow
+      Fixed graph
+      Closed input space
+      Predictable failure
+      Low cost per task
+    Pipeline
+      Linear transform
+      Each step pure function
+      Easy to debug
+      No backtracking
+    Agent
+      Open input space
+      Runtime decisions
+      Higher variance
+      Justified by ambiguity
+    Five Questions
+      Q1 Input enumerable
+      Q2 Sequence pre-knowable
+      Q3 Failure cost bounded
+      Q4 Time budget tight
+      Q5 Natural-language ambiguity
+    Cost of Agency
+      Predictability
+      Auditability
+      Debugging
+      Cost per task
+</code></pre>
+</details>
+
+<p><em>Takeaway: there are exactly three architectures and exactly five questions to choose between them. The vendor pitches are noise on top.</em></p>
+
+        </div>
+      </section>
+
+      <section id="section-4" class="lesson-section" data-theme="elaboration" data-section="4">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">📖</span>
+          <span class="section-badge">§4</span>
+          <h2>Elaboration</h2>
+        </header>
+        <div class="section-body">
+<h3>4.1 The three architectures, precisely</h3>
+<p><strong>Workflow.</strong> A directed graph of steps. Branches are conditioned on rule outputs. The graph is fully specified at design time. Examples: a refund-approval flow with rules on amount, reason, and customer tier. Mature implementations: BPMN engines, Temporal, Airflow.</p>
+<p><strong>Pipeline.</strong> A linear sequence of pure transformations $f_n \circ f_{n-1} \circ \ldots \circ f_1$. Each $f_i$ takes input, produces output, has no side effects on flow. No branches, no loops. Examples: ETL jobs, RAG ingestion (chunk → embed → index), classifier serving (preprocess → predict → postprocess).</p>
+<p><strong>Agent.</strong> As defined in 1.1 — the LLM dynamically owns which step is next, when to stop, and possibly the goal. Open input space, runtime decisions, agency dial ≥ 2.</p>
+<p>The crucial point: these are not points on a spectrum. They are <em>architecturally distinct</em>. A workflow can contain LLM-as-function steps (pipeline element), and an agent can be invoked from inside a workflow node. But the <em>controlling structure</em> is one of three.</p>
+<h3>4.2 The five questions, derived</h3>
+<p>For any task, answer these five yes/no questions:</p>
+<p><strong>Q1 — Is the input space enumerable?</strong>
+<em>Can you list, in advance, the structurally distinct inputs the system will see?</em> If yes, you&#39;re in closed-world territory. Workflow or pipeline. Refund requests with five canonical patterns: yes. Customer escalation emails: no.</p>
+<p><strong>Q2 — Is the action sequence pre-knowable?</strong>
+<em>Given a valid input, is the sequence of operations the same every time?</em> If yes, pipeline is the cheapest and most reliable choice. If branches are needed but bounded, workflow. If the sequence depends on what the system discovers as it runs, agent.</p>
+<p><strong>Q3 — Is the failure cost bounded?</strong>
+<em>If the system gets it wrong, what&#39;s the maximum downside?</em> If bounded and small, agent autonomy is acceptable. If unbounded or catastrophic (financial, safety, legal), keep a human gate or stay with workflow. This is independent of Q1 and Q2 — even if you <em>need</em> an agent&#39;s flexibility, an unbounded blast radius means you wrap it.</p>
+<p><strong>Q4 — Is the time budget tight?</strong>
+<em>Is there a sub-second SLA?</em> Agents are slower than workflows by an order of magnitude (LLM round-trip × loop steps). If users wait synchronously, default to workflow. If async or background, agent is viable.</p>
+<p><strong>Q5 — Is the task ambiguous in natural language?</strong>
+<em>Could two reasonable humans interpret the task differently?</em> If yes, you need natural-language reasoning capacity — i.e. an LLM in the loop. If no, formal rules suffice.</p>
+<h3>4.3 The decision logic</h3>
+<pre><code>if Q1 and Q2 and Q4:
+    pipeline                         # closed-world, fixed sequence, fast
+elif Q1 and not Q2:
+    workflow                         # closed-world, bounded branching
+elif not Q1 and Q5:
+    agent (with Q3-derived guards)   # open-world, ambiguous
+elif not Q1 and not Q5:
+    workflow + classifier            # open-world but unambiguous
+elif not Q3:
+    workflow + human-in-the-loop     # unbounded failure cost dominates
+</code></pre>
+<p>The if/else above is the entire 1.5 hours of this lesson compressed into ten lines. The next 30 minutes are spent making sure you ask Q1–Q5 <em>correctly</em>, because each one has a common mistake.</p>
+<h3>4.4 The common mistakes per question</h3>
+<p><strong>Q1 mistake: confusing input <em>format</em> with input <em>space</em>.</strong> A JSON schema makes the <em>format</em> enumerable but the <em>space</em> (semantic content of the fields) may not be. Customer escalation tickets are JSON-shaped but their <em>content</em> is open-world.</p>
+<p><strong>Q2 mistake: assuming sequence is fixed because the happy path is short.</strong> Most tasks have a 5-step happy path and a 50-branch error-handling tree. If you have to handle errors dynamically, you don&#39;t have a fixed sequence.</p>
+<p><strong>Q3 mistake: thinking the failure cost is the immediate output&#39;s cost.</strong> It&#39;s the <em>downstream consequence</em>. An incorrect refund of $20 has a cost of $20; an incorrect refund that gets cited as precedent has a cost of (∞ × your policy library). Think in blast radius.</p>
+<p><strong>Q4 mistake: building a &quot;fast agent&quot; by paralleling tool calls.</strong> This caps speedup at the slowest tool. If you have a 200ms SLA, you don&#39;t have time for the model to think.</p>
+<p><strong>Q5 mistake: dismissing ambiguity because you&#39;ve written a specification.</strong> The question is whether two reasonable humans would interpret the task the same way. Specifications get out of date; humans encountering the task fresh don&#39;t read your spec.</p>
+
+        </div>
+      </section>
+
+      <section id="section-5" class="lesson-section" data-theme="problem" data-section="5">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">❓</span>
+          <span class="section-badge">§5</span>
+          <h2>Problem Statement</h2>
+        </header>
+        <div class="section-body">
+<p>Apply the five-question framework to all seven of these real Acme/HSBC/Helix scenarios. For each, answer Q1–Q5, then state the recommended architecture and one justification.</p>
+<ol>
+<li><strong>Acme refund processing</strong> — process 12k requests/week against published refund policy.</li>
+<li><strong>Acme weird-issue escalations</strong> — 800/week, each one different, must resolve without breaching CSAT.</li>
+<li><strong>HSBC SWIFT break classification</strong> — 1,400 breaks/night, ~70% recurring patterns, ~30% novel.</li>
+<li><strong>HSBC daily P&amp;L commentary</strong> — generate the morning-after narrative explaining the trading book&#39;s overnight movement.</li>
+<li><strong>Helix literature triage</strong> — score new PubMed abstracts for relevance to the active research projects.</li>
+<li><strong>Helix hypothesis generation</strong> — propose drug-target interactions worth experimentally validating.</li>
+<li><strong>HSBC KYC document review</strong> — extract structured fields from corporate-customer onboarding documents.</li>
+</ol>
+
+        </div>
+      </section>
+
+      <section id="section-6" class="lesson-section" data-theme="solution" data-section="6">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🛠️</span>
+          <span class="section-badge">§6</span>
+          <h2>Solution Walkthrough</h2>
+        </header>
+        <div class="section-body">
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Scenario</th>
+<th>Q1</th>
+<th>Q2</th>
+<th>Q3</th>
+<th>Q4</th>
+<th>Q5</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Acme refund processing</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅ (bounded)</td>
+<td>✅</td>
+<td>❌</td>
+<td><strong>Workflow</strong> with LLM-classification step for reason categorisation. Five rules cover 90%; agent for the 10% tail is overkill.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Acme weird escalations</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅ (CSAT-bounded)</td>
+<td>❌</td>
+<td>✅</td>
+<td><strong>Agent</strong> (dial 3). Ambiguous, open-world, async — exactly the case agents are for. Cap step count and refund authority.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>HSBC break classification</td>
+<td>partial (70%)</td>
+<td>❌</td>
+<td>✅</td>
+<td>❌</td>
+<td>✅</td>
+<td><strong>Hybrid: workflow + agent fallback.</strong> Rule-based for the 70% known patterns; agent investigates the 30% tail. This is <em>Sherpa</em>.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>HSBC daily P&amp;L commentary</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅ (7am deadline)</td>
+<td>✅</td>
+<td><strong>Agent (dial 2)</strong> — Plan-and-Solve. Plan once at the start (which positions to comment on), execute as pipeline. Tight time budget rules out free-form ReAct loops.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Helix literature triage</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+<td><strong>Pipeline</strong> with LLM scoring step. Inputs vary, but the per-paper sequence is fixed. No need for agent flexibility.</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Helix hypothesis generation</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌ (mis-cite → $4M experiment)</td>
+<td>❌</td>
+<td>✅</td>
+<td><strong>Agent with hard human gate.</strong> Q3 (unbounded cost) forces human sign-off; agent does generation + evidence, human decides commitment.</td>
+</tr>
+<tr>
+<td>7</td>
+<td>HSBC KYC document review</td>
+<td>partial</td>
+<td>✅</td>
+<td>partial</td>
+<td>❌</td>
+<td>partial</td>
+<td><strong>Workflow + LLM extraction + human review.</strong> Format-enumerable, sequence-fixed, but blast radius (false KYC) is too high to remove the human.</td>
+</tr>
+</tbody></table>
+<p><strong>Pattern:</strong> scenarios cluster naturally. The &quot;agent-shaped&quot; ones (#2, #6) share open input space + ambiguity. The &quot;pipeline-shaped&quot; ones (#5) share fixed sequence + bounded variation. The &quot;workflow-shaped&quot; ones (#1, #7) share enumerable patterns + bounded failure. And the <em>hybrid</em> ones (#3, #4) are where the interesting architectural work lives.</p>
+<p><strong>Lin&#39;s recommendation to Ronnie:</strong> <em>&quot;For refund processing — workflow with a small LLM step. We don&#39;t need an agent. For weird escalations — agent, with a $X refund cap and an escalation-back-to-human after N attempts. Two different products, not one. The vendor that&#39;s selling you &#39;one platform for both&#39; is selling you compromise; they will under-engineer the refund flow and over-engineer the escalations.&quot;</em></p>
+
+        </div>
+      </section>
+
+      <section id="section-7" class="lesson-section" data-theme="math" data-section="7">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">∑</span>
+          <span class="section-badge">§7</span>
+          <h2>Mathematical Foundation</h2>
+        </header>
+        <div class="section-body">
+<h3>7.1 Expected utility with variance</h3>
+<p>Given a task, compare two architectures by expected utility:</p>
+<p>$$
+U(M) = \mathbb{E}[\text{value}] - \mathbb{E}[\text{cost}] - \lambda \cdot \text{Var}[\text{outcome}]
+$$</p>
+<p>where $\lambda \geq 0$ is the risk-aversion parameter. The variance term is what makes agents costly: they have higher $\mathbb{E}[\text{value}]$ for ambiguous tasks but also higher $\text{Var}[\text{outcome}]$.</p>
+<p>For <em>risk-neutral</em> deployments (Acme refunds, where one bad refund is shrugged off), $\lambda \approx 0$. Choose by expected value. For <em>risk-averse</em> deployments (HSBC KYC, Helix hypotheses, anything regulated), $\lambda$ is large. Even if an agent has higher expected value, its variance may push utility negative.</p>
+<h3>7.2 Why the dial setting maps to variance</h3>
+<p>From Lesson 1.1&#39;s information-theoretic view, conditional action entropy $H(a_t | o_{1:t})$ rises with the dial setting. Variance of outcomes scales with action entropy (loosely — there&#39;s more decision surface for error). Formally, for many task classes:</p>
+<p>$$
+\text{Var}[\text{outcome}] \approx c \cdot H(a_t | o_{1:t})
+$$</p>
+<p>with $c$ task-dependent. This is the formal version of &quot;higher dial = higher variance = costlier under risk aversion.&quot; Q3 in the framework is essentially asking <em>what&#39;s your $\lambda$?</em></p>
+<h3>7.3 The five questions as a decision-tree classifier</h3>
+<p>You can frame Q1–Q5 as features and the architecture as a label. With ~50 real cases (the seven above × ~7 historical) you can fit a tiny decision tree, and the result is <em>exactly the if/else logic in 4.3</em>. The framework isn&#39;t magic — it&#39;s a hand-engineered decision tree on the load-bearing features of the task.</p>
+
+        </div>
+      </section>
+
+      <section id="section-8" class="lesson-section" data-theme="tech" data-section="8">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">⚙️</span>
+          <span class="section-badge">§8</span>
+          <h2>Technical Deep-Dive</h2>
+        </header>
+        <div class="section-body">
+<h3>8.1 The two anti-patterns</h3>
+<p><strong>Anti-pattern 1: &quot;Agentified workflow&quot;</strong> — taking a working workflow and replacing its dispatcher with an LLM &quot;because it&#39;s smarter.&quot; You inherit the agent&#39;s latency and cost (worst case: 5–10× slower, 50× more expensive per call) and the workflow&#39;s lack of flexibility (the agent can only do what the workflow already allowed). You get the worst of both. Diagnosis: someone read a blog post about agents and felt left behind.</p>
+<p><strong>Anti-pattern 2: &quot;Workflowed agent&quot;</strong> — taking an open-ended agent task and chopping it into a fixed graph &quot;to make it predictable.&quot; You lose the agent&#39;s ability to handle inputs you didn&#39;t anticipate (the entire reason you used an agent) and gain marginal predictability (the LLM still hallucinates within each node). Diagnosis: stakeholders demanded a flowchart and someone delivered one regardless of whether it modelled the actual task.</p>
+<h3>8.2 The hybrid pattern (the production reality)</h3>
+<p>Real systems are hybrids. The most common production architecture for ambiguous-but-regulated tasks (HSBC&#39;s break classification, Helix&#39;s hypotheses, regulated insurance claims) is:</p>
+<p><img src="../../diagrams/m01/09-hybrid-architecture.svg" alt="8.2 The hybrid pattern (the production reality)"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">graph LR
+  Input[Input] --&gt; Gate{Known&lt;br/&gt;pattern?}
+  Gate --&gt;|yes 70%| Wf[Workflow]
+  Gate --&gt;|no 30%| Agent[Agent]
+  Wf --&gt; Out[Output]
+  Agent --&gt; Out
+  Agent -.escalate.-&gt; Human[Human review]
+  Human --&gt; Out
+  classDef workflow fill:#cfc,stroke:#393
+  classDef agent fill:#ffd,stroke:#a80
+  classDef human fill:#fee,stroke:#c33
+  class Wf workflow
+  class Agent agent
+  class Human human
+</code></pre>
+</details>
+
+<p><em>Cheap workflow handles the bulk; agent handles the tail; human handles the tail of the tail.</em></p>
+<p>This is the architecture Sherpa will adopt in Module 4. The &quot;Gate&quot; decision is itself a classifier (small, cheap, deterministic) — <em>not</em> an agent, because making it an agent recurses the problem.</p>
+<h3>8.3 Operational cost comparison (typical, illustrative)</h3>
+<table>
+<thead>
+<tr>
+<th>Architecture</th>
+<th>Cost/task</th>
+<th>Latency p95</th>
+<th>Maintenance</th>
+<th>Failure-debug time</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Workflow</td>
+<td>$0.001</td>
+<td>200 ms</td>
+<td>Rule updates per quarter</td>
+<td>Minutes (trace is a graph)</td>
+</tr>
+<tr>
+<td>Pipeline (with LLM step)</td>
+<td>$0.01</td>
+<td>800 ms</td>
+<td>Prompt updates per month</td>
+<td>Minutes (linear trace)</td>
+</tr>
+<tr>
+<td>Agent (dial 3)</td>
+<td>$0.10–$0.50</td>
+<td>8–30 s</td>
+<td>Eval set + prompt updates weekly</td>
+<td>Hours (loop introspection)</td>
+</tr>
+<tr>
+<td>Multi-agent</td>
+<td>$0.50–$5.00</td>
+<td>30 s–5 min</td>
+<td>Eval + interaction-pattern updates</td>
+<td>Days (cross-agent debugging)</td>
+</tr>
+</tbody></table>
+<p>These numbers are illustrative but order-of-magnitude correct. They explain why &quot;just make everything an agent&quot; is wrong: the cost gradient is 100–1000×.</p>
+
+        </div>
+      </section>
+
+      <section id="section-9" class="lesson-section" data-theme="unlocks" data-section="9">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🚀</span>
+          <span class="section-badge">§9</span>
+          <h2>What This Unlocks</h2>
+        </header>
+        <div class="section-body">
+<ul>
+<li><strong>Lesson 1.4</strong> introduces the four major LLM-agent paradigms (ReAct, Reflexion, Plan-and-Solve, CodeAct). With the framework in hand, you&#39;ll be able to match paradigm to task instead of choosing on novelty.</li>
+<li><strong>Module 4</strong> builds Sherpa as the <em>hybrid pattern</em> in 8.2 — rule-based gate, agentic tail. The five-question framework is what justified the architectural choice.</li>
+<li><strong>Module 11</strong> turns the framework into a business-case template: every vendor pitch maps to a Q1–Q5 answer set and a cost row from §8.3. You&#39;ll be the Lin Chen of your own org.</li>
+</ul>
+<hr>
+
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <p>End of Lesson 1.3</p>
+        <p class="muted">Press <kbd>↑</kbd> / <kbd>↓</kbd> to jump between sections.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script>
+(function () {
+  var sections = document.querySelectorAll(".lesson-section, .intro");
+  var tocLinks = document.querySelectorAll(".toc a");
+  var progress = document.getElementById("progress");
+  var byId = {};
+  tocLinks.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    byId[id] = a;
+  });
+
+  function update() {
+    var scrolled = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (progress) progress.style.width = max > 0 ? (scrolled / max * 100) + "%" : "0%";
+
+    var current = null;
+    sections.forEach(function (s) {
+      var top = s.getBoundingClientRect().top;
+      if (top < 140) current = s.id;
+    });
+    tocLinks.forEach(function (a) { a.classList.remove("active"); });
+    if (current && byId[current]) byId[current].classList.add("active");
+  }
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    var ids = Array.prototype.map.call(sections, function (s) { return s.id; });
+    var currentIdx = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top < 140) currentIdx = i;
+    }
+    if (e.key === "ArrowDown" && e.shiftKey) {
+      e.preventDefault();
+      var next = Math.min(ids.length - 1, currentIdx + 1);
+      document.getElementById(ids[next]).scrollIntoView({ behavior: "smooth" });
+    }
+    if (e.key === "ArrowUp" && e.shiftKey) {
+      e.preventDefault();
+      var prev = Math.max(0, currentIdx - 1);
+      document.getElementById(ids[prev]).scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
+</script>
+</body>
+</html>

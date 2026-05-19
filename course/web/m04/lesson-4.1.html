@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson 4.1 · Sherpa v1: ReAct from Scratch · AdaptLearn</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-light.css" />
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+  --max-content: 760px;
+  --sidebar-w: 280px;
+  --header-h: 120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: 8px 12px; z-index: 100;
+}
+.skip:focus { left: 12px; top: 12px; }
+
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.92);
+}
+.page-header-inner {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto; padding: 14px 32px;
+}
+.breadcrumb {
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.page-meta { font-size: 13px; color: var(--text-muted); }
+.page-meta .dot { margin: 0 8px; opacity: 0.5; }
+
+.progress-bar { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+.layout {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 40px;
+  padding: 32px;
+}
+
+.sidebar { position: sticky; top: calc(var(--header-h) + 16px); align-self: start; max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; }
+.toc h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; border-radius: 6px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { background: var(--accent-soft); color: var(--text); }
+.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.toc-num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.toc a.active .toc-num { color: var(--accent); }
+
+.content { min-width: 0; max-width: var(--max-content); }
+
+.intro, .lesson-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: var(--header-h);
+}
+.lesson-section[data-theme="scenario"]    { border-left: 4px solid #ef4444; }
+.lesson-section[data-theme="bridge"]      { border-left: 4px solid #94a3b8; }
+.lesson-section[data-theme="mindmap"]     { border-left: 4px solid #8b5cf6; }
+.lesson-section[data-theme="elaboration"] { border-left: 4px solid #2563eb; }
+.lesson-section[data-theme="problem"]     { border-left: 4px solid #f59e0b; }
+.lesson-section[data-theme="solution"]    { border-left: 4px solid #10b981; }
+.lesson-section[data-theme="math"]        { border-left: 4px solid #6366f1; }
+.lesson-section[data-theme="tech"]        { border-left: 4px solid #64748b; }
+.lesson-section[data-theme="unlocks"]     { border-left: 4px solid #ec4899; }
+.lesson-section[data-theme="orient"]      { border-left: 4px solid #0ea5e9; }
+.intro { border-left: 4px solid #0ea5e9; }
+
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon { font-size: 22px; }
+.section-badge {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.section-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.section-body h3 { margin-top: 32px; font-size: 18px; font-weight: 700; }
+.section-body h4 { margin-top: 24px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.section-body p { margin: 12px 0; }
+.section-body ul, .section-body ol { margin: 12px 0; padding-left: 24px; }
+.section-body li { margin: 4px 0; }
+
+.section-body a { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(37,99,235,0.3); text-underline-offset: 2px; }
+.section-body a:hover { text-decoration-color: var(--accent); }
+
+.section-body strong { font-weight: 700; }
+.section-body em { font-style: italic; }
+
+.section-body blockquote {
+  margin: 16px 0; padding: 12px 20px;
+  background: #f5f6f8; border-left: 3px solid var(--text-muted);
+  border-radius: 4px; color: var(--text); font-size: 0.95em;
+}
+.section-body blockquote p:first-child { margin-top: 0; }
+.section-body blockquote p:last-child { margin-bottom: 0; }
+
+.section-body img {
+  display: block; max-width: 100%; height: auto;
+  margin: 20px auto; padding: 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+}
+
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 0.9em;
+}
+.section-body th, .section-body td {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-body th { background: #f5f6f8; font-weight: 600; }
+
+.section-body code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: #f1f3f5; padding: 1px 6px; border-radius: 3px;
+}
+.section-body pre {
+  background: #f6f8fa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font-size: 13px;
+  margin: 16px 0;
+}
+.section-body pre code { background: transparent; padding: 0; }
+
+.section-body details {
+  margin: 16px 0; padding: 10px 14px;
+  background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px;
+}
+.section-body details summary {
+  cursor: pointer; font-weight: 600; font-size: 13px;
+  color: var(--text-muted);
+}
+.section-body details[open] summary { margin-bottom: 8px; }
+
+.section-body hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+
+.section-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+
+.lesson-footer {
+  text-align: center; padding: 32px;
+  color: var(--text-muted); font-size: 14px;
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+.lesson-footer .muted { font-size: 12px; opacity: 0.7; }
+kbd {
+  background: var(--surface); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+  .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toc li { flex: 0 0 auto; }
+  .toc a { padding: 4px 8px; font-size: 12px; }
+  .intro, .lesson-section { padding: 20px; }
+  .page-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="../../index.html">AdaptLearn</a>
+        <span class="sep">›</span>
+        <a href="../index.html">Module 4</a>
+        <span class="sep">›</span>
+        <span class="current">Lesson 4.1</span>
+      </nav>
+      <h1 class="page-title">Sherpa v1: ReAct from Scratch</h1>
+      <div class="page-meta">
+        <span>Lesson 4.1</span>
+        <span class="dot">·</span>
+        <span>9 sections</span>
+        <span class="dot">·</span>
+        <span>~25 min read</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc" aria-label="Lesson sections">
+        <h3>Sections</h3>
+        <ol>
+      <li><a href="#section-1" data-section="1"><span class="toc-num">§1</span><span class="toc-title">Business Scenario</span></a></li>
+      <li><a href="#section-2" data-section="2"><span class="toc-num">§2</span><span class="toc-title">Bridge to Topic</span></a></li>
+      <li><a href="#section-3" data-section="3"><span class="toc-num">§3</span><span class="toc-title">Mind Map</span></a></li>
+      <li><a href="#section-4" data-section="4"><span class="toc-num">§4</span><span class="toc-title">Elaboration</span></a></li>
+      <li><a href="#section-5" data-section="5"><span class="toc-num">§5</span><span class="toc-title">Problem Statement</span></a></li>
+      <li><a href="#section-6" data-section="6"><span class="toc-num">§6</span><span class="toc-title">Solution Walkthrough</span></a></li>
+      <li><a href="#section-7" data-section="7"><span class="toc-num">§7</span><span class="toc-title">Mathematical Foundation</span></a></li>
+      <li><a href="#section-8" data-section="8"><span class="toc-num">§8</span><span class="toc-title">Technical Deep-Dive</span></a></li>
+      <li><a href="#section-9" data-section="9"><span class="toc-num">§9</span><span class="toc-title">What This Unlocks</span></a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main id="main" class="content">
+      <section class="intro" id="section-intro">
+        <header class="section-header">
+          <span class="section-icon">📍</span>
+          <h2>How to use this lesson</h2>
+        </header>
+        <div class="section-body">
+<blockquote>
+<p><strong>§0 · From last time.</strong> Modules 1–3 gave us everything we need to build an agent: the agency dial (dial 3 is the target), the POMDP framework (termination rule: confidence &gt; 0.83), strict tool use (no hallucinated tools), and the 7-block prompt structure. Time to build.</p>
+</blockquote>
+
+        </div>
+      </section>
+      <section id="section-1" class="lesson-section" data-theme="scenario" data-section="1">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🏢</span>
+          <span class="section-badge">§1</span>
+          <h2>Business Scenario</h2>
+        </header>
+        <div class="section-body">
+<p><em>HSBC, Monday.</em></p>
+<p>Daniel has signed off on the Lumen-style pilot. Aisha and team will see Sherpa&#39;s recommendations starting Friday; if accuracy and cost are within targets after a 2-week shadow run, Sherpa goes live.</p>
+<blockquote>
+<p><em>&quot;Build the simplest thing that could possibly work,&quot;</em> Priya tells you. <em>&quot;We can add cleverness in Module 4.2. For now: ReAct, four tools, the termination rule from Lesson 2.1, and the prompt structure from 3.4.&quot;</em></p>
+</blockquote>
+
+        </div>
+      </section>
+
+      <section id="section-2" class="lesson-section" data-theme="bridge" data-section="2">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🔗</span>
+          <span class="section-badge">§2</span>
+          <h2>Bridge to Topic</h2>
+        </header>
+        <div class="section-body">
+<p>ReAct is the minimum-viable agent architecture. Everything else in this module <em>adds</em> to it. Building it well first sets the standard for what gets added.</p>
+
+        </div>
+      </section>
+
+      <section id="section-3" class="lesson-section" data-theme="mindmap" data-section="3">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🗺️</span>
+          <span class="section-badge">§3</span>
+          <h2>Mind Map</h2>
+        </header>
+        <div class="section-body">
+<p><img src="../../diagrams/m04/03-react-architecture.svg" alt="Mind map"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">mindmap
+  root((Sherpa v1))
+    Loop
+      Thought
+      Action
+      Observation
+      Answer
+    Tools
+      query_GL
+      query_counterparty
+      query_settlement
+      query_static
+    State
+      Belief
+      Step count
+      Trace
+    Termination
+      Confidence above 0.83
+      Step cap 8
+      No same tool twice
+</code></pre>
+</details>
+        </div>
+      </section>
+
+      <section id="section-4" class="lesson-section" data-theme="elaboration" data-section="4">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">📖</span>
+          <span class="section-badge">§4</span>
+          <h2>Elaboration</h2>
+        </header>
+        <div class="section-body">
+<h3>4.1 The loop, fully specified</h3>
+<pre><code class="language-typescript">type Step =
+  | { kind: &quot;thought&quot;; text: string }
+  | { kind: &quot;action&quot;; tool: ToolName; args: unknown; id: string }
+  | { kind: &quot;observation&quot;; id: string; result: unknown }
+  | { kind: &quot;answer&quot;; classification: BreakClass; confidence: number; rationale: string };
+
+interface Trace {
+  steps: Step[];
+  callCounts: Record&lt;ToolName, number&gt;;
+}
+</code></pre>
+<p>The trace is the agent&#39;s complete state. The Markov property holds because the model only sees the trace + system prompt.</p>
+<h3>4.2 The minimum-viable ReAct</h3>
+<pre><code class="language-typescript">async function classify(breakId: string): Promise&lt;Classification&gt; {
+  const trace: Trace = { steps: [], callCounts: {} };
+  const tools = makeTools(breakId);
+
+  for (let step = 0; step &lt; MAX_STEPS; step++) {
+    const next = await llm.callWithTools({
+      system: SHERPA_SYSTEM_PROMPT,
+      messages: renderTrace(trace, breakId),
+      tools: toolSpecs(tools),
+    });
+
+    trace.steps.push(next);
+
+    if (next.kind === &quot;answer&quot;) {
+      return next as Classification;
+    }
+
+    if (next.kind === &quot;action&quot;) {
+      assertNoRepeat(trace, next);
+      const result = await invokeTool(tools, next);
+      trace.steps.push({ kind: &quot;observation&quot;, id: next.id, result });
+      trace.callCounts[next.tool] = (trace.callCounts[next.tool] ?? 0) + 1;
+    }
+  }
+
+  throw new MaxStepsExceeded(trace);
+}
+</code></pre>
+<p>200 lines including error handling. The simplicity is the point.</p>
+<h3>4.3 The system prompt</h3>
+<p>Using the 7-block structure from Lesson 3.4:</p>
+<pre><code>[ROLE]
+You are Sherpa, a reconciliation agent for HSBC&#39;s mid-office.
+
+[MISSION]
+Classify cross-border SWIFT settlement breaks into one of
+{amount_diff, counterparty_mismatch, stale_static, duplicate, unknown}
+with full evidence trail.
+
+[PRIORITIES]
+1. Correctness with evidence (every claim cites a tool observation)
+2. Low tool-call cost (prefer high-information tools)
+3. Speed (within those constraints)
+
+[TOOLS]
+(served via the strict tool-use mechanism)
+
+[CONSTRAINTS]
+1. Never answer with confidence &gt; 0.83 unless at least one tool
+   observation supports the chosen class.
+2. Never call the same tool with the same arguments twice.
+3. Stop after 8 tool calls total.
+4. If still uncertain after the budget, classify as &#39;unknown&#39;
+   with the trace as rationale.
+
+[EXAMPLES]
+(3 worked traces, one per common failure mode)
+
+[OUTPUT]
+End with the AnswerSchema JSON. Nothing after.
+</code></pre>
+<h3>4.4 Tool descriptions (CRUD-style precision)</h3>
+<pre><code class="language-typescript">const tools = {
+  query_GL: {
+    description: &quot;Get the GL entry for this break. Returns amount, currency, posting date. Use to verify the recorded settlement amount against the SWIFT amount.&quot;,
+    input_schema: { /* ... */ },
+  },
+  query_counterparty: {
+    description: &quot;Get counterparty risk tier, settlement instructions, and known issue history. Use to test counterparty_mismatch hypothesis.&quot;,
+    input_schema: { /* ... */ },
+  },
+  // ... etc
+};
+</code></pre>
+<p>Following Lesson 3.2: lead with <em>when to use</em>, state what&#39;s returned, hint at next steps.</p>
+
+        </div>
+      </section>
+
+      <section id="section-5" class="lesson-section" data-theme="problem" data-section="5">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">❓</span>
+          <span class="section-badge">§5</span>
+          <h2>Problem Statement</h2>
+        </header>
+        <div class="section-body">
+<p>Implement Sherpa v1. Specifically:</p>
+<ol>
+<li>Write the <code>classify</code> function.</li>
+<li>Write the system prompt using the 7-block structure.</li>
+<li>Write the tool descriptions.</li>
+<li>Write a 5-task eval set and report pass rate.</li>
+</ol>
+
+        </div>
+      </section>
+
+      <section id="section-6" class="lesson-section" data-theme="solution" data-section="6">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🛠️</span>
+          <span class="section-badge">§6</span>
+          <h2>Solution Walkthrough</h2>
+        </header>
+        <div class="section-body">
+<p>The full source ships as <code>lab-4.1/</code> (in the course repo). Key implementation notes:</p>
+<ul>
+<li><strong>Termination heuristic from Lesson 2.1:</strong> the model is told to emit confidence; deterministic code (not the model) decides whether to commit. This puts the budget rule in code, not in prompts.</li>
+<li><strong>Repeat detection from Lesson 3.2:</strong> track <code>(tool, hash(args))</code> per trace; refuse re-execution and tell the model.</li>
+<li><strong>Trace rendering:</strong> pretty-print the trace as XML-ish tags so the model attends to structure (<code>&lt;thought&gt;...&lt;/thought&gt;</code>, <code>&lt;action&gt;...&lt;/action&gt;</code>, <code>&lt;observation&gt;...&lt;/observation&gt;</code>).</li>
+</ul>
+<p>Eval results (5-task pilot): 4/5 correct (80%). The miss was a novel break shape (stale fee schedule on a new counterparty) — the agent correctly flagged &#39;unknown&#39;. Daniel calls this a pass for v1.</p>
+
+        </div>
+      </section>
+
+      <section id="section-7" class="lesson-section" data-theme="math" data-section="7">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">∑</span>
+          <span class="section-badge">§7</span>
+          <h2>Mathematical Foundation</h2>
+        </header>
+        <div class="section-body">
+<h3>7.1 ReAct as POMDP approximation</h3>
+<p>Sherpa v1 approximates POMDP optimal-policy behaviour with:</p>
+<ul>
+<li><strong>Belief</strong>: the trace itself (no explicit distribution).</li>
+<li><strong>Belief update</strong>: the model conditions on the trace each turn (implicit Bayes).</li>
+<li><strong>Termination</strong>: confidence threshold (approximates &quot;VoPI &lt; cost&quot;).</li>
+</ul>
+<p>The implicit-belief approach saves us from designing an explicit state space (which doesn&#39;t generalise) at the cost of an opaque belief (which we mitigate with elicited confidence).</p>
+<h3>7.2 Expected cost per task</h3>
+<p>For v1 on the pilot eval:
+$$
+\mathbb{E}[\text{cost}] = \mathbb{E}[\text{steps}] \cdot (c_{\text{LLM}} + c_{\text{tool}}) = 4.2 \cdot ($0.008 + $0.005) = $0.054
+$$</p>
+<p>Below Daniel&#39;s $0.12/case budget. Headroom for added cleverness later.</p>
+
+        </div>
+      </section>
+
+      <section id="section-8" class="lesson-section" data-theme="tech" data-section="8">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">⚙️</span>
+          <span class="section-badge">§8</span>
+          <h2>Technical Deep-Dive</h2>
+        </header>
+        <div class="section-body">
+<h3>8.1 The &quot;ask for confidence&quot; trick</h3>
+<p>Modern models are <em>reasonably</em> calibrated when you ask them to emit confidence. Best prompt:</p>
+<pre><code>End your answer with:
+  CONFIDENCE: &lt;0.0 to 1.0&gt;
+  RATIONALE: &lt;one sentence linking each piece of evidence&gt;
+</code></pre>
+<p>The rationale field forces the model to ground confidence in the trace — anti-anchoring measure from Lesson 2.3.</p>
+<h3>8.2 Trace rendering for attention</h3>
+<p>Render the trace as structured tags. The model attends to syntactic landmarks; tags create them.</p>
+<h3>8.3 Error recovery for tool failures</h3>
+<p>Tool returns an error:</p>
+<ul>
+<li>Inject the error as the observation.</li>
+<li>Tell the model the tool failed and why.</li>
+<li>Let the model decide whether to retry, switch tools, or abort.</li>
+</ul>
+<p>Do <em>not</em> hide tool errors. Hidden errors make traces undebuggable.</p>
+
+        </div>
+      </section>
+
+      <section id="section-9" class="lesson-section" data-theme="unlocks" data-section="9">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🚀</span>
+          <span class="section-badge">§9</span>
+          <h2>What This Unlocks</h2>
+        </header>
+        <div class="section-body">
+<ul>
+<li><strong>Lesson 4.2</strong> adds memory across runs (Sherpa learns from prior nights).</li>
+<li><strong>Lesson 4.3</strong> adds reflection (Sherpa critiques its own traces).</li>
+<li><strong>Lesson 4.4</strong> adds explicit planning (Sherpa decomposes complex breaks).</li>
+<li><strong>Lesson 4.5</strong> composes all into the production hybrid pattern.</li>
+</ul>
+<hr>
+
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <p>End of Lesson 4.1</p>
+        <p class="muted">Press <kbd>↑</kbd> / <kbd>↓</kbd> to jump between sections.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script>
+(function () {
+  var sections = document.querySelectorAll(".lesson-section, .intro");
+  var tocLinks = document.querySelectorAll(".toc a");
+  var progress = document.getElementById("progress");
+  var byId = {};
+  tocLinks.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    byId[id] = a;
+  });
+
+  function update() {
+    var scrolled = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (progress) progress.style.width = max > 0 ? (scrolled / max * 100) + "%" : "0%";
+
+    var current = null;
+    sections.forEach(function (s) {
+      var top = s.getBoundingClientRect().top;
+      if (top < 140) current = s.id;
+    });
+    tocLinks.forEach(function (a) { a.classList.remove("active"); });
+    if (current && byId[current]) byId[current].classList.add("active");
+  }
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    var ids = Array.prototype.map.call(sections, function (s) { return s.id; });
+    var currentIdx = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top < 140) currentIdx = i;
+    }
+    if (e.key === "ArrowDown" && e.shiftKey) {
+      e.preventDefault();
+      var next = Math.min(ids.length - 1, currentIdx + 1);
+      document.getElementById(ids[next]).scrollIntoView({ behavior: "smooth" });
+    }
+    if (e.key === "ArrowUp" && e.shiftKey) {
+      e.preventDefault();
+      var prev = Math.max(0, currentIdx - 1);
+      document.getElementById(ids[prev]).scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
+</script>
+</body>
+</html>

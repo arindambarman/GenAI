@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson 2.1 · MDPs: Modelling Agent Decisions Formally · AdaptLearn</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-light.css" />
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+  --max-content: 760px;
+  --sidebar-w: 280px;
+  --header-h: 120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: 8px 12px; z-index: 100;
+}
+.skip:focus { left: 12px; top: 12px; }
+
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.92);
+}
+.page-header-inner {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto; padding: 14px 32px;
+}
+.breadcrumb {
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.page-meta { font-size: 13px; color: var(--text-muted); }
+.page-meta .dot { margin: 0 8px; opacity: 0.5; }
+
+.progress-bar { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+.layout {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 40px;
+  padding: 32px;
+}
+
+.sidebar { position: sticky; top: calc(var(--header-h) + 16px); align-self: start; max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; }
+.toc h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; border-radius: 6px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { background: var(--accent-soft); color: var(--text); }
+.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.toc-num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.toc a.active .toc-num { color: var(--accent); }
+
+.content { min-width: 0; max-width: var(--max-content); }
+
+.intro, .lesson-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: var(--header-h);
+}
+.lesson-section[data-theme="scenario"]    { border-left: 4px solid #ef4444; }
+.lesson-section[data-theme="bridge"]      { border-left: 4px solid #94a3b8; }
+.lesson-section[data-theme="mindmap"]     { border-left: 4px solid #8b5cf6; }
+.lesson-section[data-theme="elaboration"] { border-left: 4px solid #2563eb; }
+.lesson-section[data-theme="problem"]     { border-left: 4px solid #f59e0b; }
+.lesson-section[data-theme="solution"]    { border-left: 4px solid #10b981; }
+.lesson-section[data-theme="math"]        { border-left: 4px solid #6366f1; }
+.lesson-section[data-theme="tech"]        { border-left: 4px solid #64748b; }
+.lesson-section[data-theme="unlocks"]     { border-left: 4px solid #ec4899; }
+.lesson-section[data-theme="orient"]      { border-left: 4px solid #0ea5e9; }
+.intro { border-left: 4px solid #0ea5e9; }
+
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon { font-size: 22px; }
+.section-badge {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.section-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.section-body h3 { margin-top: 32px; font-size: 18px; font-weight: 700; }
+.section-body h4 { margin-top: 24px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.section-body p { margin: 12px 0; }
+.section-body ul, .section-body ol { margin: 12px 0; padding-left: 24px; }
+.section-body li { margin: 4px 0; }
+
+.section-body a { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(37,99,235,0.3); text-underline-offset: 2px; }
+.section-body a:hover { text-decoration-color: var(--accent); }
+
+.section-body strong { font-weight: 700; }
+.section-body em { font-style: italic; }
+
+.section-body blockquote {
+  margin: 16px 0; padding: 12px 20px;
+  background: #f5f6f8; border-left: 3px solid var(--text-muted);
+  border-radius: 4px; color: var(--text); font-size: 0.95em;
+}
+.section-body blockquote p:first-child { margin-top: 0; }
+.section-body blockquote p:last-child { margin-bottom: 0; }
+
+.section-body img {
+  display: block; max-width: 100%; height: auto;
+  margin: 20px auto; padding: 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+}
+
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 0.9em;
+}
+.section-body th, .section-body td {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-body th { background: #f5f6f8; font-weight: 600; }
+
+.section-body code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: #f1f3f5; padding: 1px 6px; border-radius: 3px;
+}
+.section-body pre {
+  background: #f6f8fa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font-size: 13px;
+  margin: 16px 0;
+}
+.section-body pre code { background: transparent; padding: 0; }
+
+.section-body details {
+  margin: 16px 0; padding: 10px 14px;
+  background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px;
+}
+.section-body details summary {
+  cursor: pointer; font-weight: 600; font-size: 13px;
+  color: var(--text-muted);
+}
+.section-body details[open] summary { margin-bottom: 8px; }
+
+.section-body hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+
+.section-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+
+.lesson-footer {
+  text-align: center; padding: 32px;
+  color: var(--text-muted); font-size: 14px;
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+.lesson-footer .muted { font-size: 12px; opacity: 0.7; }
+kbd {
+  background: var(--surface); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+  .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toc li { flex: 0 0 auto; }
+  .toc a { padding: 4px 8px; font-size: 12px; }
+  .intro, .lesson-section { padding: 20px; }
+  .page-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="../../index.html">AdaptLearn</a>
+        <span class="sep">›</span>
+        <a href="../index.html">Module 2</a>
+        <span class="sep">›</span>
+        <span class="current">Lesson 2.1</span>
+      </nav>
+      <h1 class="page-title">MDPs: Modelling Agent Decisions Formally</h1>
+      <div class="page-meta">
+        <span>Lesson 2.1</span>
+        <span class="dot">·</span>
+        <span>9 sections</span>
+        <span class="dot">·</span>
+        <span>~25 min read</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc" aria-label="Lesson sections">
+        <h3>Sections</h3>
+        <ol>
+      <li><a href="#section-1" data-section="1"><span class="toc-num">§1</span><span class="toc-title">Business Scenario</span></a></li>
+      <li><a href="#section-2" data-section="2"><span class="toc-num">§2</span><span class="toc-title">Bridge to Topic</span></a></li>
+      <li><a href="#section-3" data-section="3"><span class="toc-num">§3</span><span class="toc-title">Mind Map</span></a></li>
+      <li><a href="#section-4" data-section="4"><span class="toc-num">§4</span><span class="toc-title">Elaboration</span></a></li>
+      <li><a href="#section-5" data-section="5"><span class="toc-num">§5</span><span class="toc-title">Problem Statement</span></a></li>
+      <li><a href="#section-6" data-section="6"><span class="toc-num">§6</span><span class="toc-title">Solution Walkthrough</span></a></li>
+      <li><a href="#section-7" data-section="7"><span class="toc-num">§7</span><span class="toc-title">Mathematical Foundation</span></a></li>
+      <li><a href="#section-8" data-section="8"><span class="toc-num">§8</span><span class="toc-title">Technical Deep-Dive</span></a></li>
+      <li><a href="#section-9" data-section="9"><span class="toc-num">§9</span><span class="toc-title">What This Unlocks</span></a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main id="main" class="content">
+      <section class="intro" id="section-intro">
+        <header class="section-header">
+          <span class="section-icon">📍</span>
+          <h2>How to use this lesson</h2>
+        </header>
+        <div class="section-body">
+<blockquote>
+<p><strong>§0 · From last time.</strong> Module 1 gave us the agency dial and showed that high-dial systems trade predictability for adaptivity. We hand-waved the term &quot;cost of agency&quot; using expected-value language. Now we make it precise. The MDP (Markov Decision Process) is the standard formalism for agent decision-making, and even when we don&#39;t <em>solve</em> MDPs explicitly (LLM agents don&#39;t), the framework gives us the vocabulary to reason about what an agent is doing.</p>
+</blockquote>
+
+        </div>
+      </section>
+      <section id="section-1" class="lesson-section" data-theme="scenario" data-section="1">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🏢</span>
+          <span class="section-badge">§1</span>
+          <h2>Business Scenario</h2>
+        </header>
+        <div class="section-body">
+<p><em>HSBC, late one Wednesday.</em></p>
+<p>Daniel Cho is reviewing Sherpa&#39;s break-classification logs from the pilot. He notices a pattern: when Sherpa investigates a break, it sometimes does 3 tool calls and confidently answers, and sometimes does 8 tool calls and still flags low confidence. The cost difference is 3× per ticket. Across 1,400 tickets/night, that&#39;s the difference between £140 and £420 in LLM costs.</p>
+<blockquote>
+<p><em>&quot;Can we put a budget on this? I want to say &#39;do at most 5 tool calls unless confidence is above 0.9&#39; — but I have no idea whether that&#39;s the right rule. What&#39;s the principled way to decide?&quot;</em></p>
+</blockquote>
+<p>The honest answer requires modelling Sherpa&#39;s investigation as a sequence of decisions with costs and rewards. The standard formalism for that is the MDP.</p>
+
+        </div>
+      </section>
+
+      <section id="section-2" class="lesson-section" data-theme="bridge" data-section="2">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🔗</span>
+          <span class="section-badge">§2</span>
+          <h2>Bridge to Topic</h2>
+        </header>
+        <div class="section-body">
+<p>Daniel&#39;s question is a <em>budgeted decision-theoretic</em> question: when is the next tool call worth its cost, given everything observed so far? The MDP formalism — states, actions, transitions, rewards, discount — is what lets you reason about it without making it up.</p>
+
+        </div>
+      </section>
+
+      <section id="section-3" class="lesson-section" data-theme="mindmap" data-section="3">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🗺️</span>
+          <span class="section-badge">§3</span>
+          <h2>Mind Map</h2>
+        </header>
+        <div class="section-body">
+<p><img src="../../diagrams/m02/03-mdp-mindmap.svg" alt="Mind map"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">mindmap
+  root((MDP))
+    Components
+      State S
+      Action A
+      Transition T
+      Reward R
+      Discount gamma
+    Markov property
+      Future depends only on present
+      Not history
+    Policies
+      Deterministic
+      Stochastic
+      Optimal
+    Bellman
+      Value function V
+      Action value Q
+      Backup operator
+</code></pre>
+</details>
+
+<p><em>Takeaway: an MDP is just five things. The art is choosing what counts as a &quot;state.&quot;</em></p>
+
+        </div>
+      </section>
+
+      <section id="section-4" class="lesson-section" data-theme="elaboration" data-section="4">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">📖</span>
+          <span class="section-badge">§4</span>
+          <h2>Elaboration</h2>
+        </header>
+        <div class="section-body">
+<h3>4.1 Definition</h3>
+<p>An MDP is a tuple $\langle S, A, T, R, \gamma \rangle$:</p>
+<ul>
+<li>$S$ — set of states the world can be in</li>
+<li>$A$ — set of actions the agent can take</li>
+<li>$T(s&#39; \mid s, a)$ — probability of next state given current state and action</li>
+<li>$R(s, a)$ — reward received for taking action $a$ in state $s$</li>
+<li>$\gamma \in [0,1]$ — discount factor (how much future rewards count vs immediate)</li>
+</ul>
+<p>The agent picks a <em>policy</em> $\pi: S \to A$ (or $\pi: S \to \Delta(A)$ for stochastic policies) to maximise expected discounted reward.</p>
+<h3>4.2 The Markov property</h3>
+<p>The defining assumption: <em>the next state depends only on the current state and action, not on the history of how we got here.</em></p>
+<p>$$
+P(s_{t+1} \mid s_t, a_t, s_{t-1}, a_{t-1}, \ldots) = P(s_{t+1} \mid s_t, a_t)
+$$</p>
+<p>This is a <em>modelling</em> choice, not a physical law. If your &quot;state&quot; doesn&#39;t capture everything relevant, the Markov property is violated and the math breaks. For LLM agents, the trick is to define the state as <em>everything in the agent&#39;s context window</em> — then the Markov property holds trivially (the model only sees what&#39;s in context).</p>
+<h3>4.3 The value function</h3>
+<p>The value of a state under policy $\pi$ is the expected total discounted reward starting from that state:</p>
+<p>$$
+V^\pi(s) = \mathbb{E}<em>\pi \left[ \sum</em>{t=0}^\infty \gamma^t R(s_t, a_t) \mid s_0 = s \right]
+$$</p>
+<p>The action-value function (Q-function) is similar but conditioned on the first action:</p>
+<p>$$
+Q^\pi(s, a) = R(s, a) + \gamma \sum_{s&#39;} T(s&#39; \mid s, a) V^\pi(s&#39;)
+$$</p>
+<p>The optimal value function satisfies the <strong>Bellman optimality equation</strong>:</p>
+<p>$$
+V^<em>(s) = \max_a \left[ R(s, a) + \gamma \sum_{s&#39;} T(s&#39; \mid s, a) V^</em>(s&#39;) \right]
+$$</p>
+<p>You can solve this by value iteration (repeatedly applying the operator on the right) or by policy iteration. For an HSBC break with ~5 classes and ~10 tool actions, the state space is small enough to solve exactly in milliseconds — <em>if</em> you have $T$ and $R$.</p>
+<h3>4.4 The catch (and why LLM agents matter)</h3>
+<p>In practice, you almost never have $T$ and $R$ for real-world tasks. You don&#39;t have a transition model of &quot;what happens after Sherpa calls <code>queryGL</code>.&quot; You don&#39;t have a reward function for &quot;Sherpa picked the right break category.&quot; This is why classical MDP solvers don&#39;t ship — the assumptions don&#39;t hold.</p>
+<p>LLM agents bypass this by <em>approximating</em> the optimal policy directly via the model&#39;s learned heuristics. You don&#39;t compute $V^<em>$; the model has implicitly absorbed enough examples to act <em>as if</em> it were following $V^</em>$ in a reasonable neighbourhood of the task distribution.</p>
+<p>The math is still useful because:</p>
+<ol>
+<li>It tells you what the agent <em>should</em> be doing if it were rational (a benchmark for evaluation).</li>
+<li>It gives you vocabulary for analysing failures (&quot;Sherpa&#39;s behaviour suggests its implicit Q-values are wrong on counterparty mismatches&quot;).</li>
+<li>It lets you reason about cost/reward trade-offs (Daniel&#39;s budget question).</li>
+</ol>
+
+        </div>
+      </section>
+
+      <section id="section-5" class="lesson-section" data-theme="problem" data-section="5">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">❓</span>
+          <span class="section-badge">§5</span>
+          <h2>Problem Statement</h2>
+        </header>
+        <div class="section-body">
+<p>Model Sherpa&#39;s break investigation as an MDP. Specifically:</p>
+<ol>
+<li>Define $S, A, R, \gamma$ for a single break.</li>
+<li>Compute the action-value of &quot;call the GL one more time&quot; vs &quot;answer now&quot; given the current belief is 0.78 on <code>amount_diff</code> and 0.22 on <code>stale_static</code>.</li>
+<li>State the budget rule Daniel should adopt.</li>
+</ol>
+<p>Assumptions: each tool call costs $0.01 in tokens; a correct answer gives +$42 (the analyst time saved); an incorrect answer costs −$200 (the analyst has to redo and the bank&#39;s audit log shows a wrong automated decision).</p>
+
+        </div>
+      </section>
+
+      <section id="section-6" class="lesson-section" data-theme="solution" data-section="6">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🛠️</span>
+          <span class="section-badge">§6</span>
+          <h2>Solution Walkthrough</h2>
+        </header>
+        <div class="section-body">
+<h3>State, actions, reward</h3>
+<ul>
+<li>$S$ = the agent&#39;s belief over break categories (5 of them, summing to 1) plus a step counter.</li>
+<li>$A$ = {call_GL, call_counterparty, call_settlement, call_static, answer_class_i for i in 1..5}.</li>
+<li>$R(s, \text{tool})$ = $-0.01$ (token cost; we model only marginal cost per call).</li>
+<li>$R(s, \text{answer}_i)$ = $+42$ if class $i$ is correct, $-200$ if wrong, terminal.</li>
+<li>$\gamma$ = $1$ (no discounting needed within one investigation; horizon is short).</li>
+</ul>
+<h3>Value of &quot;answer now&quot;</h3>
+<p>Expected reward of answering with the most likely class:</p>
+<p>$$
+V_{\text{answer}}(s) = \max_i \left[ 42 \cdot b(c_i) - 200 \cdot (1 - b(c_i)) \right]
+$$</p>
+<p>For our belief $b = (0.78, 0.22, 0, 0, 0)$:</p>
+<p>$$
+V_{\text{answer}} = 42 \cdot 0.78 - 200 \cdot 0.22 = 32.76 - 44 = -11.24
+$$</p>
+<p>Negative! Answering now would be a <em>loss</em>.</p>
+<h3>Value of &quot;one more tool call&quot;</h3>
+<p>A new observation will update the belief. Assume the GL call refines the belief to either $(0.95, 0.05)$ with probability 0.7 (confirms <code>amount_diff</code>) or $(0.20, 0.80)$ with probability 0.3 (flips to <code>stale_static</code>). Then the expected post-call answer value is:</p>
+<p>$$
+V_{\text{post-call}} = 0.7 \cdot V_{\text{answer}}(0.95) + 0.3 \cdot V_{\text{answer}}(0.20) - 0.01
+$$</p>
+<p>$$
+V_{\text{answer}}(0.95) = 42 \cdot 0.95 - 200 \cdot 0.05 = 39.9 - 10 = 29.9
+$$</p>
+<p>$$
+V_{\text{answer}}(0.20) = 42 \cdot 0.80 - 200 \cdot 0.20 = 33.6 - 40 = -6.4 ; (\text{best class is now the alternative; recompute as max})
+$$</p>
+<p>For belief $(0.20, 0.80)$, best is class 2: $42 \cdot 0.80 - 200 \cdot 0.20 = -6.4$. So we&#39;d need yet another call.</p>
+<p>$$
+V_{\text{post-call}} \approx 0.7 \cdot 29.9 + 0.3 \cdot (-6.4) - 0.01 = 20.93 - 1.92 - 0.01 = 19.00
+$$</p>
+<p>So $V_{\text{call}} \approx 19.00$ versus $V_{\text{answer}} = -11.24$. Calling is worth it by ~$30 in expected value.</p>
+<h3>Daniel&#39;s budget rule</h3>
+<p>A principled budget rule is: <em>answer when $V_{\text{answer}}(s) &gt; V_{\text{best-tool-call}}(s)$</em>. In practice the agent doesn&#39;t compute these explicitly, but the equivalent rule the LLM can act on is:</p>
+<blockquote>
+<p>Answer when (max-belief × 42 − (1 − max-belief) × 200) &gt; 0, i.e. when max-belief &gt; 200/(42+200) ≈ <strong>0.826</strong>.</p>
+</blockquote>
+<p>So Daniel&#39;s rule: <strong>answer iff confidence ≥ 0.83; otherwise tool-call</strong>. With a max-step cap of 8 to avoid runaway.</p>
+<p>This is derivable from the cost asymmetry: false-negatives are 4.76× more expensive than true positives, so you need to be 83% confident before committing.</p>
+
+        </div>
+      </section>
+
+      <section id="section-7" class="lesson-section" data-theme="math" data-section="7">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">∑</span>
+          <span class="section-badge">§7</span>
+          <h2>Mathematical Foundation</h2>
+        </header>
+        <div class="section-body">
+<h3>7.1 The Bellman backup as the central operator</h3>
+<p>Value iteration applies the Bellman operator repeatedly:</p>
+<p>$$
+V_{k+1}(s) = \max_a \left[ R(s, a) + \gamma \sum_{s&#39;} T(s&#39; \mid s, a) V_k(s&#39;) \right]
+$$</p>
+<p>This is a contraction mapping on $V$ with contraction factor $\gamma$, so it converges geometrically to $V^*$. For our example $\gamma=1$ but the horizon is finite (8 steps max), so we use <em>finite-horizon</em> value iteration which converges in 8 backups.</p>
+<h3>7.2 Why discount factor matters</h3>
+<p>For infinite-horizon problems, $\gamma &lt; 1$ is needed for convergence. For agent design, $\gamma$ encodes <em>patience</em>:</p>
+<ul>
+<li>$\gamma \to 0$ — myopic agent, takes immediate rewards</li>
+<li>$\gamma \to 1$ — far-sighted agent, willing to invest in long sequences</li>
+</ul>
+<p>LLM agents implicitly behave with high $\gamma$ on tasks where the goal is far away (research, planning) and low $\gamma$ on tasks where the goal is near (Q&amp;A). The model&#39;s training shapes this implicitly; you don&#39;t set it.</p>
+<h3>7.3 The optimal policy</h3>
+<p>Once you have $V^*$, the optimal policy is:</p>
+<p>$$
+\pi^<em>(s) = \arg\max_a \left[ R(s, a) + \gamma \sum_{s&#39;} T(s&#39; \mid s, a) V^</em>(s&#39;) \right]
+$$</p>
+<p>This is the <em>greedy</em> policy with respect to $V^<em>$. It&#39;s optimal because $V^</em>$ already accounts for the value of future actions.</p>
+
+        </div>
+      </section>
+
+      <section id="section-8" class="lesson-section" data-theme="tech" data-section="8">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">⚙️</span>
+          <span class="section-badge">§8</span>
+          <h2>Technical Deep-Dive</h2>
+        </header>
+        <div class="section-body">
+<h3>8.1 State design is everything</h3>
+<p>The hardest decision in MDP modelling is <em>what counts as a state</em>. For Sherpa:</p>
+<ul>
+<li><strong>Bad:</strong> $s$ = the literal text of the break message. State space is infinite; nothing generalises.</li>
+<li><strong>Worse:</strong> $s$ = the index of the break in tonight&#39;s batch. Markov property violated (the index doesn&#39;t tell you anything about the break).</li>
+<li><strong>Good:</strong> $s$ = the agent&#39;s current belief over break categories + step count. Finite-dimensional, Markovian.</li>
+<li><strong>Better:</strong> $s$ = belief + step count + which tools have been called. Richer state but quickly grows.</li>
+</ul>
+<p>Choose the smallest state that captures everything the next-action choice depends on. <em>No more, no less.</em> This is the &quot;feature engineering&quot; of MDP modelling.</p>
+<h3>8.2 Reward shaping</h3>
+<p>Reward functions for real tasks are usually a hand-tuned combination of:</p>
+<ul>
+<li><em>Outcome reward</em>: did the agent answer correctly? (Sparse, often delayed)</li>
+<li><em>Process reward</em>: did the agent take sensible intermediate steps? (Dense, easier to optimise but risks gaming)</li>
+<li><em>Cost penalty</em>: tokens, latency, dollars (Always negative; sets the urgency)</li>
+</ul>
+<p>For LLM agents, the reward function is mostly implicit (encoded in the prompt&#39;s success criteria) but you can make it explicit in the eval harness (Module 8).</p>
+<h3>8.3 When the MDP framework breaks</h3>
+<p>Three cases where the MDP isn&#39;t the right model:</p>
+<ol>
+<li><strong>Partial observability</strong> (the agent can&#39;t see the true state — only observations). Use a POMDP (Lesson 2.2).</li>
+<li><strong>Multiple agents</strong> (your decisions depend on what other agents do). Use a Markov game (Module 6).</li>
+<li><strong>Non-stationary environment</strong> (the world changes underneath you). Use a contextual bandit or a learning-to-learn formulation (out of scope for this course).</li>
+</ol>
+
+        </div>
+      </section>
+
+      <section id="section-9" class="lesson-section" data-theme="unlocks" data-section="9">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🚀</span>
+          <span class="section-badge">§9</span>
+          <h2>What This Unlocks</h2>
+        </header>
+        <div class="section-body">
+<ul>
+<li><strong>Lesson 2.2</strong> extends the MDP to POMDPs — what you actually need for LLM agents, because the true state is never fully observed.</li>
+<li><strong>Lesson 2.3</strong> brings in Bayesian reasoning, which is what powers the belief updates in POMDPs.</li>
+<li><strong>Module 4</strong> uses the MDP frame to define Sherpa&#39;s termination policy precisely (the &quot;answer iff confidence &gt; 0.83&quot; rule comes directly from §6).</li>
+<li><strong>Module 8</strong> uses MDP-derived metrics to design the eval harness — regret (gap from optimal policy), expected value per task, value of information per tool call.</li>
+</ul>
+<hr>
+
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <p>End of Lesson 2.1</p>
+        <p class="muted">Press <kbd>↑</kbd> / <kbd>↓</kbd> to jump between sections.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script>
+(function () {
+  var sections = document.querySelectorAll(".lesson-section, .intro");
+  var tocLinks = document.querySelectorAll(".toc a");
+  var progress = document.getElementById("progress");
+  var byId = {};
+  tocLinks.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    byId[id] = a;
+  });
+
+  function update() {
+    var scrolled = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (progress) progress.style.width = max > 0 ? (scrolled / max * 100) + "%" : "0%";
+
+    var current = null;
+    sections.forEach(function (s) {
+      var top = s.getBoundingClientRect().top;
+      if (top < 140) current = s.id;
+    });
+    tocLinks.forEach(function (a) { a.classList.remove("active"); });
+    if (current && byId[current]) byId[current].classList.add("active");
+  }
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    var ids = Array.prototype.map.call(sections, function (s) { return s.id; });
+    var currentIdx = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top < 140) currentIdx = i;
+    }
+    if (e.key === "ArrowDown" && e.shiftKey) {
+      e.preventDefault();
+      var next = Math.min(ids.length - 1, currentIdx + 1);
+      document.getElementById(ids[next]).scrollIntoView({ behavior: "smooth" });
+    }
+    if (e.key === "ArrowUp" && e.shiftKey) {
+      e.preventDefault();
+      var prev = Math.max(0, currentIdx - 1);
+      document.getElementById(ids[prev]).scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
+</script>
+</body>
+</html>

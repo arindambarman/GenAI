@@ -1,0 +1,12 @@
+graph LR
+  L31[3.1 Attention & Context]:::current --> L32[3.2 Function Calling]
+  L31 --> L34[3.4 Prompt Engineering]
+  L32 --> L33[3.3 Structured Output]
+  L33 --> L34
+  L31 -.forward.-> M4[Module 4: Sherpa state design]
+  L32 -.forward.-> M7[Module 7: MCP]
+  L34 -.forward.-> M9[Module 9: Cost optimisation]
+  classDef current fill:#fc6,stroke:#a60,stroke-width:3px
+  style M4 fill:#def,stroke:#36a
+  style M7 fill:#def,stroke:#36a
+  style M9 fill:#def,stroke:#36a

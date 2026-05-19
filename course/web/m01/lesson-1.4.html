@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson 1.4 · The Major Paradigms: ReAct, Reflexion, Plan-and-Solve, CodeAct · AdaptLearn</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-light.css" />
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+  --max-content: 760px;
+  --sidebar-w: 280px;
+  --header-h: 120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: 8px 12px; z-index: 100;
+}
+.skip:focus { left: 12px; top: 12px; }
+
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.92);
+}
+.page-header-inner {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto; padding: 14px 32px;
+}
+.breadcrumb {
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.page-meta { font-size: 13px; color: var(--text-muted); }
+.page-meta .dot { margin: 0 8px; opacity: 0.5; }
+
+.progress-bar { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+.layout {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 40px;
+  padding: 32px;
+}
+
+.sidebar { position: sticky; top: calc(var(--header-h) + 16px); align-self: start; max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; }
+.toc h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; border-radius: 6px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { background: var(--accent-soft); color: var(--text); }
+.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.toc-num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.toc a.active .toc-num { color: var(--accent); }
+
+.content { min-width: 0; max-width: var(--max-content); }
+
+.intro, .lesson-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: var(--header-h);
+}
+.lesson-section[data-theme="scenario"]    { border-left: 4px solid #ef4444; }
+.lesson-section[data-theme="bridge"]      { border-left: 4px solid #94a3b8; }
+.lesson-section[data-theme="mindmap"]     { border-left: 4px solid #8b5cf6; }
+.lesson-section[data-theme="elaboration"] { border-left: 4px solid #2563eb; }
+.lesson-section[data-theme="problem"]     { border-left: 4px solid #f59e0b; }
+.lesson-section[data-theme="solution"]    { border-left: 4px solid #10b981; }
+.lesson-section[data-theme="math"]        { border-left: 4px solid #6366f1; }
+.lesson-section[data-theme="tech"]        { border-left: 4px solid #64748b; }
+.lesson-section[data-theme="unlocks"]     { border-left: 4px solid #ec4899; }
+.lesson-section[data-theme="orient"]      { border-left: 4px solid #0ea5e9; }
+.intro { border-left: 4px solid #0ea5e9; }
+
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon { font-size: 22px; }
+.section-badge {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.section-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.section-body h3 { margin-top: 32px; font-size: 18px; font-weight: 700; }
+.section-body h4 { margin-top: 24px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.section-body p { margin: 12px 0; }
+.section-body ul, .section-body ol { margin: 12px 0; padding-left: 24px; }
+.section-body li { margin: 4px 0; }
+
+.section-body a { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(37,99,235,0.3); text-underline-offset: 2px; }
+.section-body a:hover { text-decoration-color: var(--accent); }
+
+.section-body strong { font-weight: 700; }
+.section-body em { font-style: italic; }
+
+.section-body blockquote {
+  margin: 16px 0; padding: 12px 20px;
+  background: #f5f6f8; border-left: 3px solid var(--text-muted);
+  border-radius: 4px; color: var(--text); font-size: 0.95em;
+}
+.section-body blockquote p:first-child { margin-top: 0; }
+.section-body blockquote p:last-child { margin-bottom: 0; }
+
+.section-body img {
+  display: block; max-width: 100%; height: auto;
+  margin: 20px auto; padding: 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+}
+
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 0.9em;
+}
+.section-body th, .section-body td {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-body th { background: #f5f6f8; font-weight: 600; }
+
+.section-body code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: #f1f3f5; padding: 1px 6px; border-radius: 3px;
+}
+.section-body pre {
+  background: #f6f8fa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font-size: 13px;
+  margin: 16px 0;
+}
+.section-body pre code { background: transparent; padding: 0; }
+
+.section-body details {
+  margin: 16px 0; padding: 10px 14px;
+  background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px;
+}
+.section-body details summary {
+  cursor: pointer; font-weight: 600; font-size: 13px;
+  color: var(--text-muted);
+}
+.section-body details[open] summary { margin-bottom: 8px; }
+
+.section-body hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+
+.section-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+
+.lesson-footer {
+  text-align: center; padding: 32px;
+  color: var(--text-muted); font-size: 14px;
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+.lesson-footer .muted { font-size: 12px; opacity: 0.7; }
+kbd {
+  background: var(--surface); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+  .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toc li { flex: 0 0 auto; }
+  .toc a { padding: 4px 8px; font-size: 12px; }
+  .intro, .lesson-section { padding: 20px; }
+  .page-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="../../index.html">AdaptLearn</a>
+        <span class="sep">›</span>
+        <a href="../index.html">Module 1</a>
+        <span class="sep">›</span>
+        <span class="current">Lesson 1.4</span>
+      </nav>
+      <h1 class="page-title">The Major Paradigms: ReAct, Reflexion, Plan-and-Solve, CodeAct</h1>
+      <div class="page-meta">
+        <span>Lesson 1.4</span>
+        <span class="dot">·</span>
+        <span>9 sections</span>
+        <span class="dot">·</span>
+        <span>~25 min read</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc" aria-label="Lesson sections">
+        <h3>Sections</h3>
+        <ol>
+      <li><a href="#section-1" data-section="1"><span class="toc-num">§1</span><span class="toc-title">Business Scenario</span></a></li>
+      <li><a href="#section-2" data-section="2"><span class="toc-num">§2</span><span class="toc-title">Bridge to Topic</span></a></li>
+      <li><a href="#section-3" data-section="3"><span class="toc-num">§3</span><span class="toc-title">Mind Map</span></a></li>
+      <li><a href="#section-4" data-section="4"><span class="toc-num">§4</span><span class="toc-title">Elaboration</span></a></li>
+      <li><a href="#section-5" data-section="5"><span class="toc-num">§5</span><span class="toc-title">Problem Statement</span></a></li>
+      <li><a href="#section-6" data-section="6"><span class="toc-num">§6</span><span class="toc-title">Solution Walkthrough</span></a></li>
+      <li><a href="#section-7" data-section="7"><span class="toc-num">§7</span><span class="toc-title">Mathematical Foundation</span></a></li>
+      <li><a href="#section-8" data-section="8"><span class="toc-num">§8</span><span class="toc-title">Technical Deep-Dive</span></a></li>
+      <li><a href="#section-9" data-section="9"><span class="toc-num">§9</span><span class="toc-title">What This Unlocks</span></a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main id="main" class="content">
+      <section class="intro" id="section-intro">
+        <header class="section-header">
+          <span class="section-icon">📍</span>
+          <h2>How to use this lesson</h2>
+        </header>
+        <div class="section-body">
+<blockquote>
+<p><strong>§0 · From last time.</strong> Lesson 1.3 gave us the five-question framework to decide <em>whether</em> to use an agent. For the scenarios where the answer is &quot;agent,&quot; we still need to choose <em>which agent shape</em>. Four paradigms dominate the literature, each with a distinct loop structure, cost profile, and failure mode. Picking one is an architectural commitment; picking wrong is expensive.</p>
+</blockquote>
+
+        </div>
+      </section>
+      <section id="section-1" class="lesson-section" data-theme="scenario" data-section="1">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🏢</span>
+          <span class="section-badge">§1</span>
+          <h2>Business Scenario</h2>
+        </header>
+        <div class="section-body">
+<p><em>Helix Research, Wednesday lab meeting.</em></p>
+<p>Maya Sundaram (CSO) is reviewing the literature-triage prototype. Her newest hire, an ML intern named Akash, has been &quot;trying things out&quot; for two weeks and has built four parallel implementations:</p>
+<blockquote>
+<p><em>&quot;Right, so I&#39;ve got ReAct, Reflexion, Plan-and-Solve, and CodeAct versions. ReAct works best on the easy papers. Reflexion has the highest accuracy but takes 3× longer. Plan-and-Solve is fastest for the multi-step ones. CodeAct can do everything but I can&#39;t read its traces. Which one are we going with?&quot;</em></p>
+</blockquote>
+<p>Maya needs to give Tom (her ML lead) an architectural answer that&#39;s not &quot;pick the one with highest accuracy on the eval set.&quot; Because:</p>
+<ul>
+<li>The eval set is small and may not generalise.</li>
+<li>The cost profiles differ by 5× and Helix has a token budget.</li>
+<li>The four paradigms aren&#39;t substitutes — they have different <em>competences</em>. The right answer might be <em>hybrid</em>.</li>
+</ul>
+
+        </div>
+      </section>
+
+      <section id="section-2" class="lesson-section" data-theme="bridge" data-section="2">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🔗</span>
+          <span class="section-badge">§2</span>
+          <h2>Bridge to Topic</h2>
+        </header>
+        <div class="section-body">
+<p>The four paradigms aren&#39;t competitors. They&#39;re tools. Each was designed to solve a specific problem the others can&#39;t, and each has a corresponding cost. Choosing well means knowing what each was <em>for</em>, not which scored best on Akash&#39;s eval.</p>
+
+        </div>
+      </section>
+
+      <section id="section-3" class="lesson-section" data-theme="mindmap" data-section="3">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🗺️</span>
+          <span class="section-badge">§3</span>
+          <h2>Mind Map</h2>
+        </header>
+        <div class="section-body">
+<p><img src="../../diagrams/m01/10-paradigms-mindmap.svg" alt="Mind map"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">mindmap
+  root((Agent Paradigms))
+    ReAct
+      Thought-Action-Observation
+      Yao 2022
+      Tight loop
+      Lowest cost
+    Reflexion
+      ReAct plus self-critique
+      Shinn 2023
+      Retry with lessons
+      Quality at cost
+    Plan-and-Solve
+      Plan upfront
+      Wang 2023
+      Re-plan on failure
+      Best for multi-step
+    CodeAct
+      Actions as code
+      Wang 2024
+      Compositional
+      Hard to debug
+    Hybrid
+      Plan-and-Solve with ReAct subloops
+      Most common production
+</code></pre>
+</details>
+
+<p><em>Takeaway: four pure paradigms, one hybrid that dominates production. Pure paradigms appear in papers; hybrids ship.</em></p>
+
+        </div>
+      </section>
+
+      <section id="section-4" class="lesson-section" data-theme="elaboration" data-section="4">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">📖</span>
+          <span class="section-badge">§4</span>
+          <h2>Elaboration</h2>
+        </header>
+        <div class="section-body">
+<h3>4.1 ReAct (Yao et al. 2022) — the baseline</h3>
+<p>Loop structure: <code>Thought → Action → Observation → repeat → Answer</code>.</p>
+<p><img src="../../diagrams/m01/11-react-loop.svg" alt="4.1 ReAct (Yao et al. 2022) — the baseline"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">stateDiagram-v2
+  [*] --&gt; Thought
+  Thought --&gt; Action
+  Action --&gt; Observation
+  Observation --&gt; Thought
+  Thought --&gt; Answer
+  Answer --&gt; [*]
+</code></pre>
+</details>
+
+<p>The model emits its reasoning <em>and</em> its tool call in a single autoregressive stream. The observation (tool result) is appended to context, and the model reasons again. This is the architecture Sherpa will adopt in Module 4.</p>
+<p><strong>Strengths:</strong> simplest loop, lowest token cost per step, easiest to debug (the trace is linear), no overhead. Best when each next step is genuinely revealed by the previous observation.</p>
+<p><strong>Weaknesses:</strong> no explicit planning, so it can wander on multi-step tasks. No self-critique, so it doesn&#39;t catch its own errors. No memory across runs, so it can&#39;t learn from past mistakes within a session.</p>
+<p><strong>Use when:</strong> the task is well-scoped, ≤10 steps, and each step depends on the previous result (so planning ahead would be premature).</p>
+<h3>4.2 Reflexion (Shinn et al. 2023) — ReAct + self-critique</h3>
+<p>Loop structure: <code>ReAct attempt → Critic evaluates trace → If failed, store lesson → Retry</code>.</p>
+<p>The critic is an LLM call that reviews the trace and either accepts the answer or writes a &quot;lesson&quot; (a short natural-language note) that gets prepended to the next attempt&#39;s context. Up to <em>N</em> retries.</p>
+<p><strong>Strengths:</strong> higher accuracy on tasks where the agent can recognise its own errors post-hoc. Useful when ground truth is expensive but error signal is cheap (e.g., code that compiles vs doesn&#39;t; math that satisfies constraints vs doesn&#39;t).</p>
+<p><strong>Weaknesses:</strong> <em>N×</em> token cost (each retry runs the full ReAct loop). The critic&#39;s quality bounds the agent&#39;s improvement — if the critic can&#39;t recognise a failure, Reflexion can&#39;t fix it. Latency multiplies similarly.</p>
+<p><strong>Use when:</strong> accuracy matters more than cost, the task has a <em>checkable</em> answer, and the eval can tolerate variable latency.</p>
+<h3>4.3 Plan-and-Solve (Wang et al. 2023) — explicit planning</h3>
+<p>Loop structure: <code>Plan → Execute step → Check progress → Execute step → ... → Answer (or re-plan on failure)</code>.</p>
+<p>The plan is generated up front by a single LLM call and represents a small DAG of sub-tasks. Execution then proceeds with simpler (often non-LLM) per-step actions until a step fails, triggering a re-plan.</p>
+<p><img src="../../diagrams/m01/12-plan-and-solve.svg" alt="4.3 Plan-and-Solve (Wang et al. 2023) — explicit planning"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">flowchart TD
+  Start([Task]) --&gt; Plan[Generate plan]
+  Plan --&gt; Step1[Execute step 1]
+  Step1 --&gt; Check1{Step OK?}
+  Check1 --&gt;|yes| Step2[Execute step 2]
+  Check1 --&gt;|no| Replan[Re-plan]
+  Step2 --&gt; CheckN{Done?}
+  CheckN --&gt;|no| Step1
+  CheckN --&gt;|yes| Answer([Answer])
+  Replan --&gt; Plan
+</code></pre>
+</details>
+
+<p><strong>Strengths:</strong> explicit plan is auditable and editable; per-step cost is low (planning is one LLM call). Tight time budgets are achievable. Multi-step tasks with clear sub-structure are this paradigm&#39;s home.</p>
+<p><strong>Weaknesses:</strong> brittle when the plan turns out to be wrong (re-planning is expensive and may re-fail the same way). Plans can over-commit early when the right move depends on later observations.</p>
+<p><strong>Use when:</strong> the task has natural sub-structure, the user expects a structured plan they can vet, or the time budget is tight enough that wandering loops are unaffordable.</p>
+<h3>4.4 CodeAct (Wang et al. 2024) — actions as code</h3>
+<p>Loop structure: same as ReAct, but <code>Action</code> is <em>executable Python</em> (or whatever language is wired up) rather than typed tool calls.</p>
+<p>Instead of:</p>
+<pre><code>Action: search_papers(query=&quot;X&quot;)
+Observation: [paper1, paper2, ...]
+Action: extract_dose(paper=&quot;paper1&quot;)
+Observation: 50mg
+</code></pre>
+<p>CodeAct emits:</p>
+<pre><code class="language-python">papers = search_papers(query=&quot;X&quot;)
+doses = [extract_dose(p) for p in papers if p.is_clinical]
+print(doses)
+</code></pre>
+<p><strong>Strengths:</strong> compositional — one CodeAct emission can replace 10 ReAct steps. Code can express loops, conditionals, error handling. Especially powerful for data-manipulation tasks (filtering, joining, aggregating tool outputs).</p>
+<p><strong>Weaknesses:</strong> trace is opaque (a code block is harder to audit than a sequence of typed tool calls). Security risks (the agent can do anything Python can do — needs a strong sandbox). Failure modes shift from &quot;wrong tool&quot; to &quot;wrong loop logic.&quot; Debugging requires reading code, not reading a step list.</p>
+<p><strong>Use when:</strong> tasks involve heavy data manipulation across tool outputs, you have a hardened sandbox, and audit-ability is a soft constraint.</p>
+<h3>4.5 Comparison matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>ReAct</th>
+<th>Reflexion</th>
+<th>Plan-and-Solve</th>
+<th>CodeAct</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Per-step LLM cost</td>
+<td>1×</td>
+<td>1× × N retries</td>
+<td>1× plan + cheap steps</td>
+<td>1× per code block</td>
+</tr>
+<tr>
+<td>Total cost (typical)</td>
+<td>low</td>
+<td>high</td>
+<td>low–medium</td>
+<td>medium</td>
+</tr>
+<tr>
+<td>Latency p95</td>
+<td>medium</td>
+<td>high (multiplied by N)</td>
+<td>medium</td>
+<td>low–medium</td>
+</tr>
+<tr>
+<td>Debuggability</td>
+<td>high (linear trace)</td>
+<td>high (trace + critic notes)</td>
+<td>high (plan visible)</td>
+<td>low (code is opaque)</td>
+</tr>
+<tr>
+<td>Multi-step robustness</td>
+<td>weak</td>
+<td>medium</td>
+<td>strong</td>
+<td>strong</td>
+</tr>
+<tr>
+<td>Time-budget friendliness</td>
+<td>medium</td>
+<td>weak</td>
+<td>strong</td>
+<td>strong</td>
+</tr>
+<tr>
+<td>Best at</td>
+<td>exploratory tasks</td>
+<td>tasks with checkable answers</td>
+<td>tasks with sub-structure</td>
+<td>data-heavy tasks</td>
+</tr>
+</tbody></table>
+
+        </div>
+      </section>
+
+      <section id="section-5" class="lesson-section" data-theme="problem" data-section="5">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">❓</span>
+          <span class="section-badge">§5</span>
+          <h2>Problem Statement</h2>
+        </header>
+        <div class="section-body">
+<p>For each of these three Helix tasks, recommend a paradigm and justify in one sentence:</p>
+<ol>
+<li><strong>Literature triage</strong> — score each new paper 0–1 for relevance to active projects. Tens of thousands of papers/week.</li>
+<li><strong>Hypothesis generation</strong> — propose drug-target interactions worth experimentally validating. ≤5 per week. Cost of a bad hypothesis: $4M experiment.</li>
+<li><strong>Cross-paper synthesis</strong> — given 10 papers on a target, extract the dose-response data, normalise units, fit a curve, propose an experimental range.</li>
+</ol>
+
+        </div>
+      </section>
+
+      <section id="section-6" class="lesson-section" data-theme="solution" data-section="6">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🛠️</span>
+          <span class="section-badge">§6</span>
+          <h2>Solution Walkthrough</h2>
+        </header>
+        <div class="section-body">
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Paradigm</th>
+<th>Justification</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1. Literature triage</td>
+<td><strong>Pipeline + LLM scoring step (no agent)</strong></td>
+<td>Per-paper task is fixed-sequence; volume forbids any retry-heavy paradigm. (Yes, the answer is &quot;not an agent&quot; — Lesson 1.3&#39;s framework already told us this; the question is a check that you remember.)</td>
+</tr>
+<tr>
+<td>2. Hypothesis generation</td>
+<td><strong>Plan-and-Solve + Reflexion + human gate</strong></td>
+<td>Multi-step task (decompose target → search literature → score plausibility → write rationale). Reflexion&#39;s critique-and-retry is justified by Q3 (failure cost is unbounded). Human gate makes the cost of retries acceptable because they&#39;re rare.</td>
+</tr>
+<tr>
+<td>3. Cross-paper synthesis</td>
+<td><strong>CodeAct in a sandbox</strong></td>
+<td>Heavy data manipulation across paper outputs (dose extraction, unit normalisation, curve fitting). Compositionality of code beats step-by-step ReAct by 5–10× in token cost. Audit-ability handled by mandatory cite-faithfulness check on each numeric claim (Module 5).</td>
+</tr>
+</tbody></table>
+<p><strong>Tom&#39;s reply to Maya:</strong> <em>&quot;Three tasks, three different paradigms. Akash&#39;s eval was a paradigm-selection exercise, not a model-selection exercise. The right answer is to ship triage as a pipeline today (we don&#39;t need an agent), build hypothesis generation as Plan-and-Solve with a Reflexion retry budget of 3 and a hard human sign-off, and build cross-paper synthesis as CodeAct with the sandbox that ML security gave us last quarter. Three architectures, one team, six weeks.&quot;</em></p>
+<p>This is the moment where the framework pays for itself: a casual &quot;which one wins&quot; question would have led to a single-paradigm bet. The framework forces the question <em>what is each task actually like</em>, and the answer reshapes the roadmap.</p>
+
+        </div>
+      </section>
+
+      <section id="section-7" class="lesson-section" data-theme="math" data-section="7">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">∑</span>
+          <span class="section-badge">§7</span>
+          <h2>Mathematical Foundation</h2>
+        </header>
+        <div class="section-body">
+<h3>7.1 Cost decomposition per paradigm</h3>
+<p>Let $T$ be the average number of &quot;steps&quot; a task takes (per the ReAct definition of step). Let $c_{\text{LLM}}$ be the average per-step LLM token cost (input + output). Then:</p>
+<table>
+<thead>
+<tr>
+<th>Paradigm</th>
+<th>Cost per task</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ReAct</td>
+<td>$T \cdot c_{\text{LLM}}$</td>
+</tr>
+<tr>
+<td>Reflexion</td>
+<td>$T \cdot c_{\text{LLM}} \cdot \mathbb{E}[\text{retries}]$ where $\mathbb{E}[\text{retries}] \in [1, N]$</td>
+</tr>
+<tr>
+<td>Plan-and-Solve</td>
+<td>$c_{\text{plan}} + T \cdot c_{\text{step}}$ where $c_{\text{step}} \ll c_{\text{LLM}}$</td>
+</tr>
+<tr>
+<td>CodeAct</td>
+<td>$T_{\text{code-blocks}} \cdot c_{\text{LLM}}$ where $T_{\text{code-blocks}} \approx T / 5$ for data-heavy tasks</td>
+</tr>
+</tbody></table>
+<p>The expected ratio of Reflexion cost to ReAct cost depends on the <em>failure rate</em> of the underlying ReAct loop. For 30% failure rate and N=3 retries, Reflexion costs ~2× ReAct. For 70% failure rate, ~3.5×. Reflexion&#39;s value proposition is that the <em>accuracy</em> gain justifies this multiplier — but only on tasks where the critic can actually distinguish good from bad attempts.</p>
+<h3>7.2 Variance per paradigm</h3>
+<p>Per-task variance differs sharply:</p>
+<p>$$
+\text{Var}[\text{cost}_{\text{ReAct}}] \approx \text{small} \quad \text{(few-step happy path dominates)}
+$$</p>
+<p>$$
+\text{Var}[\text{cost}_{\text{Reflexion}}] \approx \text{large} \quad \text{(retry distribution is bimodal: success once or fail N times)}
+$$</p>
+<p>$$
+\text{Var}[\text{cost}_{\text{Plan-and-Solve}}] \approx \text{small in plan, large in re-plan} \quad \text{(re-planning is rare but expensive)}
+$$</p>
+<p>$$
+\text{Var}[\text{cost}_{\text{CodeAct}}] \approx \text{medium} \quad \text{(one code block size varies)}
+$$</p>
+<p>For budgeted production deployments, <em>variance</em> matters more than <em>mean</em> — you size for p95, not p50. Reflexion&#39;s high variance is its biggest production cost.</p>
+<h3>7.3 The hybrid pattern&#39;s cost analysis</h3>
+<p>The most common production pattern is <strong>Plan-and-Solve with ReAct sub-loops</strong>:</p>
+<p>$$
+\text{Cost}<em>{\text{hybrid}} = c</em>{\text{plan}} + \sum_{i=1}^{S} \left( T_i \cdot c_{\text{LLM}} \right)
+$$</p>
+<p>where $S$ is the number of sub-tasks in the plan and $T_i$ is the per-sub-task ReAct loop length. Empirically (on internal benchmarks across the case studies in this course), $S \cdot T_i &lt; T_{\text{flat-ReAct}}$ for multi-step tasks because planning reduces redundant exploration. The hybrid pattern wins on cost <em>and</em> quality for tasks with sub-structure.</p>
+
+        </div>
+      </section>
+
+      <section id="section-8" class="lesson-section" data-theme="tech" data-section="8">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">⚙️</span>
+          <span class="section-badge">§8</span>
+          <h2>Technical Deep-Dive</h2>
+        </header>
+        <div class="section-body">
+<h3>8.1 Implementing ReAct in TypeScript (preview)</h3>
+<pre><code class="language-typescript">// Module 4 will build this for real. Schema here for orientation.
+type Step =
+  | { kind: &quot;thought&quot;; text: string }
+  | { kind: &quot;action&quot;; tool: string; args: unknown }
+  | { kind: &quot;observation&quot;; result: unknown }
+  | { kind: &quot;answer&quot;; value: unknown };
+
+async function react(goal: string, tools: Tools): Promise&lt;unknown&gt; {
+  const trace: Step[] = [];
+  for (let i = 0; i &lt; MAX_STEPS; i++) {
+    const step = await llm.callWithTools(renderPrompt(goal, trace), tools);
+    trace.push(step);
+    if (step.kind === &quot;answer&quot;) return step.value;
+    if (step.kind === &quot;action&quot;) {
+      const result = await tools[step.tool](step.args);
+      trace.push({ kind: &quot;observation&quot;, result });
+    }
+  }
+  throw new MaxStepsExceeded(trace);
+}
+</code></pre>
+<p>200 lines including error handling and validation. The simplest paradigm to implement; that&#39;s a feature.</p>
+<h3>8.2 Reflexion adds ~150 lines</h3>
+<pre><code class="language-typescript">async function reflexion(goal: string, tools: Tools): Promise&lt;unknown&gt; {
+  const lessons: string[] = [];
+  for (let attempt = 0; attempt &lt; MAX_RETRIES; attempt++) {
+    const result = await react(goalWithLessons(goal, lessons), tools);
+    const critique = await llm.critique(goal, result);
+    if (critique.ok) return result;
+    lessons.push(critique.lesson);
+  }
+  throw new ReflexionExhausted(lessons);
+}
+</code></pre>
+<p>The critic is the load-bearing component. If the critic is no better than the agent, Reflexion adds cost without accuracy. Choose the critic deliberately (often a larger model or a different prompt).</p>
+<h3>8.3 Plan-and-Solve needs a plan schema</h3>
+<pre><code class="language-typescript">const PlanSchema = z.object({
+  goal: z.string(),
+  steps: z.array(z.object({
+    description: z.string(),
+    tool: z.string().nullable(),  // null = pure reasoning step
+    args: z.unknown(),
+    expectsOutput: z.string(),
+  })),
+});
+
+async function planAndSolve(goal: string, tools: Tools) {
+  const plan = await llm.plan(goal, PlanSchema);
+  const results: unknown[] = [];
+  for (const step of plan.steps) {
+    try {
+      const r = await executeStep(step, tools);
+      assertMatches(r, step.expectsOutput);
+      results.push(r);
+    } catch (err) {
+      const newPlan = await llm.replan(goal, plan, step, err);
+      return await planAndSolve(/* with newPlan */);
+    }
+  }
+  return results;
+}
+</code></pre>
+<p>The <code>expectsOutput</code> field is the critical pre-commitment that makes per-step verification cheap. Without it, the agent can&#39;t tell whether a step succeeded.</p>
+<h3>8.4 CodeAct demands a sandbox</h3>
+<pre><code class="language-typescript">async function codeAct(goal: string, sandbox: Sandbox) {
+  const trace: { code: string; output: unknown }[] = [];
+  for (let i = 0; i &lt; MAX_BLOCKS; i++) {
+    const block = await llm.emitCode(goal, trace, sandbox.toolDescriptions());
+    if (block.kind === &quot;answer&quot;) return block.value;
+    const output = await sandbox.execute(block.code);  // &lt;- the critical line
+    trace.push({ code: block.code, output });
+  }
+}
+</code></pre>
+<p>The sandbox is non-negotiable. CodeAct without a sandbox is a remote code execution vulnerability with extra steps. Production sandbox options: Docker container with no network, Firecracker microVM, gVisor, E2B&#39;s hosted sandbox. Pick one; never trust the model&#39;s emitted code.</p>
+<h3>8.5 The hybrid pattern is what to actually build</h3>
+<pre><code class="language-typescript">async function hybridAgent(goal: string, tools: Tools) {
+  const plan = await llm.plan(goal, PlanSchema);
+  const results: unknown[] = [];
+  for (const step of plan.steps) {
+    if (step.complexity === &quot;simple&quot;) {
+      results.push(await executeStep(step, tools));   // pipeline-style
+    } else {
+      results.push(await react(step.description, scopedTools(tools, step))); // agent-style
+    }
+  }
+  return results;
+}
+</code></pre>
+<p>Plan upfront. Cheap deterministic steps go through a pipeline. Genuinely-agent-shaped steps get a ReAct sub-loop with a scoped tool subset (the agent only sees the tools relevant to its sub-task). This is the architecture Sherpa will reach by Module 6.</p>
+
+        </div>
+      </section>
+
+      <section id="section-9" class="lesson-section" data-theme="unlocks" data-section="9">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🚀</span>
+          <span class="section-badge">§9</span>
+          <h2>What This Unlocks</h2>
+        </header>
+        <div class="section-body">
+<ul>
+<li><strong>Module 4</strong> builds Sherpa as a ReAct loop first (Lesson 4.1), then iteratively adds Plan-and-Solve structure (4.2), reflection (4.3), and finally the hybrid pattern above (4.5).</li>
+<li><strong>Module 6</strong> uses these paradigms as the <em>internal architecture</em> of each agent in a multi-agent system. The orchestrator is Plan-and-Solve; the workers are ReAct.</li>
+<li><strong>Module 8</strong> uses the cost/variance analysis from §7 to design evaluation harnesses that report per-paradigm metrics, so you can A/B paradigms on your actual eval set.</li>
+<li><strong>Module 10</strong> revisits CodeAct&#39;s sandbox requirements as a security-first design rather than a footnote.</li>
+</ul>
+<hr>
+
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <p>End of Lesson 1.4</p>
+        <p class="muted">Press <kbd>↑</kbd> / <kbd>↓</kbd> to jump between sections.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script>
+(function () {
+  var sections = document.querySelectorAll(".lesson-section, .intro");
+  var tocLinks = document.querySelectorAll(".toc a");
+  var progress = document.getElementById("progress");
+  var byId = {};
+  tocLinks.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    byId[id] = a;
+  });
+
+  function update() {
+    var scrolled = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (progress) progress.style.width = max > 0 ? (scrolled / max * 100) + "%" : "0%";
+
+    var current = null;
+    sections.forEach(function (s) {
+      var top = s.getBoundingClientRect().top;
+      if (top < 140) current = s.id;
+    });
+    tocLinks.forEach(function (a) { a.classList.remove("active"); });
+    if (current && byId[current]) byId[current].classList.add("active");
+  }
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    var ids = Array.prototype.map.call(sections, function (s) { return s.id; });
+    var currentIdx = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top < 140) currentIdx = i;
+    }
+    if (e.key === "ArrowDown" && e.shiftKey) {
+      e.preventDefault();
+      var next = Math.min(ids.length - 1, currentIdx + 1);
+      document.getElementById(ids[next]).scrollIntoView({ behavior: "smooth" });
+    }
+    if (e.key === "ArrowUp" && e.shiftKey) {
+      e.preventDefault();
+      var prev = Math.max(0, currentIdx - 1);
+      document.getElementById(ids[prev]).scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+erDiagram
+  SWIFT ||--o{ TRADE : references
+  TRADE }o--|| COUNTERPARTY : "executed with"
+  TRADE ||--|| GL_ENTRY : "should match"
+  COUNTERPARTY ||--o{ STATIC : "has terms"
+  BREAK }|--|| SWIFT : "raised against"
+  BREAK }|--|| ANALYST : "assigned to"

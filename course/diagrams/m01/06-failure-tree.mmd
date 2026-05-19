@@ -1,0 +1,11 @@
+graph TD
+  D0[Dial 0 Script] --> F0[Fails when world changes - easy to detect]
+  D1[Dial 1 LLM-as-fn] --> F1[Hallucinated outputs - easy to detect at type boundary]
+  D2[Dial 2 LLM picks step] --> F2[Wrong branch - auditable from trace]
+  D3[Dial 3 LLM owns loop] --> F3[Loops - context bloat - wrong tool - hallucinated args]
+  D4[Dial 4 LLM owns goal] --> F4[Goal drift - catastrophic action - unbounded cost]
+  style F0 fill:#cfc,stroke:#393
+  style F1 fill:#cfc,stroke:#393
+  style F2 fill:#ffd,stroke:#a80
+  style F3 fill:#fee,stroke:#c33
+  style F4 fill:#fcc,stroke:#933,stroke-width:2px

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson 4.2 · Memory: Working, Episodic, and Cross-Session · AdaptLearn</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-light.css" />
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+  --max-content: 760px;
+  --sidebar-w: 280px;
+  --header-h: 120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: 8px 12px; z-index: 100;
+}
+.skip:focus { left: 12px; top: 12px; }
+
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.92);
+}
+.page-header-inner {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto; padding: 14px 32px;
+}
+.breadcrumb {
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.page-meta { font-size: 13px; color: var(--text-muted); }
+.page-meta .dot { margin: 0 8px; opacity: 0.5; }
+
+.progress-bar { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+.layout {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 40px;
+  padding: 32px;
+}
+
+.sidebar { position: sticky; top: calc(var(--header-h) + 16px); align-self: start; max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; }
+.toc h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; border-radius: 6px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { background: var(--accent-soft); color: var(--text); }
+.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.toc-num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.toc a.active .toc-num { color: var(--accent); }
+
+.content { min-width: 0; max-width: var(--max-content); }
+
+.intro, .lesson-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: var(--header-h);
+}
+.lesson-section[data-theme="scenario"]    { border-left: 4px solid #ef4444; }
+.lesson-section[data-theme="bridge"]      { border-left: 4px solid #94a3b8; }
+.lesson-section[data-theme="mindmap"]     { border-left: 4px solid #8b5cf6; }
+.lesson-section[data-theme="elaboration"] { border-left: 4px solid #2563eb; }
+.lesson-section[data-theme="problem"]     { border-left: 4px solid #f59e0b; }
+.lesson-section[data-theme="solution"]    { border-left: 4px solid #10b981; }
+.lesson-section[data-theme="math"]        { border-left: 4px solid #6366f1; }
+.lesson-section[data-theme="tech"]        { border-left: 4px solid #64748b; }
+.lesson-section[data-theme="unlocks"]     { border-left: 4px solid #ec4899; }
+.lesson-section[data-theme="orient"]      { border-left: 4px solid #0ea5e9; }
+.intro { border-left: 4px solid #0ea5e9; }
+
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon { font-size: 22px; }
+.section-badge {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.section-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.section-body h3 { margin-top: 32px; font-size: 18px; font-weight: 700; }
+.section-body h4 { margin-top: 24px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.section-body p { margin: 12px 0; }
+.section-body ul, .section-body ol { margin: 12px 0; padding-left: 24px; }
+.section-body li { margin: 4px 0; }
+
+.section-body a { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(37,99,235,0.3); text-underline-offset: 2px; }
+.section-body a:hover { text-decoration-color: var(--accent); }
+
+.section-body strong { font-weight: 700; }
+.section-body em { font-style: italic; }
+
+.section-body blockquote {
+  margin: 16px 0; padding: 12px 20px;
+  background: #f5f6f8; border-left: 3px solid var(--text-muted);
+  border-radius: 4px; color: var(--text); font-size: 0.95em;
+}
+.section-body blockquote p:first-child { margin-top: 0; }
+.section-body blockquote p:last-child { margin-bottom: 0; }
+
+.section-body img {
+  display: block; max-width: 100%; height: auto;
+  margin: 20px auto; padding: 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+}
+
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 0.9em;
+}
+.section-body th, .section-body td {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-body th { background: #f5f6f8; font-weight: 600; }
+
+.section-body code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: #f1f3f5; padding: 1px 6px; border-radius: 3px;
+}
+.section-body pre {
+  background: #f6f8fa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font-size: 13px;
+  margin: 16px 0;
+}
+.section-body pre code { background: transparent; padding: 0; }
+
+.section-body details {
+  margin: 16px 0; padding: 10px 14px;
+  background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px;
+}
+.section-body details summary {
+  cursor: pointer; font-weight: 600; font-size: 13px;
+  color: var(--text-muted);
+}
+.section-body details[open] summary { margin-bottom: 8px; }
+
+.section-body hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+
+.section-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+
+.lesson-footer {
+  text-align: center; padding: 32px;
+  color: var(--text-muted); font-size: 14px;
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+.lesson-footer .muted { font-size: 12px; opacity: 0.7; }
+kbd {
+  background: var(--surface); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+  .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toc li { flex: 0 0 auto; }
+  .toc a { padding: 4px 8px; font-size: 12px; }
+  .intro, .lesson-section { padding: 20px; }
+  .page-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="../../index.html">AdaptLearn</a>
+        <span class="sep">›</span>
+        <a href="../index.html">Module 4</a>
+        <span class="sep">›</span>
+        <span class="current">Lesson 4.2</span>
+      </nav>
+      <h1 class="page-title">Memory: Working, Episodic, and Cross-Session</h1>
+      <div class="page-meta">
+        <span>Lesson 4.2</span>
+        <span class="dot">·</span>
+        <span>9 sections</span>
+        <span class="dot">·</span>
+        <span>~25 min read</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc" aria-label="Lesson sections">
+        <h3>Sections</h3>
+        <ol>
+      <li><a href="#section-1" data-section="1"><span class="toc-num">§1</span><span class="toc-title">Business Scenario</span></a></li>
+      <li><a href="#section-2" data-section="2"><span class="toc-num">§2</span><span class="toc-title">Bridge to Topic</span></a></li>
+      <li><a href="#section-3" data-section="3"><span class="toc-num">§3</span><span class="toc-title">Mind Map</span></a></li>
+      <li><a href="#section-4" data-section="4"><span class="toc-num">§4</span><span class="toc-title">Elaboration</span></a></li>
+      <li><a href="#section-5" data-section="5"><span class="toc-num">§5</span><span class="toc-title">Problem Statement</span></a></li>
+      <li><a href="#section-6" data-section="6"><span class="toc-num">§6</span><span class="toc-title">Solution Walkthrough</span></a></li>
+      <li><a href="#section-7" data-section="7"><span class="toc-num">§7</span><span class="toc-title">Mathematical Foundation</span></a></li>
+      <li><a href="#section-8" data-section="8"><span class="toc-num">§8</span><span class="toc-title">Technical Deep-Dive</span></a></li>
+      <li><a href="#section-9" data-section="9"><span class="toc-num">§9</span><span class="toc-title">What This Unlocks</span></a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main id="main" class="content">
+      <section class="intro" id="section-intro">
+        <header class="section-header">
+          <span class="section-icon">📍</span>
+          <h2>How to use this lesson</h2>
+        </header>
+        <div class="section-body">
+<blockquote>
+<p><strong>§0 · From last time.</strong> Sherpa v1 has no memory. Every night it&#39;s a fresh agent that has never seen HSBC&#39;s data before. Aisha&#39;s note from Lesson 2.2 — &quot;I&#39;ve seen this same break shape 11 times&quot; — is invisible to v1. Adding memory is what turns Sherpa from a tool into a junior colleague who gets better over time.</p>
+</blockquote>
+
+        </div>
+      </section>
+      <section id="section-1" class="lesson-section" data-theme="scenario" data-section="1">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🏢</span>
+          <span class="section-badge">§1</span>
+          <h2>Business Scenario</h2>
+        </header>
+        <div class="section-body">
+<p><em>HSBC, 2 weeks into the shadow run.</em></p>
+<p>Aisha is frustrated. Sherpa keeps re-investigating the <em>Sigma Capital fee-deduction</em> pattern from scratch every time it appears (~11×/month). It takes 4–5 tool calls each time. Aisha has it memorised: glance at the counterparty, glance at the amount, tag it.</p>
+<blockquote>
+<p><em>&quot;If I see Sigma + amount_diff in the 1.2M range, I know it&#39;s fee_deduction in 5 seconds. Sherpa takes 30. Can it learn?&quot;</em></p>
+</blockquote>
+<p>The architecture must add memory — without exploding context cost or letting bad memories accumulate.</p>
+
+        </div>
+      </section>
+
+      <section id="section-2" class="lesson-section" data-theme="bridge" data-section="2">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🔗</span>
+          <span class="section-badge">§2</span>
+          <h2>Bridge to Topic</h2>
+        </header>
+        <div class="section-body">
+<p>Three memory tiers serve different purposes: <em>working memory</em> (within one task, in context), <em>episodic memory</em> (across tasks, retrievable summaries), <em>procedural memory</em> (learned heuristics across many runs). Each has a different cost profile and a different failure mode.</p>
+
+        </div>
+      </section>
+
+      <section id="section-3" class="lesson-section" data-theme="mindmap" data-section="3">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🗺️</span>
+          <span class="section-badge">§3</span>
+          <h2>Mind Map</h2>
+        </header>
+        <div class="section-body">
+<p><img src="../../diagrams/m04/04-memory-tiers.svg" alt="Mind map"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">mindmap
+  root((Memory))
+    Working
+      Current trace
+      Context window
+      Per task
+    Episodic
+      Past cases
+      Retrieved by similarity
+      Per case
+    Procedural
+      Heuristics
+      Learned over time
+      Per pattern
+    Failure modes
+      Stale memory
+      Memory pollution
+      Cost explosion
+</code></pre>
+</details>
+        </div>
+      </section>
+
+      <section id="section-4" class="lesson-section" data-theme="elaboration" data-section="4">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">📖</span>
+          <span class="section-badge">§4</span>
+          <h2>Elaboration</h2>
+        </header>
+        <div class="section-body">
+<h3>4.1 Three tiers, three jobs</h3>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Lifetime</th>
+<th>Where stored</th>
+<th>Cost per write/read</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Working</td>
+<td>One task</td>
+<td>Context window</td>
+<td>included</td>
+</tr>
+<tr>
+<td>Episodic</td>
+<td>One run / one session</td>
+<td>Vector DB</td>
+<td>$0.0001 write, $0.001 read</td>
+</tr>
+<tr>
+<td>Procedural</td>
+<td>Persistent across runs</td>
+<td>Markdown rules file</td>
+<td>$0 (just text in prompt)</td>
+</tr>
+</tbody></table>
+<h3>4.2 Episodic memory for Aisha&#39;s pattern</h3>
+<p>After each break is resolved, store a <em>case summary</em>:</p>
+<pre><code class="language-typescript">interface CaseSummary {
+  break_id: string;
+  features: { counterparty: string; amount_range: string; currency_pair: string; classification: BreakClass };
+  resolution_steps: string[];
+  tool_calls: number;
+  was_correct: boolean;
+}
+</code></pre>
+<p>Embed and index. On new breaks, retrieve top-3 similar cases. If 2/3 agree on a classification with high confidence, Sherpa can answer in 1 step (with citation to the historical cases) instead of investigating from scratch.</p>
+<p>For Sigma Capital fee-deduction:</p>
+<ul>
+<li>v1: 4–5 tool calls × $0.013/call = ~$0.06</li>
+<li>with episodic memory: 1 tool call (retrieve cases) + 0 investigation = $0.012</li>
+</ul>
+<p>5× cost reduction on recurring patterns. ~70% of HSBC&#39;s breaks are recurring patterns. Total cost reduction across the workload: ~3×.</p>
+<h3>4.3 Procedural memory: learned rules</h3>
+<p>Episodic memory is per-case. Procedural memory is <em>learned heuristics</em> extracted from many cases:</p>
+<pre><code>RULES LEARNED FROM HISTORICAL DATA (curated by Aisha; ~50 rules):
+
+1. Sigma Capital + USD/SGD + amount_diff in $1M-$2M range
+   → 95% chance fee_deduction. Verify via static, then commit.
+
+2. Settlement at month-end + amount_diff &lt; $100
+   → 80% chance rounding. Verify via GL precision, commit if confirmed.
+
+[...]
+</code></pre>
+<p>Procedural memory is <em>literal text in the prompt</em> — no retrieval needed. Costs nothing per call. Risk: stale rules become harmful. Mitigation: regenerate quarterly from the case database (Lesson 4.5 ships this).</p>
+<h3>4.4 Avoiding memory pollution</h3>
+<p>If you store every case, the database fills with low-quality data. Two safeguards:</p>
+<ol>
+<li><strong>Quality filter</strong>: only store cases the human reviewer marked as correctly classified.</li>
+<li><strong>Decay</strong>: weight retrieval by recency. A case from 18 months ago is less likely to be relevant than one from last week.</li>
+</ol>
+
+        </div>
+      </section>
+
+      <section id="section-5" class="lesson-section" data-theme="problem" data-section="5">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">❓</span>
+          <span class="section-badge">§5</span>
+          <h2>Problem Statement</h2>
+        </header>
+        <div class="section-body">
+<p>Extend Sherpa to v2:</p>
+<ol>
+<li>Add episodic memory using a vector store (Pinecone, pgvector, or even a flat file for the pilot).</li>
+<li>Add a &quot;check memory first&quot; step to the agent loop.</li>
+<li>Curate 10 procedural rules from the case database.</li>
+<li>Re-run the eval; report new cost and accuracy.</li>
+</ol>
+
+        </div>
+      </section>
+
+      <section id="section-6" class="lesson-section" data-theme="solution" data-section="6">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🛠️</span>
+          <span class="section-badge">§6</span>
+          <h2>Solution Walkthrough</h2>
+        </header>
+        <div class="section-body">
+<pre><code class="language-typescript">async function classify(breakId: string): Promise&lt;Classification&gt; {
+  const breakData = await fetchBreak(breakId);
+  
+  // STEP 1: Check episodic memory
+  const similar = await episodicMemory.retrieve(featurise(breakData), { k: 3 });
+  if (similar.length &gt;= 2 &amp;&amp; similar[0].similarity &gt; 0.85 &amp;&amp; consistent(similar)) {
+    return useHistoricalConsensus(similar, breakData);
+  }
+
+  // STEP 2: Standard ReAct loop (with procedural rules in prompt)
+  const trace: Trace = { steps: [], callCounts: {} };
+  // ... rest as v1
+}
+</code></pre>
+<p>Eval after change: 24-task expanded eval. 21/24 correct (87.5%, up from 80%). Average cost $0.029 (down from $0.054). Aisha says the Sigma pattern now takes 8s end-to-end instead of 30.</p>
+
+        </div>
+      </section>
+
+      <section id="section-7" class="lesson-section" data-theme="math" data-section="7">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">∑</span>
+          <span class="section-badge">§7</span>
+          <h2>Mathematical Foundation</h2>
+        </header>
+        <div class="section-body">
+<h3>7.1 Memory as Bayesian prior</h3>
+<p>Episodic memory provides a <em>prior</em> over classification:</p>
+<p>$$
+P(\text{class} \mid \text{new break}) \propto \sum_{c \in \text{memory}} \text{sim}(\text{new break}, c) \cdot \mathbb{1}[c.\text{class} = \text{class}]
+$$</p>
+<p>This is a kernel-weighted vote. When evidence in memory is strong (high similarity, consistent class), the prior pins the posterior and few new observations are needed.</p>
+<h3>7.2 The cost-benefit of memory</h3>
+<p>Cost of memory: storage + retrieval per call.
+Benefit: avoided tool calls.</p>
+<p>$$
+\text{Net benefit} = (\text{hit rate}) \cdot (\text{avg tool calls saved}) \cdot c_{\text{tool}} - c_{\text{retrieval}}
+$$</p>
+<p>For Sherpa: hit rate 60%, avg tool calls saved 3.5, $c_{\text{tool}} = $0.005, $c_{\text{retrieval}} = $0.001:
+$\text{Net benefit} = 0.6 \cdot 3.5 \cdot 0.005 - 0.001 = 0.0095/$task.</p>
+<p>A penny per task. At 1,400 tasks/night that&#39;s $13.30/night. $4,800/year. Modest but real, and the <em>latency</em> improvement is more valuable than the cost.</p>
+
+        </div>
+      </section>
+
+      <section id="section-8" class="lesson-section" data-theme="tech" data-section="8">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">⚙️</span>
+          <span class="section-badge">§8</span>
+          <h2>Technical Deep-Dive</h2>
+        </header>
+        <div class="section-body">
+<h3>8.1 Choosing features for episodic memory</h3>
+<p>Sherpa&#39;s features (what goes into the vector):</p>
+<ul>
+<li>Counterparty (one-hot or learned embedding)</li>
+<li>Amount-range bucket (log-spaced)</li>
+<li>Currency pair</li>
+<li>Time-of-day bucket</li>
+<li>Break type extracted from the SWIFT message header</li>
+</ul>
+<p>These are <em>symbolic</em> features. We could use a learned embedding of the whole SWIFT message text, but symbolic features generalise better to rare patterns.</p>
+<h3>8.2 Retrieval threshold tuning</h3>
+<p>The 0.85 similarity threshold isn&#39;t arbitrary. Tune by:</p>
+<ol>
+<li>Sweep threshold from 0.5 to 0.99.</li>
+<li>At each level, measure: hit rate, false-confidence rate (cases where memory agreed but was wrong).</li>
+<li>Pick the threshold where false-confidence &lt; 2%.</li>
+</ol>
+<p>This is <em>the</em> parameter that determines whether memory helps or hurts.</p>
+<h3>8.3 Procedural memory curation</h3>
+<p>Don&#39;t auto-generate rules. Have a human (Aisha) review proposed rules monthly. Rules are <em>load-bearing prompt content</em> — they affect every classification. The cost of a wrong rule is much higher than the cost of curating.</p>
+
+        </div>
+      </section>
+
+      <section id="section-9" class="lesson-section" data-theme="unlocks" data-section="9">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🚀</span>
+          <span class="section-badge">§9</span>
+          <h2>What This Unlocks</h2>
+        </header>
+        <div class="section-body">
+<ul>
+<li><strong>Lesson 4.3</strong> uses memory as the substrate for reflection (lessons learned go into procedural memory).</li>
+<li><strong>Module 5</strong> generalises this memory architecture to RAG.</li>
+<li><strong>Module 8</strong> uses memory hit rate and false-confidence rate as eval metrics.</li>
+</ul>
+<hr>
+
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <p>End of Lesson 4.2</p>
+        <p class="muted">Press <kbd>↑</kbd> / <kbd>↓</kbd> to jump between sections.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script>
+(function () {
+  var sections = document.querySelectorAll(".lesson-section, .intro");
+  var tocLinks = document.querySelectorAll(".toc a");
+  var progress = document.getElementById("progress");
+  var byId = {};
+  tocLinks.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    byId[id] = a;
+  });
+
+  function update() {
+    var scrolled = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (progress) progress.style.width = max > 0 ? (scrolled / max * 100) + "%" : "0%";
+
+    var current = null;
+    sections.forEach(function (s) {
+      var top = s.getBoundingClientRect().top;
+      if (top < 140) current = s.id;
+    });
+    tocLinks.forEach(function (a) { a.classList.remove("active"); });
+    if (current && byId[current]) byId[current].classList.add("active");
+  }
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    var ids = Array.prototype.map.call(sections, function (s) { return s.id; });
+    var currentIdx = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top < 140) currentIdx = i;
+    }
+    if (e.key === "ArrowDown" && e.shiftKey) {
+      e.preventDefault();
+      var next = Math.min(ids.length - 1, currentIdx + 1);
+      document.getElementById(ids[next]).scrollIntoView({ behavior: "smooth" });
+    }
+    if (e.key === "ArrowUp" && e.shiftKey) {
+      e.preventDefault();
+      var prev = Math.max(0, currentIdx - 1);
+      document.getElementById(ids[prev]).scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
+</script>
+</body>
+</html>

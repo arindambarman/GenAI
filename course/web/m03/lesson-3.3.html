@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson 3.3 · Structured Output and Constrained Decoding · AdaptLearn</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-light.css" />
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+  --max-content: 760px;
+  --sidebar-w: 280px;
+  --header-h: 120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: 8px 12px; z-index: 100;
+}
+.skip:focus { left: 12px; top: 12px; }
+
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.92);
+}
+.page-header-inner {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto; padding: 14px 32px;
+}
+.breadcrumb {
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.page-meta { font-size: 13px; color: var(--text-muted); }
+.page-meta .dot { margin: 0 8px; opacity: 0.5; }
+
+.progress-bar { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+.layout {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 40px;
+  padding: 32px;
+}
+
+.sidebar { position: sticky; top: calc(var(--header-h) + 16px); align-self: start; max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; }
+.toc h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; border-radius: 6px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { background: var(--accent-soft); color: var(--text); }
+.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.toc-num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.toc a.active .toc-num { color: var(--accent); }
+
+.content { min-width: 0; max-width: var(--max-content); }
+
+.intro, .lesson-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: var(--header-h);
+}
+.lesson-section[data-theme="scenario"]    { border-left: 4px solid #ef4444; }
+.lesson-section[data-theme="bridge"]      { border-left: 4px solid #94a3b8; }
+.lesson-section[data-theme="mindmap"]     { border-left: 4px solid #8b5cf6; }
+.lesson-section[data-theme="elaboration"] { border-left: 4px solid #2563eb; }
+.lesson-section[data-theme="problem"]     { border-left: 4px solid #f59e0b; }
+.lesson-section[data-theme="solution"]    { border-left: 4px solid #10b981; }
+.lesson-section[data-theme="math"]        { border-left: 4px solid #6366f1; }
+.lesson-section[data-theme="tech"]        { border-left: 4px solid #64748b; }
+.lesson-section[data-theme="unlocks"]     { border-left: 4px solid #ec4899; }
+.lesson-section[data-theme="orient"]      { border-left: 4px solid #0ea5e9; }
+.intro { border-left: 4px solid #0ea5e9; }
+
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon { font-size: 22px; }
+.section-badge {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.section-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.section-body h3 { margin-top: 32px; font-size: 18px; font-weight: 700; }
+.section-body h4 { margin-top: 24px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.section-body p { margin: 12px 0; }
+.section-body ul, .section-body ol { margin: 12px 0; padding-left: 24px; }
+.section-body li { margin: 4px 0; }
+
+.section-body a { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(37,99,235,0.3); text-underline-offset: 2px; }
+.section-body a:hover { text-decoration-color: var(--accent); }
+
+.section-body strong { font-weight: 700; }
+.section-body em { font-style: italic; }
+
+.section-body blockquote {
+  margin: 16px 0; padding: 12px 20px;
+  background: #f5f6f8; border-left: 3px solid var(--text-muted);
+  border-radius: 4px; color: var(--text); font-size: 0.95em;
+}
+.section-body blockquote p:first-child { margin-top: 0; }
+.section-body blockquote p:last-child { margin-bottom: 0; }
+
+.section-body img {
+  display: block; max-width: 100%; height: auto;
+  margin: 20px auto; padding: 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+}
+
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 0.9em;
+}
+.section-body th, .section-body td {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-body th { background: #f5f6f8; font-weight: 600; }
+
+.section-body code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: #f1f3f5; padding: 1px 6px; border-radius: 3px;
+}
+.section-body pre {
+  background: #f6f8fa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font-size: 13px;
+  margin: 16px 0;
+}
+.section-body pre code { background: transparent; padding: 0; }
+
+.section-body details {
+  margin: 16px 0; padding: 10px 14px;
+  background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px;
+}
+.section-body details summary {
+  cursor: pointer; font-weight: 600; font-size: 13px;
+  color: var(--text-muted);
+}
+.section-body details[open] summary { margin-bottom: 8px; }
+
+.section-body hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+
+.section-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+
+.lesson-footer {
+  text-align: center; padding: 32px;
+  color: var(--text-muted); font-size: 14px;
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+.lesson-footer .muted { font-size: 12px; opacity: 0.7; }
+kbd {
+  background: var(--surface); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+  .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toc li { flex: 0 0 auto; }
+  .toc a { padding: 4px 8px; font-size: 12px; }
+  .intro, .lesson-section { padding: 20px; }
+  .page-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="../../index.html">AdaptLearn</a>
+        <span class="sep">›</span>
+        <a href="../index.html">Module 3</a>
+        <span class="sep">›</span>
+        <span class="current">Lesson 3.3</span>
+      </nav>
+      <h1 class="page-title">Structured Output and Constrained Decoding</h1>
+      <div class="page-meta">
+        <span>Lesson 3.3</span>
+        <span class="dot">·</span>
+        <span>9 sections</span>
+        <span class="dot">·</span>
+        <span>~25 min read</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc" aria-label="Lesson sections">
+        <h3>Sections</h3>
+        <ol>
+      <li><a href="#section-1" data-section="1"><span class="toc-num">§1</span><span class="toc-title">Business Scenario</span></a></li>
+      <li><a href="#section-2" data-section="2"><span class="toc-num">§2</span><span class="toc-title">Bridge to Topic</span></a></li>
+      <li><a href="#section-3" data-section="3"><span class="toc-num">§3</span><span class="toc-title">Mind Map</span></a></li>
+      <li><a href="#section-4" data-section="4"><span class="toc-num">§4</span><span class="toc-title">Elaboration</span></a></li>
+      <li><a href="#section-5" data-section="5"><span class="toc-num">§5</span><span class="toc-title">Problem Statement</span></a></li>
+      <li><a href="#section-6" data-section="6"><span class="toc-num">§6</span><span class="toc-title">Solution Walkthrough</span></a></li>
+      <li><a href="#section-7" data-section="7"><span class="toc-num">§7</span><span class="toc-title">Mathematical Foundation</span></a></li>
+      <li><a href="#section-8" data-section="8"><span class="toc-num">§8</span><span class="toc-title">Technical Deep-Dive</span></a></li>
+      <li><a href="#section-9" data-section="9"><span class="toc-num">§9</span><span class="toc-title">What This Unlocks</span></a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main id="main" class="content">
+      <section class="intro" id="section-intro">
+        <header class="section-header">
+          <span class="section-icon">📍</span>
+          <h2>How to use this lesson</h2>
+        </header>
+        <div class="section-body">
+<blockquote>
+<p><strong>§0 · From last time.</strong> Lesson 3.2 used constrained decoding for tool calls. The same machinery can constrain any structured output. CLAUDE.md rule #1 (validate all LLM output with Zod before use) is enforceable at <em>generation</em> time, not just validation time.</p>
+</blockquote>
+
+        </div>
+      </section>
+      <section id="section-1" class="lesson-section" data-theme="scenario" data-section="1">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🏢</span>
+          <span class="section-badge">§1</span>
+          <h2>Business Scenario</h2>
+        </header>
+        <div class="section-body">
+<p><em>Acme Support.</em></p>
+<p>Lin Chen&#39;s ticket-classifier emits this once a week:</p>
+<pre><code class="language-json">{
+  &quot;category&quot;: &quot;refund_request&quot;,
+  &quot;urgency&quot;: &quot;high&quot;,
+  &quot;needs_human&quot;: true,
+  &quot;estimated_refund_amount&quot;: &quot;around $50-75 maybe&quot;
+}
+</code></pre>
+<p>The downstream system expects <code>estimated_refund_amount</code> to be a <em>number</em>, not a string. The pipeline crashes. The ticket gets stuck. CSAT drops.</p>
+<blockquote>
+<p><em>&quot;Why didn&#39;t the schema catch this?&quot;</em> Lin asks.</p>
+</blockquote>
+<p>Because the schema was applied <em>after</em> generation, by Zod, in code. By then it&#39;s too late; the model has already burned tokens producing invalid output. Constrained decoding applies the schema <em>during</em> generation.</p>
+
+        </div>
+      </section>
+
+      <section id="section-2" class="lesson-section" data-theme="bridge" data-section="2">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🔗</span>
+          <span class="section-badge">§2</span>
+          <h2>Bridge to Topic</h2>
+        </header>
+        <div class="section-body">
+<p>There are three places to enforce structure: at generation (constrained decoding), at parse (Zod), at use (defensive programming). All three are needed; but the most expensive failures are caught only at generation.</p>
+
+        </div>
+      </section>
+
+      <section id="section-3" class="lesson-section" data-theme="mindmap" data-section="3">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🗺️</span>
+          <span class="section-badge">§3</span>
+          <h2>Mind Map</h2>
+        </header>
+        <div class="section-body">
+<p><img src="../../diagrams/m03/05-structured-output.svg" alt="Mind map"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">mindmap
+  root((Structured Output))
+    JSON Schema
+      Types
+      Required fields
+      Enums
+      Pattern
+    Constrained Decoding
+      FSM over grammar
+      Per-token restriction
+      Zero parse errors
+    Validation Stack
+      Generation strict
+      Parse Zod
+      Use defensive
+    Failure Modes
+      Wrong type
+      Missing field
+      Out of range
+      Hallucinated enum
+</code></pre>
+</details>
+        </div>
+      </section>
+
+      <section id="section-4" class="lesson-section" data-theme="elaboration" data-section="4">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">📖</span>
+          <span class="section-badge">§4</span>
+          <h2>Elaboration</h2>
+        </header>
+        <div class="section-body">
+<h3>4.1 The three-layer validation stack</h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>When</th>
+<th>What it catches</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Generation (strict)</td>
+<td>During LLM decoding</td>
+<td>Wrong type, missing required, invalid enum</td>
+</tr>
+<tr>
+<td>Parse (Zod)</td>
+<td>After API returns</td>
+<td>Schema drift between model and code</td>
+</tr>
+<tr>
+<td>Use (defensive)</td>
+<td>At application boundaries</td>
+<td>Business-rule violations (e.g., refund &gt; $50)</td>
+</tr>
+</tbody></table>
+<p>Each layer is necessary. Strict decoding is the cheapest and the only one that prevents wasted tokens. Zod and defensive coding handle drift between deployments and business rules the schema can&#39;t express.</p>
+<h3>4.2 JSON Schema features that matter</h3>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;category&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [&quot;refund&quot;, &quot;shipping&quot;, &quot;sizing&quot;, &quot;other&quot;]
+    },
+    &quot;urgency&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [&quot;low&quot;, &quot;medium&quot;, &quot;high&quot;]
+    },
+    &quot;estimated_refund_amount&quot;: {
+      &quot;type&quot;: &quot;number&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 10000
+    }
+  },
+  &quot;required&quot;: [&quot;category&quot;, &quot;urgency&quot;]
+}
+</code></pre>
+<p>Three features:</p>
+<ul>
+<li><code>enum</code> — restricts to a known set; eliminates Lin&#39;s &quot;around $50-75 maybe&quot; problem because <code>estimated_refund_amount</code> is forced to a number.</li>
+<li><code>minimum</code>/<code>maximum</code> — bounds business-meaningful values.</li>
+<li><code>required</code> — ensures critical fields aren&#39;t dropped.</li>
+</ul>
+<h3>4.3 What strict decoding actually does</h3>
+<p>Internally: parse the schema to a finite-state machine (FSM). At each decoding step, only tokens that keep the FSM in a valid state are sampled. For our schema:</p>
+<ul>
+<li>At position right after <code>&quot;estimated_refund_amount&quot;: </code>, the legal tokens are digits and <code>.</code> (number tokens). The model cannot emit <code>&quot;around&quot;</code>.</li>
+<li>After <code>&quot;category&quot;: &quot;</code>, the legal tokens are prefixes of <code>refund</code>, <code>shipping</code>, <code>sizing</code>, <code>other</code>. The model cannot emit <code>&quot;refund_request&quot;</code>.</li>
+</ul>
+<h3>4.4 When the schema fights the model</h3>
+<p>If you give the model a task it cannot meaningfully complete, strict decoding will force it to emit <em>something</em> — possibly wrong but syntactically valid. Example: ask for <code>estimated_refund_amount</code> on a ticket that&#39;s about sizing (not a refund). The model is forced to emit a number even though the right answer is &quot;N/A.&quot;</p>
+<p>Fix: make refused/null fields explicit:</p>
+<pre><code class="language-json">&quot;estimated_refund_amount&quot;: {
+  &quot;oneOf&quot;: [
+    {&quot;type&quot;: &quot;number&quot;, &quot;minimum&quot;: 0, &quot;maximum&quot;: 10000},
+    {&quot;type&quot;: &quot;null&quot;}
+  ]
+}
+</code></pre>
+<p>Then the model can emit <code>null</code> legally when the field doesn&#39;t apply.</p>
+
+        </div>
+      </section>
+
+      <section id="section-5" class="lesson-section" data-theme="problem" data-section="5">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">❓</span>
+          <span class="section-badge">§5</span>
+          <h2>Problem Statement</h2>
+        </header>
+        <div class="section-body">
+<p>Lin&#39;s failing schema is:</p>
+<pre><code class="language-typescript">const TicketAnalysis = z.object({
+  category: z.string(),
+  urgency: z.string(),
+  needs_human: z.boolean(),
+  estimated_refund_amount: z.number().optional(),
+});
+</code></pre>
+<ol>
+<li>Identify three drift risks.</li>
+<li>Rewrite as strict JSON schema for the model + Zod for parse-time double-check.</li>
+<li>Where in the stack do the <code>needs_human</code> business rules belong?</li>
+</ol>
+
+        </div>
+      </section>
+
+      <section id="section-6" class="lesson-section" data-theme="solution" data-section="6">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🛠️</span>
+          <span class="section-badge">§6</span>
+          <h2>Solution Walkthrough</h2>
+        </header>
+        <div class="section-body">
+<p><strong>Three drift risks:</strong></p>
+<ol>
+<li><code>category</code> is <code>z.string()</code> — model can emit anything.</li>
+<li><code>urgency</code> similarly — no enum constraint.</li>
+<li><code>estimated_refund_amount</code> is optional but <code>z.number()</code> won&#39;t accept the string the model emits.</li>
+</ol>
+<p><strong>Strict schema:</strong></p>
+<pre><code class="language-typescript">const CATEGORIES = [&quot;refund&quot;, &quot;shipping&quot;, &quot;sizing&quot;, &quot;other&quot;] as const;
+const URGENCIES = [&quot;low&quot;, &quot;medium&quot;, &quot;high&quot;] as const;
+
+const strictSchema = {
+  type: &quot;object&quot;,
+  properties: {
+    category: { type: &quot;string&quot;, enum: CATEGORIES },
+    urgency: { type: &quot;string&quot;, enum: URGENCIES },
+    needs_human: { type: &quot;boolean&quot; },
+    estimated_refund_amount: { oneOf: [{ type: &quot;number&quot;, minimum: 0 }, { type: &quot;null&quot; }] },
+  },
+  required: [&quot;category&quot;, &quot;urgency&quot;, &quot;needs_human&quot;],
+};
+
+const TicketAnalysis = z.object({
+  category: z.enum(CATEGORIES),
+  urgency: z.enum(URGENCIES),
+  needs_human: z.boolean(),
+  estimated_refund_amount: z.number().min(0).nullable(),
+});
+</code></pre>
+<p><strong>Where business rules live:</strong></p>
+<p><code>needs_human</code> should be true when:</p>
+<ul>
+<li><code>estimated_refund_amount &gt; 50</code> (Acme policy)</li>
+<li><code>category === &quot;other&quot;</code> (untrusted bucket)</li>
+<li><code>urgency === &quot;high&quot;</code></li>
+</ul>
+<p>Belongs at the <em>use</em> layer, not the schema layer:</p>
+<pre><code class="language-typescript">function shouldEscalate(t: TicketAnalysis): boolean {
+  return (
+    (t.estimated_refund_amount ?? 0) &gt; 50 ||
+    t.category === &quot;other&quot; ||
+    t.urgency === &quot;high&quot; ||
+    t.needs_human  // model can also flag it
+  );
+}
+</code></pre>
+<p>The schema enforces shape; business code enforces policy. Don&#39;t mix.</p>
+
+        </div>
+      </section>
+
+      <section id="section-7" class="lesson-section" data-theme="math" data-section="7">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">∑</span>
+          <span class="section-badge">§7</span>
+          <h2>Mathematical Foundation</h2>
+        </header>
+        <div class="section-body">
+<h3>7.1 Grammar-restricted sampling preserves quality</h3>
+<p>Surprisingly, constrained decoding usually does <em>not</em> hurt model quality on structured tasks. Intuition: the model has implicit beliefs about what structured output should look like; the constraint typically aligns with those beliefs. The constraint only &quot;hurts&quot; when the model wanted to give an unstructured answer.</p>
+<h3>7.2 Information content of the schema</h3>
+<p>A schema with N possible values for a field reduces the field&#39;s entropy by:</p>
+<p>$$
+\Delta H = \log_2(V) - \log_2(N)
+$$</p>
+<p>where $V$ is the model&#39;s effective vocabulary at that position. For an enum with 4 options vs free-form string: roughly 13 bits of entropy reduction per such field — pure constraint with no information cost.</p>
+
+        </div>
+      </section>
+
+      <section id="section-8" class="lesson-section" data-theme="tech" data-section="8">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">⚙️</span>
+          <span class="section-badge">§8</span>
+          <h2>Technical Deep-Dive</h2>
+        </header>
+        <div class="section-body">
+<h3>8.1 Schema design rules</h3>
+<ol>
+<li><strong>Use enums</strong> wherever the value space is closed.</li>
+<li><strong>Use minimum/maximum</strong> wherever business has bounds.</li>
+<li><strong>Use null explicitly</strong> instead of <code>optional</code> to express &quot;not applicable.&quot;</li>
+<li><strong>Use <code>additionalProperties: false</code></strong> to prevent the model from inventing fields.</li>
+<li><strong>Use <code>oneOf</code> / <code>anyOf</code></strong> for tagged unions when the output shape depends on a discriminator.</li>
+</ol>
+<h3>8.2 Schema versioning</h3>
+<p>When you change a schema in production:</p>
+<ul>
+<li>Bump a version number on the schema.</li>
+<li>Log the version with every emission.</li>
+<li>Keep parsers for the last N versions.</li>
+</ul>
+<p>Schema drift between code and prompts is one of the most common production-bug families. Versioning makes it tractable.</p>
+<h3>8.3 Schema as documentation</h3>
+<p>A well-designed schema is self-documenting. Use the <code>description</code> field on every property to tell the model (and humans reading the code) what the field means. The descriptions become part of the prompt the model sees.</p>
+
+        </div>
+      </section>
+
+      <section id="section-9" class="lesson-section" data-theme="unlocks" data-section="9">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🚀</span>
+          <span class="section-badge">§9</span>
+          <h2>What This Unlocks</h2>
+        </header>
+        <div class="section-body">
+<ul>
+<li><strong>Lesson 3.4</strong> uses schema design as part of the prompt-engineering toolkit.</li>
+<li><strong>Module 4</strong> designs Sherpa&#39;s tool-call schemas using these rules.</li>
+<li><strong>Module 8</strong> uses schema-validation pass rate as an eval metric.</li>
+</ul>
+<hr>
+
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <p>End of Lesson 3.3</p>
+        <p class="muted">Press <kbd>↑</kbd> / <kbd>↓</kbd> to jump between sections.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script>
+(function () {
+  var sections = document.querySelectorAll(".lesson-section, .intro");
+  var tocLinks = document.querySelectorAll(".toc a");
+  var progress = document.getElementById("progress");
+  var byId = {};
+  tocLinks.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    byId[id] = a;
+  });
+
+  function update() {
+    var scrolled = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (progress) progress.style.width = max > 0 ? (scrolled / max * 100) + "%" : "0%";
+
+    var current = null;
+    sections.forEach(function (s) {
+      var top = s.getBoundingClientRect().top;
+      if (top < 140) current = s.id;
+    });
+    tocLinks.forEach(function (a) { a.classList.remove("active"); });
+    if (current && byId[current]) byId[current].classList.add("active");
+  }
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    var ids = Array.prototype.map.call(sections, function (s) { return s.id; });
+    var currentIdx = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top < 140) currentIdx = i;
+    }
+    if (e.key === "ArrowDown" && e.shiftKey) {
+      e.preventDefault();
+      var next = Math.min(ids.length - 1, currentIdx + 1);
+      document.getElementById(ids[next]).scrollIntoView({ behavior: "smooth" });
+    }
+    if (e.key === "ArrowUp" && e.shiftKey) {
+      e.preventDefault();
+      var prev = Math.max(0, currentIdx - 1);
+      document.getElementById(ids[prev]).scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
+</script>
+</body>
+</html>

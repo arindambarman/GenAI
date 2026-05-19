@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson 1.1 · What is an Agent? · AdaptLearn</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-light.css" />
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+  --max-content: 760px;
+  --sidebar-w: 280px;
+  --header-h: 120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: 8px 12px; z-index: 100;
+}
+.skip:focus { left: 12px; top: 12px; }
+
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.92);
+}
+.page-header-inner {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto; padding: 14px 32px;
+}
+.breadcrumb {
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.page-meta { font-size: 13px; color: var(--text-muted); }
+.page-meta .dot { margin: 0 8px; opacity: 0.5; }
+
+.progress-bar { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+.layout {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 40px;
+  padding: 32px;
+}
+
+.sidebar { position: sticky; top: calc(var(--header-h) + 16px); align-self: start; max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; }
+.toc h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; border-radius: 6px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { background: var(--accent-soft); color: var(--text); }
+.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.toc-num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.toc a.active .toc-num { color: var(--accent); }
+
+.content { min-width: 0; max-width: var(--max-content); }
+
+.intro, .lesson-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: var(--header-h);
+}
+.lesson-section[data-theme="scenario"]    { border-left: 4px solid #ef4444; }
+.lesson-section[data-theme="bridge"]      { border-left: 4px solid #94a3b8; }
+.lesson-section[data-theme="mindmap"]     { border-left: 4px solid #8b5cf6; }
+.lesson-section[data-theme="elaboration"] { border-left: 4px solid #2563eb; }
+.lesson-section[data-theme="problem"]     { border-left: 4px solid #f59e0b; }
+.lesson-section[data-theme="solution"]    { border-left: 4px solid #10b981; }
+.lesson-section[data-theme="math"]        { border-left: 4px solid #6366f1; }
+.lesson-section[data-theme="tech"]        { border-left: 4px solid #64748b; }
+.lesson-section[data-theme="unlocks"]     { border-left: 4px solid #ec4899; }
+.lesson-section[data-theme="orient"]      { border-left: 4px solid #0ea5e9; }
+.intro { border-left: 4px solid #0ea5e9; }
+
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon { font-size: 22px; }
+.section-badge {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.section-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.section-body h3 { margin-top: 32px; font-size: 18px; font-weight: 700; }
+.section-body h4 { margin-top: 24px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.section-body p { margin: 12px 0; }
+.section-body ul, .section-body ol { margin: 12px 0; padding-left: 24px; }
+.section-body li { margin: 4px 0; }
+
+.section-body a { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(37,99,235,0.3); text-underline-offset: 2px; }
+.section-body a:hover { text-decoration-color: var(--accent); }
+
+.section-body strong { font-weight: 700; }
+.section-body em { font-style: italic; }
+
+.section-body blockquote {
+  margin: 16px 0; padding: 12px 20px;
+  background: #f5f6f8; border-left: 3px solid var(--text-muted);
+  border-radius: 4px; color: var(--text); font-size: 0.95em;
+}
+.section-body blockquote p:first-child { margin-top: 0; }
+.section-body blockquote p:last-child { margin-bottom: 0; }
+
+.section-body img {
+  display: block; max-width: 100%; height: auto;
+  margin: 20px auto; padding: 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+}
+
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 0.9em;
+}
+.section-body th, .section-body td {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-body th { background: #f5f6f8; font-weight: 600; }
+
+.section-body code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: #f1f3f5; padding: 1px 6px; border-radius: 3px;
+}
+.section-body pre {
+  background: #f6f8fa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font-size: 13px;
+  margin: 16px 0;
+}
+.section-body pre code { background: transparent; padding: 0; }
+
+.section-body details {
+  margin: 16px 0; padding: 10px 14px;
+  background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px;
+}
+.section-body details summary {
+  cursor: pointer; font-weight: 600; font-size: 13px;
+  color: var(--text-muted);
+}
+.section-body details[open] summary { margin-bottom: 8px; }
+
+.section-body hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+
+.section-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+
+.lesson-footer {
+  text-align: center; padding: 32px;
+  color: var(--text-muted); font-size: 14px;
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+.lesson-footer .muted { font-size: 12px; opacity: 0.7; }
+kbd {
+  background: var(--surface); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+  .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toc li { flex: 0 0 auto; }
+  .toc a { padding: 4px 8px; font-size: 12px; }
+  .intro, .lesson-section { padding: 20px; }
+  .page-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="../../index.html">AdaptLearn</a>
+        <span class="sep">›</span>
+        <a href="../index.html">Module 1</a>
+        <span class="sep">›</span>
+        <span class="current">Lesson 1.1</span>
+      </nav>
+      <h1 class="page-title">What is an Agent?</h1>
+      <div class="page-meta">
+        <span>Lesson 1.1</span>
+        <span class="dot">·</span>
+        <span>9 sections</span>
+        <span class="dot">·</span>
+        <span>~25 min read</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc" aria-label="Lesson sections">
+        <h3>Sections</h3>
+        <ol>
+      <li><a href="#section-1" data-section="1"><span class="toc-num">§1</span><span class="toc-title">Business Scenario</span></a></li>
+      <li><a href="#section-2" data-section="2"><span class="toc-num">§2</span><span class="toc-title">Bridge to Topic</span></a></li>
+      <li><a href="#section-3" data-section="3"><span class="toc-num">§3</span><span class="toc-title">Mind Map</span></a></li>
+      <li><a href="#section-4" data-section="4"><span class="toc-num">§4</span><span class="toc-title">Elaboration</span></a></li>
+      <li><a href="#section-5" data-section="5"><span class="toc-num">§5</span><span class="toc-title">Problem Statement</span></a></li>
+      <li><a href="#section-6" data-section="6"><span class="toc-num">§6</span><span class="toc-title">Solution Walkthrough</span></a></li>
+      <li><a href="#section-7" data-section="7"><span class="toc-num">§7</span><span class="toc-title">Mathematical Foundation</span></a></li>
+      <li><a href="#section-8" data-section="8"><span class="toc-num">§8</span><span class="toc-title">Technical Deep-Dive</span></a></li>
+      <li><a href="#section-9" data-section="9"><span class="toc-num">§9</span><span class="toc-title">What This Unlocks</span></a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main id="main" class="content">
+      <section class="intro" id="section-intro">
+        <header class="section-header">
+          <span class="section-icon">📍</span>
+          <h2>How to use this lesson</h2>
+        </header>
+        <div class="section-body">
+<blockquote>
+<p><strong>Section 0 · How this course works</strong> <em>(replaces &quot;From last time&quot; for the first lesson of the course)</em></p>
+<p>This course is built on three recurring artifacts:</p>
+<ol>
+<li><strong>The World Bible</strong> — three case-study orgs (above). Every business scenario lives in one of them. You&#39;ll get to know Priya, Maya, and Ronnie like coworkers.</li>
+<li><strong>Sherpa</strong> — one codebase that <em>evolves</em> across the course. We start it as a ReAct loop in Module 4 and end with a production multi-agent system in Module 9. Each lab adds a capability to Sherpa, replacing what came before. You experience the <em>forces</em> that drive each architectural choice.</li>
+<li><strong>The concept DAG</strong> — the prerequisite graph for every topic. Shown at the start of every module with your current lesson highlighted.</li>
+</ol>
+<p>Each lesson follows a 10-section template: §0 from-last-time → §1 business scenario → §2 bridge → §3 mind map → §4 elaboration → §5 problem statement → §6 solution walkthrough → §7 math → §8 technical deep-dive → §9 what this unlocks. Sections are consistent so you build muscle memory for where to find what.</p>
+<p>If a math derivation looks heavy, you can skip §7 on first pass and come back. Nothing else depends on it being read in order.</p>
+</blockquote>
+<hr>
+
+        </div>
+      </section>
+      <section id="section-1" class="lesson-section" data-theme="scenario" data-section="1">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🏢</span>
+          <span class="section-badge">§1</span>
+          <h2>Business Scenario</h2>
+        </header>
+        <div class="section-body">
+<p><em>HSBC Mid-Office, Tuesday 11:14 PM.</em></p>
+<p>Aisha Khan, senior reconciliation analyst, is 23 tickets into her overnight batch. Ticket #BR-208441: cross-border USD/SGD settlement, counterparty <em>Sigma Capital</em>, trade reference TR-771-994, $1.20M notional, broke at the amount field — the GL shows $1.196M, SWIFT shows $1.200M.</p>
+<p>Aisha doesn&#39;t need to investigate. She recognizes the pattern instantly. Sigma Capital deducts a $4,000 prime brokerage fee at settlement that isn&#39;t reflected in the static data. She&#39;s seen this same break shape 11 times in the last six months. She tags it <code>fee_deduction · sigma_capital · known_pattern</code>, attaches the standard fee memo, and routes for sign-off. <strong>Elapsed time: 47 seconds.</strong></p>
+<p>But there are 1,377 more breaks in tonight&#39;s queue. The average break takes Aisha 14 minutes. The eight analysts on her team will collectively spend ~50 hours tonight working through them. At $42/break, that&#39;s $58k of cost in a single overnight.</p>
+<p>Meanwhile, Priya Iyer — Aisha&#39;s boss — is sitting in a vendor evaluation meeting tomorrow morning. Three vendors are pitching automation:</p>
+<ul>
+<li><strong>Vendor A: BotForce.</strong> &quot;We&#39;ll build a robotic process automation (RPA) workflow. When a break arrives, our bot opens the GL, opens SWIFT, copies fields into a spreadsheet, runs your reconciliation macro, and posts the result. £180k/year licensing.&quot;</li>
+<li><strong>Vendor B: PredictML.</strong> &quot;We&#39;ll train a classifier on three years of historical breaks. Features: counterparty, amount delta, currency pair, time-of-day. Output: predicted break category with confidence. £240k/year.&quot;</li>
+<li><strong>Vendor C: Lumen Agents.</strong> &quot;We&#39;ll deploy an AI agent that investigates breaks the way Aisha does — pulls the trade, checks the counterparty, queries the GL, classifies the cause. £320k/year + LLM costs.&quot;</li>
+</ul>
+<p>Priya has 24 hours to pick. She forwards the proposals to Daniel Cho (model risk) with one question: <em>&quot;What&#39;s the actual difference? Are these the same product with different price tags?&quot;</em></p>
+
+        </div>
+      </section>
+
+      <section id="section-2" class="lesson-section" data-theme="bridge" data-section="2">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🔗</span>
+          <span class="section-badge">§2</span>
+          <h2>Bridge to Topic</h2>
+        </header>
+        <div class="section-body">
+<p>Daniel&#39;s answer will hinge on a definition most teams haven&#39;t bothered to make precise: <strong>what is an agent, and what isn&#39;t?</strong></p>
+<p>BotForce is a <em>script</em>. PredictML is a <em>classifier</em> (a function from features to labels). Lumen is — possibly — an <em>agent</em>. These three things differ not in capability but in <em>who decides what to do next</em>. Get the definition right and the vendor choice writes itself.</p>
+
+        </div>
+      </section>
+
+      <section id="section-3" class="lesson-section" data-theme="mindmap" data-section="3">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🗺️</span>
+          <span class="section-badge">§3</span>
+          <h2>Mind Map</h2>
+        </header>
+        <div class="section-body">
+<p><img src="../../diagrams/m01/04-agent-mindmap.svg" alt="Agent concept mind map: four branches — Definitions, The Agency Dial (0-4), Four Properties, What it is NOT"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">mindmap
+  root((Agent))
+    Definitions
+      Russell-Norvig 1995
+      Modern LLM-era
+      Why agent was useful word
+    The Agency Dial
+      Dial 0 script
+      Dial 1 LLM as function
+      Dial 2 LLM picks step
+      Dial 3 LLM owns loop
+      Dial 4 LLM owns goal
+    Four Properties
+      Reactivity
+      Proactivity
+      Autonomy
+      Social ability
+    What it is NOT
+      Anthropomorphism
+      Magic
+      Always the right choice
+</code></pre>
+</details>
+
+<p><em>Takeaway: &quot;agent&quot; is a continuous measure (the dial), not a binary. The mistake is asking &quot;is it an agent?&quot; instead of &quot;what dial setting do I need?&quot;</em></p>
+
+        </div>
+      </section>
+
+      <section id="section-4" class="lesson-section" data-theme="elaboration" data-section="4">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">📖</span>
+          <span class="section-badge">§4</span>
+          <h2>Elaboration</h2>
+        </header>
+        <div class="section-body">
+<h3>4.1 Two definitions, 27 years apart</h3>
+<p><strong>Russell &amp; Norvig (1995, <em>Artificial Intelligence: A Modern Approach</em>).</strong> <em>&quot;An agent is anything that can perceive its environment through sensors and act upon that environment through actuators.&quot;</em></p>
+<p>This is the definition you&#39;ll see in any AI textbook. It&#39;s correct but useless on its own — by this definition, a thermostat is an agent (perceives temperature, acts on heater). So is a Roomba. So is a single <code>for</code> loop with an <code>if</code> statement. The definition was designed to be general; what it gains in generality it loses in operational utility.</p>
+<p><strong>Modern (post-2022, LLM-era).</strong> <em>An agent is a system in which an LLM dynamically decides which actions to take and when to stop, in pursuit of a goal stated in natural language.</em></p>
+<p>The operative words: <em>dynamically</em>, <em>decides</em>, <em>when to stop</em>, <em>natural language</em>.</p>
+<ul>
+<li><em>Dynamically</em> — at runtime, not at design time. A workflow&#39;s decisions are committed in code; an agent&#39;s decisions are committed at inference.</li>
+<li><em>Decides</em> — including which tool to call, with what arguments, in what order.</li>
+<li><em>When to stop</em> — the agent owns its own termination. Code doesn&#39;t say &quot;run 5 steps then return.&quot;</li>
+<li><em>Natural language</em> — the goal is a sentence, not a structured input.</li>
+</ul>
+<p>If your system fails any of these tests, it might be very useful, but it&#39;s not (centrally) an agent. That&#39;s not a value judgment — workflows are often the right choice. It&#39;s a <em>taxonomic</em> statement so you can reason about it precisely.</p>
+<h3>4.2 The agency dial — the most useful operational view</h3>
+<p>Instead of asking &quot;is this an agent?&quot;, ask &quot;how much of the decision-making does the LLM own?&quot; There&#39;s a continuous dial:</p>
+<table>
+<thead>
+<tr>
+<th>Dial</th>
+<th>LLM owns</th>
+<th>Code/human owns</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>0</strong></td>
+<td>nothing</td>
+<td>everything</td>
+<td>A SQL query, a cron job, a <code>Makefile</code></td>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td>text generation only</td>
+<td>when to call, what to do with output</td>
+<td>GitHub Copilot autocomplete; ChatGPT one-shot Q&amp;A</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>step labels / classifications</td>
+<td>which tools, in what order, when to stop</td>
+<td>A workflow with LLM-driven branches; ChatGPT with a single tool per turn</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>step labels + tool choice + termination</td>
+<td>the goal statement and the available tools</td>
+<td>Claude with computer use; Cursor in agent mode; a ReAct loop</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>everything including the goal</td>
+<td>the initial high-level instruction</td>
+<td>Devin-style &quot;complete this Jira ticket&quot;; Auto-GPT (in spirit)</td>
+</tr>
+</tbody></table>
+<p>Most production systems sit at dial 2–3. Anything above 3 trades reliability for autonomy at an exponentially worse rate.</p>
+<p><img src="../../diagrams/m01/05-agency-dial.svg" alt="Agency dial spectrum from Dial 0 (Script) to Dial 4 (LLM owns goal), with predictable/cheap on the left and unpredictable/expensive on the right"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">graph LR
+  D0[Dial 0: Script]:::low --&gt; D1[Dial 1: LLM as function]:::low
+  D1 --&gt; D2[Dial 2: LLM picks step]:::mid
+  D2 --&gt; D3[Dial 3: LLM owns loop]:::mid
+  D3 --&gt; D4[Dial 4: LLM owns goal]:::high
+  D0 -.predictability.-&gt; P[Predictable - auditable - cheap]:::low
+  D4 -.predictability.-&gt; U[Unpredictable - surprising - expensive]:::high
+  classDef low fill:#cfc,stroke:#393
+  classDef mid fill:#ffd,stroke:#a80
+  classDef high fill:#fee,stroke:#c33
+</code></pre>
+</details>
+
+<p><em>Takeaway: higher dial = more capability AND more failure-mode surface. Choose the lowest dial that solves your problem.</em></p>
+<h3>4.3 The four properties (Wooldridge, 2009 — still useful)</h3>
+<p>Wooldridge&#39;s taxonomy predates LLMs but holds up:</p>
+<ul>
+<li><strong>Reactivity</strong> — responds to changes in the environment. LLM agents are strong here (they re-read the world each loop).</li>
+<li><strong>Proactivity</strong> — takes initiative to pursue goals. LLM agents are weak here; most are invoked, they don&#39;t self-trigger. (This is changing with scheduled/triggered agents.)</li>
+<li><strong>Autonomy</strong> — acts without external control. Strong within the loop, weak outside it (a crashed agent doesn&#39;t restart itself).</li>
+<li><strong>Social ability</strong> — interacts with other agents/humans. Improving rapidly via A2A protocols and structured handoffs.</li>
+</ul>
+<p>You don&#39;t need all four to call something an agent. But a system with <em>none</em> of them isn&#39;t one.</p>
+<h3>4.4 What it is <em>not</em></h3>
+<p>Three common confusions:</p>
+<ul>
+<li><strong>An agent is not a personality.</strong> &quot;Friendly customer service bot&quot; is a UX choice, not an architectural one. A chatbot with no tools and no decisions is dial 1.</li>
+<li><strong>An agent is not magic.</strong> Every agent failure has a deterministic explanation in its trace. The non-determinism is in the model, not in mysticism.</li>
+<li><strong>An agent is not always the right choice.</strong> A workflow is faster, cheaper, more auditable, and easier to debug. If you can express your task as a fixed graph, do.</li>
+</ul>
+
+        </div>
+      </section>
+
+      <section id="section-5" class="lesson-section" data-theme="problem" data-section="5">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">❓</span>
+          <span class="section-badge">§5</span>
+          <h2>Problem Statement</h2>
+        </header>
+        <div class="section-body">
+<p>Help Daniel Cho prepare his memo for Priya. Classify each of the following six systems on the agency dial (0–4) and decide whether each qualifies as an &quot;agent&quot; by the modern definition. For each, identify the <em>single deciding factor</em>.</p>
+<ol>
+<li>GitHub Copilot autocomplete (in-IDE single-line suggestions).</li>
+<li>ChatGPT with code interpreter and browsing, used for a one-shot question.</li>
+<li>A cron job that calls Claude every morning to summarize yesterday&#39;s customer feedback emails and post to Slack.</li>
+<li>Anthropic Claude with computer use, asked to &quot;book me a flight to Tokyo for next Thursday under $1,200.&quot;</li>
+<li>Cursor in &quot;agent mode,&quot; asked to &quot;add a dark-mode toggle to the settings page.&quot;</li>
+<li>BotForce (Vendor A) — the RPA bot that opens GL/SWIFT, runs a reconciliation macro, posts to a spreadsheet.</li>
+</ol>
+<p>For each: dial setting + agent? (Y/N) + deciding factor in one sentence.</p>
+
+        </div>
+      </section>
+
+      <section id="section-6" class="lesson-section" data-theme="solution" data-section="6">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🛠️</span>
+          <span class="section-badge">§6</span>
+          <h2>Solution Walkthrough</h2>
+        </header>
+        <div class="section-body">
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>System</th>
+<th>Dial</th>
+<th>Agent?</th>
+<th>Deciding factor</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Copilot autocomplete</td>
+<td><strong>1</strong></td>
+<td>No</td>
+<td>LLM emits text; the <em>user</em> decides whether to accept and what to do next. No loop, no goal.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>ChatGPT one-shot with tools</td>
+<td><strong>2</strong></td>
+<td>Borderline</td>
+<td>LLM picks tools within a single user turn, but the conversation is human-driven. Multi-turn deep-research mode crosses into dial 3.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Cron summarizer</td>
+<td><strong>1</strong></td>
+<td>No</td>
+<td>Fixed input → fixed output. LLM is a function. Schedule is external.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Claude computer use → book flight</td>
+<td><strong>3</strong></td>
+<td>Yes</td>
+<td>LLM owns the full loop: search flights, compare, decide, click. Goal in natural language, termination decided by model.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Cursor agent mode</td>
+<td><strong>3–4</strong></td>
+<td>Yes</td>
+<td>LLM picks files, edits, runs commands, decides when &quot;done.&quot; Sometimes splits sub-goals (dial 4 territory).</td>
+</tr>
+<tr>
+<td>6</td>
+<td>BotForce RPA</td>
+<td><strong>0</strong></td>
+<td>No</td>
+<td>No LLM in the loop. Fixed script with branch on rule outputs.</td>
+</tr>
+</tbody></table>
+<p><strong>Daniel&#39;s memo writes itself.</strong> Priya&#39;s three vendors are at dial 0 (BotForce), dial 1–2 (PredictML — a classifier wrapped in a workflow), and dial 3 (Lumen — true agent). They are not the same product. They have different failure modes, different governance requirements, and different upside ceilings:</p>
+<ul>
+<li><strong>BotForce</strong> will fail predictably (e.g., when the GL UI changes). Easy to audit, cheap to maintain when the world is stable, brittle when it isn&#39;t.</li>
+<li><strong>PredictML</strong> will fail when the <em>distribution</em> shifts (a new counterparty, a new break category). Performance silently degrades. Needs retraining cadence.</li>
+<li><strong>Lumen</strong> will fail <em>surprisingly</em> (hallucinate a tool, loop forever, mis-classify with high confidence). But it can handle break categories it has never seen, because it reasons rather than classifies.</li>
+</ul>
+<p>For HSBC under SR 11-7, Daniel recommends a hybrid: start with PredictML for the 70% of breaks that are recurring (cheap, auditable, well-understood failure modes), route the long tail to an agentic system (Lumen-style) with mandatory human sign-off, and explicitly <em>not</em> use RPA (too brittle for systems HSBC doesn&#39;t control end-to-end).</p>
+<p>The vendor evaluation is no longer about price. It&#39;s about <em>dial setting × cost of agency</em>.</p>
+
+        </div>
+      </section>
+
+      <section id="section-7" class="lesson-section" data-theme="math" data-section="7">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">∑</span>
+          <span class="section-badge">§7</span>
+          <h2>Mathematical Foundation</h2>
+        </header>
+        <div class="section-body">
+<h3>7.1 Information-theoretic view of agency</h3>
+<p>Let $a_t \in \mathcal{A}$ be the action the system takes at step $t$, and $o_{1:t}$ be everything observed so far. The system&#39;s <em>conditional action entropy</em> at step $t$ is:</p>
+<p>$$
+H(a_t \mid o_{1:t}) = -\sum_{a \in \mathcal{A}} P(a \mid o_{1:t}) \log P(a \mid o_{1:t})
+$$</p>
+<ul>
+<li>A pure <strong>script</strong> has $H(a_t \mid o_{1:t}) = 0$ at every step: the action is fully determined.</li>
+<li>A <strong>rule-based workflow</strong> has $H(a_t \mid o_{1:t}) = 0$ along each branch — the branch is determined by the observation through an if-statement.</li>
+<li>An <strong>LLM-as-function</strong> (dial 1) has $H &gt; 0$ over the <em>text it generates</em> but the downstream action is still scripted, so action-entropy is 0.</li>
+<li>An <strong>agent</strong> has $H(a_t \mid o_{1:t}) &gt; 0$ over the action set $\mathcal{A}$ itself — the <em>choice of next action</em> is a probability distribution conditioned on history.</li>
+</ul>
+<p>This is why &quot;agentness&quot; is continuous: it&#39;s the <em>magnitude of conditional action entropy</em>. A dial-2 system has modest H (model picks among a few well-defined branches). A dial-4 system has high H (model can take many different paths from the same observation).</p>
+<h3>7.2 Why high H sounds bad but is sometimes necessary</h3>
+<p>Intuition pushes you toward $H = 0$ (predictable). But for problems where the <em>observation space is open-ended</em> (e.g., &quot;investigate this novel break&quot;), no finite if-statement covers the cases. The agent&#39;s high H is a feature: it&#39;s adaptive coverage of a space too large to enumerate.</p>
+<p>The trade-off:</p>
+<p>$$
+\text{Expected utility} = \mathbb{E}[\text{value of good outcome}] - \mathbb{E}[\text{cost of bad outcome}]
+$$</p>
+<p>For a workflow, both terms have low variance (you know what you&#39;ll get). For an agent, both terms have high variance (you&#39;ll occasionally get spectacular outcomes and occasional disasters). The choice depends on which side dominates.</p>
+<p>We&#39;ll formalize this in Module 2 via expected utility under POMDPs.</p>
+<h3>7.3 The complexity hierarchy</h3>
+<p>A useful one-line ordering:</p>
+<p>$$
+\text{Script} \subset \text{Workflow} \subset \text{Workflow+LLM} \subset \text{Agent (dial 3)} \subset \text{Multi-agent} \subset \text{Open-ended AGI}
+$$</p>
+<p>Each set strictly contains the previous in <em>expressiveness</em> and strictly contains the previous in <em>failure-mode surface</em>.</p>
+
+        </div>
+      </section>
+
+      <section id="section-8" class="lesson-section" data-theme="tech" data-section="8">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">⚙️</span>
+          <span class="section-badge">§8</span>
+          <h2>Technical Deep-Dive</h2>
+        </header>
+        <div class="section-body">
+<h3>8.1 Recognizing agent-shaped code</h3>
+<p>Open any repo. Within five minutes you can tell whether it contains an agent. Look for these patterns:</p>
+<p><strong>Agent-shaped:</strong></p>
+<pre><code class="language-typescript">const tools: Record&lt;string, Tool&gt; = {
+  lookupCounterparty,
+  queryGL,
+  checkDuplicates,
+};
+
+while (!done) {
+  const decision = await model.call({
+    history,
+    tools: toolSpecs(tools),
+  });
+
+  if (decision.type === &quot;answer&quot;) {
+    return decision.value;          // model decides when to stop
+  }
+  if (decision.type === &quot;tool_call&quot;) {
+    const result = await tools[decision.name](decision.args);
+    history.push({ decision, result });
+  }
+}
+</code></pre>
+<p>Three tells: a <strong>tool registry</strong>, a <strong>loop driven by the model&#39;s output</strong>, and <strong>model-initiated termination</strong>.</p>
+<p><strong>Workflow-shaped:</strong></p>
+<pre><code class="language-typescript">const extracted  = await extract(text);       // LLM step 1
+const classified = await classify(extracted); // LLM step 2
+const summary    = await summarize(classified); // LLM step 3
+return summary;
+</code></pre>
+<p>The LLM is a <em>function</em>. The graph is fixed. There is no loop. No tool registry. No termination decision.</p>
+<h3>8.2 Edge cases</h3>
+<ul>
+<li><strong>Conditional workflows.</strong> A workflow with model-driven <code>switch</code> branches <em>is still a workflow</em> if every branch is enumerated in code and the graph is acyclic.</li>
+<li><strong>Agentic workflows.</strong> A workflow that calls a sub-agent for one node is best classified by <em>the whole&#39;s controlling structure</em>: the whole is workflow; the sub is agent.</li>
+<li><strong>Self-modifying workflows.</strong> A workflow that rewrites its own graph based on results crosses into agent territory. Rare; usually a sign you should have built an agent from the start.</li>
+<li><strong>Loop-with-classifier.</strong> A loop where each iteration calls a <em>classifier</em> (not an LLM) to pick the next step is dial 2 if the classifier output space is small and well-defined.</li>
+</ul>
+<h3>8.3 Failure-mode preview</h3>
+<p>Each dial setting fails differently. We&#39;ll cover this exhaustively in Module 10 (Safety &amp; Security) but a quick preview:</p>
+<p><img src="../../diagrams/m01/06-failure-tree.svg" alt="Failure-mode tree per dial setting, from green (easy to detect) at Dial 0 to dark red (catastrophic) at Dial 4"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">graph TD
+  D0[Dial 0 Script] --&gt; F0[Fails when world changes - easy to detect]
+  D1[Dial 1 LLM-as-fn] --&gt; F1[Hallucinated outputs - easy to detect at type boundary]
+  D2[Dial 2 LLM picks step] --&gt; F2[Wrong branch - auditable from trace]
+  D3[Dial 3 LLM owns loop] --&gt; F3[Loops - context bloat - wrong tool - hallucinated args]
+  D4[Dial 4 LLM owns goal] --&gt; F4[Goal drift - catastrophic action - unbounded cost]
+  style F0 fill:#cfc,stroke:#393
+  style F1 fill:#cfc,stroke:#393
+  style F2 fill:#ffd,stroke:#a80
+  style F3 fill:#fee,stroke:#c33
+  style F4 fill:#fcc,stroke:#933,stroke-width:2px
+</code></pre>
+</details>
+
+<p><em>Takeaway: dial up only when you&#39;ve paid the price for the failure modes you&#39;re inheriting.</em></p>
+<h3>8.4 Production note: the &quot;dial creep&quot; anti-pattern</h3>
+<p>Teams routinely start at dial 2 (&quot;just a classifier with an LLM&quot;), add a retry loop (&quot;now dial 3&quot;), add planning (&quot;now dial 4&quot;), and end up with an unpredictable system they don&#39;t understand. The discipline is to <strong>set the dial deliberately</strong>, document it in the architecture, and require justification to dial up.</p>
+<p>In Sherpa (Module 4), we&#39;ll set the dial to exactly 3 and hold it there until Module 6 forces us higher.</p>
+
+        </div>
+      </section>
+
+      <section id="section-9" class="lesson-section" data-theme="unlocks" data-section="9">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🚀</span>
+          <span class="section-badge">§9</span>
+          <h2>What This Unlocks</h2>
+        </header>
+        <div class="section-body">
+<ul>
+<li><strong>Lesson 1.2</strong> will trace why the agent paradigm took 30 years to converge — symbolic agents (1956), reactive agents (1985), RL agents (1992), and finally LLM agents (2022). Knowing the history tells you which old ideas to steal.</li>
+<li><strong>Lesson 1.3</strong> will give Priya a five-question framework for choosing between BotForce, PredictML, and Lumen — making the dial choice rigorous instead of vibes-based.</li>
+<li><strong>Lesson 1.4</strong> will introduce the four major LLM-agent paradigms (ReAct, Reflexion, Plan-and-Solve, CodeAct) — all of which sit at dial 3 but differ in <em>how the loop is structured</em>.</li>
+<li><strong>Module 2</strong> will give you the mathematical machinery (MDP, POMDP, belief states) to reason about agent decisions formally, so the &quot;expected utility&quot; hand-wave in §7.2 becomes a real calculation.</li>
+<li><strong>Module 4</strong> will build <em>Sherpa</em> — the dial-3 agent that solves Aisha&#39;s exact problem from §1. By then you&#39;ll have the math, the architectural vocabulary, and the failure-mode awareness to do it right.</li>
+</ul>
+<hr>
+
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <p>End of Lesson 1.1</p>
+        <p class="muted">Press <kbd>↑</kbd> / <kbd>↓</kbd> to jump between sections.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script>
+(function () {
+  var sections = document.querySelectorAll(".lesson-section, .intro");
+  var tocLinks = document.querySelectorAll(".toc a");
+  var progress = document.getElementById("progress");
+  var byId = {};
+  tocLinks.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    byId[id] = a;
+  });
+
+  function update() {
+    var scrolled = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (progress) progress.style.width = max > 0 ? (scrolled / max * 100) + "%" : "0%";
+
+    var current = null;
+    sections.forEach(function (s) {
+      var top = s.getBoundingClientRect().top;
+      if (top < 140) current = s.id;
+    });
+    tocLinks.forEach(function (a) { a.classList.remove("active"); });
+    if (current && byId[current]) byId[current].classList.add("active");
+  }
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    var ids = Array.prototype.map.call(sections, function (s) { return s.id; });
+    var currentIdx = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top < 140) currentIdx = i;
+    }
+    if (e.key === "ArrowDown" && e.shiftKey) {
+      e.preventDefault();
+      var next = Math.min(ids.length - 1, currentIdx + 1);
+      document.getElementById(ids[next]).scrollIntoView({ behavior: "smooth" });
+    }
+    if (e.key === "ArrowUp" && e.shiftKey) {
+      e.preventDefault();
+      var prev = Math.max(0, currentIdx - 1);
+      document.getElementById(ids[prev]).scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
+</script>
+</body>
+</html>

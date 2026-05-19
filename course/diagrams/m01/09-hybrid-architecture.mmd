@@ -1,0 +1,14 @@
+graph LR
+  Input[Input] --> Gate{Known<br/>pattern?}
+  Gate -->|yes 70%| Wf[Workflow]
+  Gate -->|no 30%| Agent[Agent]
+  Wf --> Out[Output]
+  Agent --> Out
+  Agent -.escalate.-> Human[Human review]
+  Human --> Out
+  classDef workflow fill:#cfc,stroke:#393
+  classDef agent fill:#ffd,stroke:#a80
+  classDef human fill:#fee,stroke:#c33
+  class Wf workflow
+  class Agent agent
+  class Human human

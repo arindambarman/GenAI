@@ -1,0 +1,12 @@
+graph LR
+  L21[2.1 MDPs]:::current --> L22[2.2 POMDPs]
+  L22 --> L23[2.3 Bayesian]
+  L21 --> L24[2.4 Information Theory]
+  L23 --> L24
+  L22 -.forward.-> M4[Module 4: ReAct as POMDP]
+  L23 -.forward.-> M5[Module 5: Retrieval as Bayesian]
+  L24 -.forward.-> M8[Module 8: Eval design]
+  classDef current fill:#fc6,stroke:#a60,stroke-width:3px
+  style M4 fill:#def,stroke:#36a
+  style M5 fill:#def,stroke:#36a
+  style M8 fill:#def,stroke:#36a

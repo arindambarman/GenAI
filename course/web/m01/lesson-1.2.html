@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson 1.2 · A Brief History: Symbolic Agents to LLMs · AdaptLearn</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-light.css" />
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+  --max-content: 760px;
+  --sidebar-w: 280px;
+  --header-h: 120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: 8px 12px; z-index: 100;
+}
+.skip:focus { left: 12px; top: 12px; }
+
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.92);
+}
+.page-header-inner {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto; padding: 14px 32px;
+}
+.breadcrumb {
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.page-meta { font-size: 13px; color: var(--text-muted); }
+.page-meta .dot { margin: 0 8px; opacity: 0.5; }
+
+.progress-bar { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+.layout {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 40px;
+  padding: 32px;
+}
+
+.sidebar { position: sticky; top: calc(var(--header-h) + 16px); align-self: start; max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; }
+.toc h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; border-radius: 6px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { background: var(--accent-soft); color: var(--text); }
+.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.toc-num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.toc a.active .toc-num { color: var(--accent); }
+
+.content { min-width: 0; max-width: var(--max-content); }
+
+.intro, .lesson-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: var(--header-h);
+}
+.lesson-section[data-theme="scenario"]    { border-left: 4px solid #ef4444; }
+.lesson-section[data-theme="bridge"]      { border-left: 4px solid #94a3b8; }
+.lesson-section[data-theme="mindmap"]     { border-left: 4px solid #8b5cf6; }
+.lesson-section[data-theme="elaboration"] { border-left: 4px solid #2563eb; }
+.lesson-section[data-theme="problem"]     { border-left: 4px solid #f59e0b; }
+.lesson-section[data-theme="solution"]    { border-left: 4px solid #10b981; }
+.lesson-section[data-theme="math"]        { border-left: 4px solid #6366f1; }
+.lesson-section[data-theme="tech"]        { border-left: 4px solid #64748b; }
+.lesson-section[data-theme="unlocks"]     { border-left: 4px solid #ec4899; }
+.lesson-section[data-theme="orient"]      { border-left: 4px solid #0ea5e9; }
+.intro { border-left: 4px solid #0ea5e9; }
+
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon { font-size: 22px; }
+.section-badge {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.section-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.section-body h3 { margin-top: 32px; font-size: 18px; font-weight: 700; }
+.section-body h4 { margin-top: 24px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.section-body p { margin: 12px 0; }
+.section-body ul, .section-body ol { margin: 12px 0; padding-left: 24px; }
+.section-body li { margin: 4px 0; }
+
+.section-body a { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(37,99,235,0.3); text-underline-offset: 2px; }
+.section-body a:hover { text-decoration-color: var(--accent); }
+
+.section-body strong { font-weight: 700; }
+.section-body em { font-style: italic; }
+
+.section-body blockquote {
+  margin: 16px 0; padding: 12px 20px;
+  background: #f5f6f8; border-left: 3px solid var(--text-muted);
+  border-radius: 4px; color: var(--text); font-size: 0.95em;
+}
+.section-body blockquote p:first-child { margin-top: 0; }
+.section-body blockquote p:last-child { margin-bottom: 0; }
+
+.section-body img {
+  display: block; max-width: 100%; height: auto;
+  margin: 20px auto; padding: 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+}
+
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 0.9em;
+}
+.section-body th, .section-body td {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-body th { background: #f5f6f8; font-weight: 600; }
+
+.section-body code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: #f1f3f5; padding: 1px 6px; border-radius: 3px;
+}
+.section-body pre {
+  background: #f6f8fa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font-size: 13px;
+  margin: 16px 0;
+}
+.section-body pre code { background: transparent; padding: 0; }
+
+.section-body details {
+  margin: 16px 0; padding: 10px 14px;
+  background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px;
+}
+.section-body details summary {
+  cursor: pointer; font-weight: 600; font-size: 13px;
+  color: var(--text-muted);
+}
+.section-body details[open] summary { margin-bottom: 8px; }
+
+.section-body hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+
+.section-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+
+.lesson-footer {
+  text-align: center; padding: 32px;
+  color: var(--text-muted); font-size: 14px;
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+.lesson-footer .muted { font-size: 12px; opacity: 0.7; }
+kbd {
+  background: var(--surface); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+  .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toc li { flex: 0 0 auto; }
+  .toc a { padding: 4px 8px; font-size: 12px; }
+  .intro, .lesson-section { padding: 20px; }
+  .page-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="../../index.html">AdaptLearn</a>
+        <span class="sep">›</span>
+        <a href="../index.html">Module 1</a>
+        <span class="sep">›</span>
+        <span class="current">Lesson 1.2</span>
+      </nav>
+      <h1 class="page-title">A Brief History: Symbolic Agents to LLMs</h1>
+      <div class="page-meta">
+        <span>Lesson 1.2</span>
+        <span class="dot">·</span>
+        <span>9 sections</span>
+        <span class="dot">·</span>
+        <span>~25 min read</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc" aria-label="Lesson sections">
+        <h3>Sections</h3>
+        <ol>
+      <li><a href="#section-1" data-section="1"><span class="toc-num">§1</span><span class="toc-title">Business Scenario</span></a></li>
+      <li><a href="#section-2" data-section="2"><span class="toc-num">§2</span><span class="toc-title">Bridge to Topic</span></a></li>
+      <li><a href="#section-3" data-section="3"><span class="toc-num">§3</span><span class="toc-title">Mind Map</span></a></li>
+      <li><a href="#section-4" data-section="4"><span class="toc-num">§4</span><span class="toc-title">Elaboration</span></a></li>
+      <li><a href="#section-5" data-section="5"><span class="toc-num">§5</span><span class="toc-title">Problem Statement</span></a></li>
+      <li><a href="#section-6" data-section="6"><span class="toc-num">§6</span><span class="toc-title">Solution Walkthrough</span></a></li>
+      <li><a href="#section-7" data-section="7"><span class="toc-num">§7</span><span class="toc-title">Mathematical Foundation</span></a></li>
+      <li><a href="#section-8" data-section="8"><span class="toc-num">§8</span><span class="toc-title">Technical Deep-Dive</span></a></li>
+      <li><a href="#section-9" data-section="9"><span class="toc-num">§9</span><span class="toc-title">What This Unlocks</span></a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main id="main" class="content">
+      <section class="intro" id="section-intro">
+        <header class="section-header">
+          <span class="section-icon">📍</span>
+          <h2>How to use this lesson</h2>
+        </header>
+        <div class="section-body">
+<blockquote>
+<p><strong>§0 · From last time.</strong> Lesson 1.1 defined an agent as a system where the LLM dynamically owns <em>which action to take next</em>, and gave us the agency dial (0–4) as the operational frame. We also handed Priya a memo distinguishing the three vendors (BotForce, PredictML, Lumen) by their dial setting. We did <strong>not</strong> address an obvious objection: this all sounds suspiciously like the expert systems of the 1980s, which spectacularly failed. Daniel Cho is going to bring this up. We owe him a defensible answer.</p>
+</blockquote>
+
+        </div>
+      </section>
+      <section id="section-1" class="lesson-section" data-theme="scenario" data-section="1">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🏢</span>
+          <span class="section-badge">§1</span>
+          <h2>Business Scenario</h2>
+        </header>
+        <div class="section-body">
+<p><em>HSBC Head Office, Friday morning model-risk committee.</em></p>
+<p>Daniel Cho is presenting the Lumen Agents proposal. Three slides in, the Chief Risk Officer interrupts:</p>
+<blockquote>
+<p><em>&quot;Daniel, I&#39;ve heard this pitch before. In 1992 we spent £14 million on something called MYCIN-style expert systems for credit-card fraud. Brilliant on the demo. In production, every novel transaction shape required a new rule. Within 18 months the rules contradicted each other, the maintenance team was eight people, and we mothballed it. Tell me what&#39;s different this time.&quot;</em></p>
+</blockquote>
+<p>The committee waits. Daniel has 90 seconds.</p>
+<p>The honest answer needs to engage with the failure of expert systems on its own terms — not dismiss it. A bad answer would be <em>&quot;this is different because LLMs.&quot;</em> A good answer would identify <em>which</em> historical failure modes have been solved, <em>which</em> have not, and <em>which new ones</em> have been introduced.</p>
+
+        </div>
+      </section>
+
+      <section id="section-2" class="lesson-section" data-theme="bridge" data-section="2">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🔗</span>
+          <span class="section-badge">§2</span>
+          <h2>Bridge to Topic</h2>
+        </header>
+        <div class="section-body">
+<p>Agent research did not begin in 2022. It has a 70-year history of attempts, three of which produced commercially deployed systems (expert systems, RL game-players, LLM agents) and two of which produced rich theory but limited deployment (BDI agents, behavior-based robotics). Each era inherited specific ideas from its predecessor and rejected others. The CRO&#39;s question — <em>what&#39;s different this time</em> — is exactly the right question to ask, and answering it requires knowing the lineage.</p>
+
+        </div>
+      </section>
+
+      <section id="section-3" class="lesson-section" data-theme="mindmap" data-section="3">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🗺️</span>
+          <span class="section-badge">§3</span>
+          <h2>Mind Map</h2>
+        </header>
+        <div class="section-body">
+<p><img src="../../diagrams/m01/07-history-mindmap.svg" alt="Mind map"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">mindmap
+  root((Agent History))
+    Symbolic 1956-1990
+      Logic Theorist
+      GPS
+      Expert systems
+      What failed
+    Reactive 1985-1995
+      Brooks subsumption
+      Behavior trees
+      Embodiment
+      What survived
+    BDI 1995-2005
+      Beliefs Desires Intentions
+      JADE PRS
+      Multi-agent theory
+    RL 1992-2017
+      Q-learning
+      Policy gradients
+      AlphaGo
+      Bitter lesson
+    LLM era 2022+
+      Tool use
+      ReAct
+      Autonomous agents
+      What is genuinely new
+</code></pre>
+</details>
+
+<p><em>Takeaway: each era kept a few load-bearing ideas from its predecessor and rejected the rest. Knowing the history lets you spot recurring failure modes.</em></p>
+
+        </div>
+      </section>
+
+      <section id="section-4" class="lesson-section" data-theme="elaboration" data-section="4">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">📖</span>
+          <span class="section-badge">§4</span>
+          <h2>Elaboration</h2>
+        </header>
+        <div class="section-body">
+<h3>4.1 Symbolic agents (1956–1990) — the first attempt</h3>
+<p>The very first AI program — Newell &amp; Simon&#39;s <strong>Logic Theorist</strong> (1956) — was an agent: it took a logical goal, searched for a proof, and reported back. <strong>GPS</strong> (General Problem Solver, 1959) generalised this with means-ends analysis. By the 1970s these ideas had matured into <strong>expert systems</strong> like MYCIN (medical diagnosis) and XCON (computer configuration at DEC, which famously saved $40M/year). The architectural pattern:</p>
+<pre><code>IF condition_1 AND condition_2 THEN conclude X with confidence 0.8
+</code></pre>
+<p>Thousands to tens of thousands of such rules, organised in a <em>knowledge base</em>, with an <em>inference engine</em> doing forward or backward chaining. By 1985 there was a $1B expert-systems industry.</p>
+<p><strong>What kept the era alive:</strong> symbolic representation made reasoning <em>explainable</em> (you can trace exactly which rules fired) and <em>composable</em> (rules can be authored independently). These are still virtues today; they are the reason your bank&#39;s fraud system, your tax software, and your credit scorecard all run on rules.</p>
+<p><strong>Why it died for general problems:</strong></p>
+<ol>
+<li><strong>Knowledge-acquisition bottleneck</strong> — every domain required a human expert to sit with a knowledge engineer for months articulating rules. The cost scaled linearly with coverage.</li>
+<li><strong>Brittleness in the long tail</strong> — rules covered the common cases beautifully and the edge cases not at all. Novel inputs produced confidently wrong answers.</li>
+<li><strong>Combinatorial explosion in rule conflicts</strong> — once you had &gt;10k rules, two rules would contradict each other in ways neither author anticipated.</li>
+</ol>
+<p>The CRO is right: HSBC&#39;s 1992 system died of these three diseases.</p>
+<h3>4.2 Reactive agents (1985–1995) — Brooks&#39;s revolt</h3>
+<p>Rodney Brooks at MIT looked at expert systems and asked: <em>&quot;Why does a cockroach need no knowledge base to survive, but our robots need megabytes of rules to cross a room?&quot;</em> His <strong>subsumption architecture</strong> (1986) discarded symbolic representation entirely. A robot is a stack of <em>behaviors</em> (avoid wall, follow light, return to charger), each running on its own hardware loop, each preempting lower-priority behaviors when its conditions are met.</p>
+<p>This worked spectacularly for robotics (Brooks&#39;s robots crossed rooms while symbolic ones planned). It introduced two ideas that survived:</p>
+<ul>
+<li><strong>Behavior trees</strong> — a hierarchical version of subsumption now used in every game AI you&#39;ve played.</li>
+<li><strong>Embodiment</strong> — agents must be evaluated <em>in their environment</em>, not in isolation. The benchmark is task completion, not theoretical correctness.</li>
+</ul>
+<p>What did <em>not</em> survive: the rejection of all internal representation. Pure reactivity is great for cockroaches and bad for tasks requiring memory or planning.</p>
+<h3>4.3 BDI agents (1995–2005) — the theoretical peak</h3>
+<p>The <strong>Beliefs-Desires-Intentions</strong> framework (Bratman 1987; Rao &amp; Georgeff 1991) gave agents three explicit mental states: beliefs about the world, desires (possible goals), and intentions (committed plans). The architecture inspired serious deployments — JADE, JACK, PRS — used in air-traffic control and military simulations.</p>
+<p>BDI gave us the vocabulary still used in multi-agent research (beliefs, intentions, commitment, communication acts via FIPA-ACL). But it never broke through commercially because:</p>
+<ul>
+<li>Authoring an agent required encoding beliefs and plan libraries by hand — same bottleneck as expert systems.</li>
+<li>Multi-agent coordination protocols were intricate and brittle.</li>
+</ul>
+<p>What survived: the <em>vocabulary</em> and the <em>theoretical framework</em> (you&#39;ll still see &quot;belief state&quot; in POMDP-based agents in Module 2).</p>
+<h3>4.4 The RL revolution (1992–2017)</h3>
+<p>Sutton &amp; Barto&#39;s <strong>TD-learning</strong> (1988) and Watkins&#39;s <strong>Q-learning</strong> (1989) gave us agents that <em>learned</em> their behaviour from reward signals, instead of being authored. This solved the knowledge-acquisition bottleneck — the agent acquires its policy by trial and error.</p>
+<p>Milestones:</p>
+<ul>
+<li>TD-Gammon (1992) — neural-network backgammon at world-class level</li>
+<li>DQN on Atari (2013) — Q-learning + CNNs across 49 games</li>
+<li>AlphaGo (2016) — RL + Monte Carlo Tree Search beats world champion</li>
+<li>AlphaZero (2017) — same architecture, no human game data</li>
+</ul>
+<p>But RL never solved a <em>general</em> agent problem outside games and tightly-scoped robotics. The reasons matter for LLM agents:</p>
+<ul>
+<li><strong>Reward engineering is hard</strong> — for most real tasks, you can&#39;t write down a numerical reward function.</li>
+<li><strong>Sample complexity is brutal</strong> — billions of training steps for AlphaZero&#39;s chess. Untenable for one-off business tasks.</li>
+<li><strong>No transfer</strong> — a chess RL agent knows nothing about Go.</li>
+</ul>
+<p>In 2019, Sutton wrote <em>The Bitter Lesson</em>: &quot;the only thing that matters in the long run is the leveraging of computation… general methods that leverage computation are ultimately the most effective.&quot; Read between the lines: most clever AI research is wasted; what wins is scale. This was the philosophical priming for what happened next.</p>
+<h3>4.5 The LLM era (2022+) — what&#39;s genuinely new</h3>
+<p>The breakthrough was the realisation that a sufficiently large language model could:</p>
+<ol>
+<li><strong>Read instructions in natural language</strong> — solving the knowledge-acquisition bottleneck. No more authoring rules; you describe the task.</li>
+<li><strong>Use tools described in natural language</strong> — solving the integration bottleneck. The model doesn&#39;t need a custom interface for each system.</li>
+<li><strong>Reason explicitly in chain-of-thought</strong> — restoring (a fuzzy version of) the explainability that symbolic systems had.</li>
+<li><strong>Transfer across domains</strong> — a model trained on the internet knows about banking and biology and code.</li>
+</ol>
+<p>This is genuinely different from prior eras. ReAct (Yao et al. 2022) was the moment the agent paradigm refused to die.</p>
+<p>But three failure modes are <em>new</em>:</p>
+<ul>
+<li><strong>Hallucination</strong> — confident invention of facts/tools/arguments. Symbolic systems were brittle but rarely confidently wrong about which rule fired.</li>
+<li><strong>Prompt injection</strong> — the system&#39;s instructions and the data it processes live in the same channel. Symbolic systems didn&#39;t have this problem.</li>
+<li><strong>Cost &amp; latency at scale</strong> — every inference is dollars and seconds. Expert systems were near-free at runtime.</li>
+</ul>
+
+        </div>
+      </section>
+
+      <section id="section-5" class="lesson-section" data-theme="problem" data-section="5">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">❓</span>
+          <span class="section-badge">§5</span>
+          <h2>Problem Statement</h2>
+        </header>
+        <div class="section-body">
+<p>Help Daniel give the CRO a defensible 90-second answer. Specifically: for each of the three expert-system failure modes the CRO cited, state whether LLM agents have <em>solved</em>, <em>partially solved</em>, <em>not solved</em>, or <em>made worse</em>. Cite the historical mechanism that drove each judgment.</p>
+<table>
+<thead>
+<tr>
+<th>Failure mode</th>
+<th>Solved?</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Knowledge-acquisition bottleneck (rules cost too much to author)</td>
+<td>?</td>
+<td>?</td>
+</tr>
+<tr>
+<td>Brittleness in the long tail (no answer for unseen inputs)</td>
+<td>?</td>
+<td>?</td>
+</tr>
+<tr>
+<td>Rule conflicts at scale (10k rules contradict)</td>
+<td>?</td>
+<td>?</td>
+</tr>
+</tbody></table>
+
+        </div>
+      </section>
+
+      <section id="section-6" class="lesson-section" data-theme="solution" data-section="6">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🛠️</span>
+          <span class="section-badge">§6</span>
+          <h2>Solution Walkthrough</h2>
+        </header>
+        <div class="section-body">
+<table>
+<thead>
+<tr>
+<th>Failure mode</th>
+<th>Verdict</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Knowledge-acquisition bottleneck</strong></td>
+<td><strong>Solved</strong></td>
+<td>LLMs absorbed the internet&#39;s worth of domain knowledge during pretraining. You describe the task in English; no rule library needed.</td>
+</tr>
+<tr>
+<td><strong>Brittleness in the long tail</strong></td>
+<td><strong>Partially solved</strong></td>
+<td>The LLM has <em>some</em> answer for almost any input (good), but the answer in the tail is often confidently wrong (bad). This is <em>hallucination</em> — a different failure mode that didn&#39;t exist before. Net: better coverage, worse failure mode.</td>
+</tr>
+<tr>
+<td><strong>Rule conflicts at scale</strong></td>
+<td><strong>Solved (different problem)</strong></td>
+<td>There is no rule library. But the model&#39;s internal &quot;rules&quot; are opaque, so you trade one form of debt (rule conflicts) for another (interpretability loss).</td>
+</tr>
+</tbody></table>
+<p>And three new failure modes the CRO didn&#39;t ask about but should have:</p>
+<table>
+<thead>
+<tr>
+<th>New failure mode</th>
+<th>Mitigation in our design</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Hallucination</strong></td>
+<td>Every action grounded in observable tool output; Zod-validate every LLM-emitted structured value; cite source for every factual claim.</td>
+</tr>
+<tr>
+<td><strong>Prompt injection</strong></td>
+<td>Tool authorisation perimeter (Module 10), CaMeL-style privilege separation, never trust user content in the same channel as system instructions.</td>
+</tr>
+<tr>
+<td><strong>Cost &amp; latency</strong></td>
+<td>Prompt caching, budget gates, fall through to deterministic workflow when budget exhausted (Module 9).</td>
+</tr>
+</tbody></table>
+<p><strong>Daniel&#39;s 90-second answer:</strong> <em>&quot;You&#39;re right to ask. The 1992 system died of a maintenance bottleneck — every new rule was a person-week. LLMs eliminate that specific bottleneck: there&#39;s no rule library to maintain. What we inherit instead is hallucination and prompt injection — failure modes that didn&#39;t exist before. We address those by gating every action on validated tool output, isolating untrusted input, and putting hard caps on the budget. The thing that&#39;s actually new — and the reason this isn&#39;t 1992 again — is that the system can handle inputs it has never seen before, instead of confidently producing &#39;NO MATCH&#39; the way the old system did.&quot;</em></p>
+<p>The CRO will follow up with <em>&quot;prove it on a contained pilot&quot;</em> — which is exactly what Module 11&#39;s business-case work is for.</p>
+
+        </div>
+      </section>
+
+      <section id="section-7" class="lesson-section" data-theme="math" data-section="7">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">∑</span>
+          <span class="section-badge">§7</span>
+          <h2>Mathematical Foundation</h2>
+        </header>
+        <div class="section-body">
+<h3>7.1 Q-learning — the foundational RL update</h3>
+<p>For posterity (and because Module 2 builds on it): the <strong>Q-learning update rule</strong> estimates the value of taking action <em>a</em> in state <em>s</em>:</p>
+<p>$$
+Q(s, a) \leftarrow Q(s, a) + \alpha \left[ r + \gamma \max_{a&#39;} Q(s&#39;, a&#39;) - Q(s, a) \right]
+$$</p>
+<p>where $\alpha$ is the learning rate, $\gamma$ is the discount factor, $r$ is the immediate reward, and $s&#39;$ is the next state.</p>
+<p>This update converges to the optimal Q-function $Q^*$ (Watkins &amp; Dayan 1992) under conditions on visitation frequency and learning rate. LLM agents do <em>not</em> update Q-values online — they use a learned heuristic encoded in the model&#39;s weights and <em>approximate</em> the optimal policy. But the conceptual frame (state, action, value of next-best) shows up everywhere in agent design.</p>
+<h3>7.2 Policy gradient — when the action space is too large to enumerate</h3>
+<p>REINFORCE (Williams 1992) updates a parameterised policy $\pi_\theta(a|s)$ directly:</p>
+<p>$$
+\nabla_\theta J(\theta) = \mathbb{E}<em>{\tau \sim \pi</em>\theta} \left[ \sum_t \nabla_\theta \log \pi_\theta(a_t | s_t) , R(\tau) \right]
+$$</p>
+<p>This is the lineage of RLHF (Christiano 2017; Stiennon 2020) and of DPO (Rafailov 2023) — the techniques that aligned LLMs to be useful conversation agents in the first place. Every helpful Claude response you&#39;ve seen is downstream of policy-gradient methods. Module 12 covers RLAIF on agent rollouts, which extends this lineage.</p>
+<h3>7.3 The bitter lesson, formalised</h3>
+<p>Sutton&#39;s observation can be stated as: as compute $C$ grows, expected performance of method $M$ on task $T$ goes as</p>
+<p>$$
+P(M, T, C) \to f_{\text{scaling}}(C) \quad \text{for general methods}
+$$</p>
+<p>$$
+P(M, T, C) \to P_{\max}(M, T) \quad \text{for clever-but-specialised methods}
+$$</p>
+<p>That is: general methods scale; clever methods plateau. The implication for agent design: <em>don&#39;t out-clever the model</em>. Prefer simple loops over elaborate orchestration. Module 4&#39;s Sherpa starts as a 200-line ReAct loop for exactly this reason.</p>
+
+        </div>
+      </section>
+
+      <section id="section-8" class="lesson-section" data-theme="tech" data-section="8">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">⚙️</span>
+          <span class="section-badge">§8</span>
+          <h2>Technical Deep-Dive</h2>
+        </header>
+        <div class="section-body">
+<h3>8.1 Where modern frameworks trace to</h3>
+<p>Every popular agent framework is a recombination of historical ideas. Knowing the lineage tells you the failure modes inherited:</p>
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>Symbolic</th>
+<th>Reactive</th>
+<th>BDI</th>
+<th>RL</th>
+<th>New</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>LangGraph</strong></td>
+<td>weak</td>
+<td>—</td>
+<td>strong (graph = plan library)</td>
+<td>—</td>
+<td>LLM picks edges</td>
+</tr>
+<tr>
+<td><strong>AutoGen</strong></td>
+<td>—</td>
+<td>—</td>
+<td>strong (agent roles)</td>
+<td>—</td>
+<td>LLM negotiates</td>
+</tr>
+<tr>
+<td><strong>CrewAI</strong></td>
+<td>—</td>
+<td>—</td>
+<td>strong (role-based crew)</td>
+<td>—</td>
+<td>LLM coordinates</td>
+</tr>
+<tr>
+<td><strong>OpenAI Assistants</strong></td>
+<td>—</td>
+<td>weak (event-driven)</td>
+<td>weak</td>
+<td>—</td>
+<td>LLM = controller</td>
+</tr>
+<tr>
+<td><strong>Claude Agent SDK</strong></td>
+<td>—</td>
+<td>weak</td>
+<td>weak</td>
+<td>—</td>
+<td>minimalist loop</td>
+</tr>
+<tr>
+<td><strong>LangChain (classic)</strong></td>
+<td>strong (chains as rule pipelines)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>LLM as transformer</td>
+</tr>
+</tbody></table>
+<p>A framework that <em>only</em> recombines historical ideas inherits all their failure modes. The most defensible frameworks are the minimalist ones (Claude Agent SDK, raw LangChain, hand-rolled) because they don&#39;t pretend to solve coordination problems that history shows are hard.</p>
+<h3>8.2 The bitter-lesson check</h3>
+<p>When choosing an architecture, ask: <em>am I about to add a clever component, or use more model?</em> The first option tends to plateau; the second tends to scale. Sherpa&#39;s architecture in Module 4 will follow this rule: when in doubt, less framework, more model.</p>
+<h3>8.3 What survived from each era</h3>
+<p>A reference table you&#39;ll keep coming back to:</p>
+<table>
+<thead>
+<tr>
+<th>From</th>
+<th>Survived as</th>
+<th>Used in modern agents</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Symbolic</td>
+<td>Rule-based pre/post filters</td>
+<td>Input validation, refusal logic, output schemas</td>
+</tr>
+<tr>
+<td>Symbolic</td>
+<td>Planning algorithms</td>
+<td>LLM-driven Plan-and-Solve (Lesson 1.4), HTN sub-agents</td>
+</tr>
+<tr>
+<td>Reactive</td>
+<td>Behavior trees</td>
+<td>Game NPCs, robotics middleware (not LLM agents directly)</td>
+</tr>
+<tr>
+<td>BDI</td>
+<td>Belief states</td>
+<td>POMDP-based agents (Module 2), memory architectures (Module 5)</td>
+</tr>
+<tr>
+<td>BDI</td>
+<td>Agent communication languages</td>
+<td>A2A protocol, MCP, FIPA&#39;s intellectual descendants</td>
+</tr>
+<tr>
+<td>RL</td>
+<td>MDP/POMDP formalism</td>
+<td>The math we&#39;ll use to <em>reason</em> about LLM agents (Module 2)</td>
+</tr>
+<tr>
+<td>RL</td>
+<td>Q-learning intuition</td>
+<td>Learned value functions used inside reasoning models</td>
+</tr>
+<tr>
+<td>RL</td>
+<td>Policy gradients</td>
+<td>RLHF/DPO/RLAIF on agent rollouts (Module 12)</td>
+</tr>
+<tr>
+<td>Bitter lesson</td>
+<td>Minimalism bias</td>
+<td>Sherpa&#39;s architecture, every production decision in this course</td>
+</tr>
+</tbody></table>
+
+        </div>
+      </section>
+
+      <section id="section-9" class="lesson-section" data-theme="unlocks" data-section="9">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🚀</span>
+          <span class="section-badge">§9</span>
+          <h2>What This Unlocks</h2>
+        </header>
+        <div class="section-body">
+<ul>
+<li><strong>Lesson 1.3</strong> uses this historical context to build the <em>decision framework</em> for choosing workflow vs pipeline vs agent. The framework&#39;s answers will rhyme with the era-by-era lessons learnt here.</li>
+<li><strong>Module 2</strong> picks up the mathematical lineage — MDPs, POMDPs, belief updates — and shows how to use it as a reasoning tool for LLM agents, even though we won&#39;t be training value functions.</li>
+<li><strong>Module 10</strong> revisits the new failure modes (hallucination, prompt injection) in depth and shows the production defenses.</li>
+<li><strong>Module 11</strong> uses Daniel&#39;s 90-second answer pattern in the business-case templates — &quot;what failure mode are we inheriting, what are we introducing, how do we mitigate?&quot; is the structure of every defensible vendor pitch.</li>
+</ul>
+<hr>
+
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <p>End of Lesson 1.2</p>
+        <p class="muted">Press <kbd>↑</kbd> / <kbd>↓</kbd> to jump between sections.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script>
+(function () {
+  var sections = document.querySelectorAll(".lesson-section, .intro");
+  var tocLinks = document.querySelectorAll(".toc a");
+  var progress = document.getElementById("progress");
+  var byId = {};
+  tocLinks.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    byId[id] = a;
+  });
+
+  function update() {
+    var scrolled = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (progress) progress.style.width = max > 0 ? (scrolled / max * 100) + "%" : "0%";
+
+    var current = null;
+    sections.forEach(function (s) {
+      var top = s.getBoundingClientRect().top;
+      if (top < 140) current = s.id;
+    });
+    tocLinks.forEach(function (a) { a.classList.remove("active"); });
+    if (current && byId[current]) byId[current].classList.add("active");
+  }
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    var ids = Array.prototype.map.call(sections, function (s) { return s.id; });
+    var currentIdx = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top < 140) currentIdx = i;
+    }
+    if (e.key === "ArrowDown" && e.shiftKey) {
+      e.preventDefault();
+      var next = Math.min(ids.length - 1, currentIdx + 1);
+      document.getElementById(ids[next]).scrollIntoView({ behavior: "smooth" });
+    }
+    if (e.key === "ArrowUp" && e.shiftKey) {
+      e.preventDefault();
+      var prev = Math.max(0, currentIdx - 1);
+      document.getElementById(ids[prev]).scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
+</script>
+</body>
+</html>

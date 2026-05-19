@@ -1,0 +1,14 @@
+graph LR
+  L41[4.1 ReAct]:::current --> L42[4.2 Memory]
+  L42 --> L43[4.3 Reflection]
+  L43 --> L44[4.4 Planning]
+  L44 --> L45[4.5 Production Sherpa]
+  L41 -.uses.-> M2[Module 2: POMDP termination]
+  L41 -.uses.-> M3[Module 3: strict tool use]
+  L45 -.forward.-> M8[Module 8: eval harness]
+  L45 -.forward.-> M9[Module 9: production deployment]
+  classDef current fill:#fc6,stroke:#a60,stroke-width:3px
+  style M2 fill:#def,stroke:#36a
+  style M3 fill:#def,stroke:#36a
+  style M8 fill:#def,stroke:#36a
+  style M9 fill:#def,stroke:#36a
