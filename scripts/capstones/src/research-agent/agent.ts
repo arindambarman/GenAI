@@ -22,7 +22,10 @@ export interface ResearchResult {
  * Run the research agent against a question.
  * Returns the synthesis, faithfulness audit, and full trace.
  */
-export async function runResearchAgent(query: ResearchQuery): Promise<ResearchResult> {
+export async function runResearchAgent(
+  query: ResearchQuery,
+  onProgress?: (trace: Trace) => void,
+): Promise<ResearchResult> {
   const corpus = await listCorpus();
 
   const userMessage = `# Research question
@@ -42,6 +45,7 @@ ${corpus.length} papers. Use search_corpus to find relevant ones.
     userMessage,
     tools: researchTools,
     maxSteps: 20,
+    ...(onProgress && { onStep: onProgress }),
     postProcessToolResult: (toolName, result) => {
       // Truncate large paper bodies to keep context manageable
       if (toolName === "read_paper") {

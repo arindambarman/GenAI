@@ -33,12 +33,16 @@ export interface AddResult {
   error?: string;
 }
 
-export async function queryKB(question: string): Promise<QueryResult> {
+export async function queryKB(
+  question: string,
+  onProgress?: (trace: Trace) => void,
+): Promise<QueryResult> {
   const loop = await runAgentLoop({
     systemPrompt: QUERY_SYSTEM_PROMPT,
     userMessage: `# User question\n\n${question}\n\nFind relevant notes and answer. Submit via submit_answer.`,
     tools: knowledgeTools,
     maxSteps: 12,
+    ...(onProgress && { onStep: onProgress }),
   });
 
   const submit = loop.trace.steps
@@ -58,13 +62,16 @@ export async function queryKB(question: string): Promise<QueryResult> {
   return { mode: "query", question, answer, trace: loop.trace, ...(error && { error }) };
 }
 
-export async function organizeKB(): Promise<OrganizationResult> {
+export async function organizeKB(
+  onProgress?: (trace: Trace) => void,
+): Promise<OrganizationResult> {
   const loop = await runAgentLoop({
     systemPrompt: ORGANIZE_SYSTEM_PROMPT,
     userMessage:
       "Review the entire knowledge base. Identify clusters, orphans, suggested links, and gaps. Submit via submit_organization.",
     tools: knowledgeTools,
     maxSteps: 12,
+    ...(onProgress && { onStep: onProgress }),
   });
 
   const submit = loop.trace.steps
@@ -84,7 +91,10 @@ export async function organizeKB(): Promise<OrganizationResult> {
   return { mode: "organize", report, trace: loop.trace, ...(error && { error }) };
 }
 
-export async function addToKB(userContent: string): Promise<AddResult> {
+export async function addToKB(
+  userContent: string,
+  onProgress?: (trace: Trace) => void,
+): Promise<AddResult> {
   const loop = await runAgentLoop({
     systemPrompt: ADD_SYSTEM_PROMPT,
     userMessage: `# Content to incorporate
@@ -94,6 +104,7 @@ ${userContent}
 Decide whether to create one or more notes. For each: query_kb first to avoid duplication, then add_note, then link_notes to relevant existing notes. Finish with submit_answer summarizing what you did.`,
     tools: knowledgeTools,
     maxSteps: 15,
+    ...(onProgress && { onStep: onProgress }),
   });
 
   const notesCreated: string[] = [];

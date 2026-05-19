@@ -16,7 +16,10 @@ export interface BrainstormResult {
   error?: string;
 }
 
-export async function runBrainstormAgent(query: BrainstormQuery): Promise<BrainstormResult> {
+export async function runBrainstormAgent(
+  query: BrainstormQuery,
+  onProgress?: (trace: Trace) => void,
+): Promise<BrainstormResult> {
   const constraintBlock = query.constraints.length > 0
     ? `\n\n# Constraints\n` + query.constraints.map((c) => `- ${c}`).join("\n")
     : "";
@@ -32,6 +35,7 @@ export async function runBrainstormAgent(query: BrainstormQuery): Promise<Brains
     userMessage,
     tools: brainstormTools,
     maxSteps: 25,
+    ...(onProgress && { onStep: onProgress }),
   });
 
   const techniquesUsed = new Set<string>();

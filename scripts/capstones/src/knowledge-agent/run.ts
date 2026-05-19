@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { env } from "../shared/env.js";
 import { setMockHandler } from "../shared/llm.js";
-import { formatTrace } from "../shared/trace.js";
+import { formatTrace, printLatestSteps, resetProgressPrinter } from "../shared/trace.js";
 import { addToKB, organizeKB, queryKB } from "./agent.js";
 import { knowledgeMockHandler } from "./mock.js";
 
@@ -40,10 +40,11 @@ async function main(): Promise<void> {
       console.error("query requires a question");
       process.exit(1);
     }
-    console.log(`❓ Question: ${input}\n` + "─".repeat(60));
-    const r = await queryKB(input);
-    console.log("\n📋 TRACE\n");
-    console.log(formatTrace(r.trace, { maxResultChars: 200 }));
+    console.log(`❓ Question: ${input}\n` + "─".repeat(60) + "\n📋 Live progress:\n");
+    resetProgressPrinter();
+    const r = await queryKB(input, printLatestSteps);
+    console.log(`\n📋 Summary: ${r.trace.totalLLMCalls} LLM calls · ${r.trace.totalToolCalls} tool calls · $${r.trace.totalCost.toFixed(4)}`);
+    if (process.env.CAPSTONE_VERBOSE === "true") console.log(formatTrace(r.trace, { maxResultChars: 200 }));
     if (r.error) {
       console.error(`\n❌ ${r.error}`);
       process.exit(1);
@@ -66,10 +67,11 @@ async function main(): Promise<void> {
       console.log(`\n## Confidence: ${(r.answer.confidence * 100).toFixed(0)}%`);
     }
   } else if (mode === "organize") {
-    console.log("🗂️  Auditing knowledge base...\n" + "─".repeat(60));
-    const r = await organizeKB();
-    console.log("\n📋 TRACE\n");
-    console.log(formatTrace(r.trace, { maxResultChars: 200 }));
+    console.log("🗂️  Auditing knowledge base...\n" + "─".repeat(60) + "\n📋 Live progress:\n");
+    resetProgressPrinter();
+    const r = await organizeKB(printLatestSteps);
+    console.log(`\n📋 Summary: ${r.trace.totalLLMCalls} LLM calls · ${r.trace.totalToolCalls} tool calls · $${r.trace.totalCost.toFixed(4)}`);
+    if (process.env.CAPSTONE_VERBOSE === "true") console.log(formatTrace(r.trace, { maxResultChars: 200 }));
     if (r.error) {
       console.error(`\n❌ ${r.error}`);
       process.exit(1);
@@ -103,10 +105,11 @@ async function main(): Promise<void> {
       console.error("add requires content");
       process.exit(1);
     }
-    console.log(`📥 Adding: ${input.slice(0, 100)}…\n` + "─".repeat(60));
-    const r = await addToKB(input);
-    console.log("\n📋 TRACE\n");
-    console.log(formatTrace(r.trace, { maxResultChars: 200 }));
+    console.log(`📥 Adding: ${input.slice(0, 100)}…\n` + "─".repeat(60) + "\n📋 Live progress:\n");
+    resetProgressPrinter();
+    const r = await addToKB(input, printLatestSteps);
+    console.log(`\n📋 Summary: ${r.trace.totalLLMCalls} LLM calls · ${r.trace.totalToolCalls} tool calls · $${r.trace.totalCost.toFixed(4)}`);
+    if (process.env.CAPSTONE_VERBOSE === "true") console.log(formatTrace(r.trace, { maxResultChars: 200 }));
     console.log("\n" + "─".repeat(60) + "\n📦 RESULT\n");
     if (r.summary) console.log(r.summary);
     if (r.notesCreated.length > 0) console.log(`\nNotes created: ${r.notesCreated.join(", ")}`);

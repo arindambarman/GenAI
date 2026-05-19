@@ -10,9 +10,10 @@
     "brainstorm-agent": "./src/brainstorm-agent/run.ts"
   },
   "scripts": {
-    "research": "tsx src/research-agent/run.ts",
-    "knowledge": "tsx src/knowledge-agent/run.ts",
-    "brainstorm": "tsx src/brainstorm-agent/run.ts"
+    "research": "tsx --env-file=../../.env src/research-agent/run.ts",
+    "knowledge": "tsx --env-file=../../.env src/knowledge-agent/run.ts",
+    "brainstorm": "tsx --env-file=../../.env src/brainstorm-agent/run.ts",
+    "ui": "tsx --env-file=../../.env src/ui/server.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

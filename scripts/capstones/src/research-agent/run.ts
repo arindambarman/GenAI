@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { env } from "../shared/env.js";
 import { setMockHandler } from "../shared/llm.js";
-import { formatTrace } from "../shared/trace.js";
+import { formatTrace, printLatestSteps, resetProgressPrinter } from "../shared/trace.js";
 import { runResearchAgent } from "./agent.js";
 import { researchMockHandler } from "./mock.js";
 import { ResearchQuerySchema } from "./schema.js";
@@ -24,12 +24,17 @@ async function main(): Promise<void> {
 
   console.log(`📚 Research question: ${query.question}\n`);
   console.log("─".repeat(60) + "\n");
+  console.log("📋 Live progress:\n");
 
-  const result = await runResearchAgent(query);
+  resetProgressPrinter();
+  const result = await runResearchAgent(query, printLatestSteps);
 
-  console.log("─".repeat(60));
-  console.log("\n📋 TRACE\n");
-  console.log(formatTrace(result.trace, { maxResultChars: 300 }));
+  console.log("\n" + "─".repeat(60));
+  console.log(`\n📋 Summary: ${result.trace.totalLLMCalls} LLM calls · ${result.trace.totalToolCalls} tool calls · $${result.trace.totalCost.toFixed(4)}`);
+  if (process.env.CAPSTONE_VERBOSE === "true") {
+    console.log("\nFull trace:");
+    console.log(formatTrace(result.trace, { maxResultChars: 300 }));
+  }
   console.log("\n" + "─".repeat(60));
 
   if (result.error) {

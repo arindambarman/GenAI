@@ -23,6 +23,33 @@ export function newTrace(): Trace {
   };
 }
 
+/**
+ * Print only steps added since the last call. Used as the onStep
+ * callback from runAgentLoop so users see live progress instead of
+ * waiting in silence for the whole run to finish.
+ */
+let lastPrintedStepIdx = 0;
+export function resetProgressPrinter(): void {
+  lastPrintedStepIdx = 0;
+}
+export function printLatestSteps(trace: Trace): void {
+  for (let i = lastPrintedStepIdx; i < trace.steps.length; i++) {
+    const step = trace.steps[i];
+    if (step.kind === "thought" && step.text.trim()) {
+      const preview = step.text.replace(/\s+/g, " ").trim().slice(0, 120);
+      console.log(`  💭 ${preview}${step.text.length > 120 ? "…" : ""}`);
+    } else if (step.kind === "tool_call") {
+      const argsPreview = JSON.stringify(step.args).slice(0, 80);
+      console.log(`  🔧 ${step.tool}(${argsPreview}${JSON.stringify(step.args).length > 80 ? "…" : ""})`);
+    } else if (step.kind === "tool_result" && step.isError) {
+      console.log(`  ❌ tool error`);
+    } else if (step.kind === "answer") {
+      console.log(`  ✅ done`);
+    }
+  }
+  lastPrintedStepIdx = trace.steps.length;
+}
+
 export function formatTrace(trace: Trace, opts: { maxResultChars?: number } = {}): string {
   const maxChars = opts.maxResultChars ?? 500;
   const lines: string[] = [];

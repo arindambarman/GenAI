@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { env } from "../shared/env.js";
 import { setMockHandler } from "../shared/llm.js";
-import { formatTrace } from "../shared/trace.js";
+import { formatTrace, printLatestSteps, resetProgressPrinter } from "../shared/trace.js";
 import { runBrainstormAgent } from "./agent.js";
 import { brainstormMockHandler } from "./mock.js";
 import { BrainstormQuerySchema } from "./schema.js";
@@ -28,11 +28,17 @@ async function main(): Promise<void> {
   });
 
   console.log(`💡 Topic: ${query.topic}\n` + "─".repeat(60));
+  console.log("\n📋 Live progress (full trace at end):\n");
 
-  const result = await runBrainstormAgent(query);
+  resetProgressPrinter();
+  const result = await runBrainstormAgent(query, printLatestSteps);
 
-  console.log("\n📋 TRACE\n");
-  console.log(formatTrace(result.trace, { maxResultChars: 250 }));
+  console.log("\n" + "─".repeat(60));
+  console.log(`\n📋 Final summary: ${result.trace.totalLLMCalls} LLM calls · ${result.trace.totalToolCalls} tool calls · $${result.trace.totalCost.toFixed(4)}`);
+  if (process.env.CAPSTONE_VERBOSE === "true") {
+    console.log("\nFull trace:");
+    console.log(formatTrace(result.trace, { maxResultChars: 250 }));
+  }
   console.log("\n" + "─".repeat(60));
 
   if (result.error) {
@@ -79,7 +85,12 @@ async function main(): Promise<void> {
   console.log("\n" + "─".repeat(60));
 }
 
-main().catch((err) => {
-  console.error("Fatal:", err);
+main().catch((err: unknown) => {
+  if (err instanceof Error) {
+    console.error("Fatal:", err.message);
+    if (err.stack) console.error(err.stack);
+  } else {
+    console.error("Fatal:", String(err));
+  }
   process.exit(1);
 });

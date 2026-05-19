@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Capstone Agents · AdaptLearn</title>
+  <style>
+    :root {
+      --bg: #0f1218;
+      --surface: #1a1f2b;
+      --surface-2: #232a3a;
+      --border: #2d3548;
+      --text: #e4e7ef;
+      --text-muted: #8893a8;
+      --accent: #4f8cff;
+      --accent-soft: #2a3a5e;
+      --success: #4ade80;
+      --warning: #fbbf24;
+      --error: #f87171;
+      --thought: #8893a8;
+      --tool: #4f8cff;
+      --result: #4ade80;
+      --mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; font-size: 15px; background: var(--bg); color: var(--text); line-height: 1.6; }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { margin: 0; font-size: 18px; font-weight: 700; }
+    header .info { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
+    .tabs { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; gap: 4px; }
+    .tab { padding: 12px 18px; cursor: pointer; color: var(--text-muted); border: none; background: transparent; font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.15s; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .form { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+    .form-row { margin-bottom: 14px; }
+    .form-row:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    input[type="text"], textarea, select {
+      width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; color: var(--text); font-size: 14px; font-family: inherit;
+    }
+    textarea { min-height: 80px; resize: vertical; font-family: inherit; }
+    input[type="text"]:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+    button.run {
+      background: var(--accent); color: #fff; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+    }
+    button.run:hover:not(:disabled) { background: #3a73e0; }
+    button.run:disabled { background: var(--surface-2); color: var(--text-muted); cursor: not-allowed; }
+    .row { display: flex; gap: 16px; align-items: center; }
+    .row > * { flex: 1; }
+    .row > button { flex: 0; }
+    .examples { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+    .examples a { color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+    .stream { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; }
+    .stream-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .stream-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .stream-meta { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
+    .stream-body { font-family: var(--mono); font-size: 12.5px; max-height: 50vh; overflow-y: auto; padding: 8px 0; }
+    .step { padding: 4px 0; border-bottom: 1px dashed transparent; }
+    .step .icon { display: inline-block; width: 22px; text-align: center; }
+    .step .text { white-space: pre-wrap; word-break: break-word; }
+    .step.thought { color: var(--thought); }
+    .step.tool_call { color: var(--tool); }
+    .step.tool_result { color: var(--text-muted); font-style: italic; }
+    .step.tool_result.error { color: var(--error); }
+    .step.answer { color: var(--success); }
+    .result { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+    .result h2 { margin: 0 0 14px; font-size: 18px; }
+    .result h3 { margin: 18px 0 8px; font-size: 15px; color: var(--accent); }
+    .result h4 { margin: 14px 0 6px; font-size: 14px; color: var(--text-muted); }
+    .result p { margin: 8px 0; }
+    .citation { background: var(--surface-2); border-left: 3px solid var(--accent); padding: 8px 12px; margin: 8px 0; border-radius: 4px; font-size: 13px; }
+    .citation .id { color: var(--accent); font-family: var(--mono); font-size: 11px; }
+    .citation .passage { color: var(--text-muted); font-style: italic; margin-top: 4px; }
+    .citation .supports { color: var(--text); margin-top: 4px; }
+    .idea { background: var(--surface-2); padding: 12px 14px; margin: 8px 0; border-radius: 6px; }
+    .idea .title { font-weight: 600; }
+    .idea .meta { font-size: 12px; color: var(--text-muted); font-family: var(--mono); margin-top: 4px; }
+    .idea .desc { margin-top: 6px; color: var(--text); font-size: 13.5px; }
+    .top3 .idea { border-left: 3px solid var(--success); }
+    .next-step { padding-left: 20px; position: relative; font-size: 13.5px; margin: 4px 0; }
+    .next-step::before { content: "→"; position: absolute; left: 0; color: var(--accent); }
+    .status { margin: 8px 0; font-size: 12.5px; color: var(--text-muted); font-family: var(--mono); }
+    .status.info { color: var(--accent); }
+    .status.error { color: var(--error); }
+    .status.success { color: var(--success); }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-family: var(--mono); background: var(--accent-soft); color: var(--accent); margin-right: 6px; }
+    .scores { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+    .gaps li, .related li { padding-left: 18px; position: relative; }
+    .gaps li::before { content: "⚠"; position: absolute; left: 0; color: var(--warning); }
+    .related li::before { content: "↪"; position: absolute; left: 0; color: var(--accent); }
+    .audit { background: var(--surface-2); padding: 12px 14px; border-radius: 6px; margin-top: 12px; }
+    .audit.success { border-left: 3px solid var(--success); }
+    .audit.partial { border-left: 3px solid var(--warning); }
+    .audit.failure { border-left: 3px solid var(--error); }
+    ul { margin: 8px 0; padding-left: 24px; }
+    code { font-family: var(--mono); background: var(--surface-2); padding: 1px 5px; border-radius: 3px; font-size: 12.5px; }
+    pre { background: var(--surface-2); padding: 10px 12px; border-radius: 6px; overflow-x: auto; font-family: var(--mono); font-size: 12.5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎓 Capstone Agents</h1>
+    <span class="info" id="env-info">connecting…</span>
+  </header>
+  <div class="tabs">
+    <button class="tab active" data-tab="research">📚 Research</button>
+    <button class="tab" data-tab="knowledge">🗂️ Knowledge</button>
+    <button class="tab" data-tab="brainstorm">💡 Brainstorm</button>
+  </div>
+
+  <main>
+    <!-- RESEARCH PANEL -->
+    <section class="panel active" id="panel-research">
+      <div class="form">
+        <div class="form-row">
+          <label for="r-question">Research question</label>
+          <input type="text" id="r-question" placeholder="What are the main LLM-agent paradigms?" />
+          <div class="examples">
+            Examples:
+            <a onclick="document.getElementById('r-question').value='What are the main LLM-agent paradigms (ReAct, Reflexion, Plan-and-Solve) and how do they differ?'">paradigms</a> ·
+            <a onclick="document.getElementById('r-question').value='What is the bitter lesson and how does it apply to agent design?'">bitter lesson</a> ·
+            <a onclick="document.getElementById('r-question').value='When is multi-agent debate worth the cost?'">multi-agent debate</a>
+          </div>
+        </div>
+        <button class="run" id="r-run">Run Research Agent</button>
+      </div>
+      <div class="stream" id="r-stream" hidden>
+        <div class="stream-header">
+          <span class="stream-title">Live progress</span>
+          <span class="stream-meta" id="r-meta"></span>
+        </div>
+        <div class="stream-body" id="r-stream-body"></div>
+      </div>
+      <div class="result" id="r-result" hidden></div>
+    </section>
+
+    <!-- KNOWLEDGE PANEL -->
+    <section class="panel" id="panel-knowledge">
+      <div class="form">
+        <div class="form-row">
+          <label for="k-mode">Mode</label>
+          <select id="k-mode">
+            <option value="query">query — answer a question using the KB</option>
+            <option value="organize">organize — audit clusters, orphans, gaps</option>
+            <option value="add">add — incorporate new content as notes</option>
+          </select>
+        </div>
+        <div class="form-row" id="k-input-row">
+          <label for="k-input"><span id="k-input-label">Question</span></label>
+          <textarea id="k-input" placeholder="How does attention work?"></textarea>
+          <div class="examples">
+            <a onclick="document.getElementById('k-input').value='How does attention work in Transformers?'">about attention</a> ·
+            <a onclick="document.getElementById('k-input').value='What is the difference between RLHF and DPO?'">RLHF vs DPO</a>
+          </div>
+        </div>
+        <button class="run" id="k-run">Run Knowledge Agent</button>
+      </div>
+      <div class="stream" id="k-stream" hidden>
+        <div class="stream-header">
+          <span class="stream-title">Live progress</span>
+          <span class="stream-meta" id="k-meta"></span>
+        </div>
+        <div class="stream-body" id="k-stream-body"></div>
+      </div>
+      <div class="result" id="k-result" hidden></div>
+    </section>
+
+    <!-- BRAINSTORM PANEL -->
+    <section class="panel" id="panel-brainstorm">
+      <div class="form">
+        <div class="form-row">
+          <label for="b-topic">Topic (≥10 chars)</label>
+          <input type="text" id="b-topic" placeholder="How do we cut LLM costs in half?" />
+          <div class="examples">
+            <a onclick="document.getElementById('b-topic').value='How do we cut LLM costs in half without dropping quality?'">cost cutting</a> ·
+            <a onclick="document.getElementById('b-topic').value='How can a 3-person team launch a new product in 90 days?'">90-day launch</a> ·
+            <a onclick="document.getElementById('b-topic').value='How do we reduce meeting overhead for the engineering team?'">meeting overhead</a>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-row" style="flex:1">
+            <label for="b-techniques">Techniques</label>
+            <input type="number" id="b-techniques" value="4" min="2" max="7" />
+          </div>
+          <div class="form-row" style="flex:1">
+            <label for="b-ideas">Ideas per technique</label>
+            <input type="number" id="b-ideas" value="4" min="2" max="8" />
+          </div>
+        </div>
+        <button class="run" id="b-run">Run Brainstorm Agent</button>
+      </div>
+      <div class="stream" id="b-stream" hidden>
+        <div class="stream-header">
+          <span class="stream-title">Live progress</span>
+          <span class="stream-meta" id="b-meta"></span>
+        </div>
+        <div class="stream-body" id="b-stream-body"></div>
+      </div>
+      <div class="result" id="b-result" hidden></div>
+    </section>
+  </main>
+
+<script>
+  // ─── Tabs ────────────────────────────────────────────────
+  document.querySelectorAll(".tab").forEach((t) => {
+    t.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach((x) => x.classList.remove("active"));
+      t.classList.add("active");
+      document.getElementById("panel-" + t.dataset.tab).classList.add("active");
+    });
+  });
+
+  // ─── Health / env info ───────────────────────────────────
+  fetch("/health")
+    .then((r) => r.json())
+    .then((d) => {
+      const info = document.getElementById("env-info");
+      info.textContent = d.mockMode ? "MOCK MODE (no API key)" : `model: ${d.model}`;
+    })
+    .catch(() => {
+      document.getElementById("env-info").textContent = "server unreachable";
+    });
+
+  // ─── Knowledge mode → label/placeholder ──────────────────
+  const kMode = document.getElementById("k-mode");
+  const kInput = document.getElementById("k-input");
+  const kLabel = document.getElementById("k-input-label");
+  const kRow = document.getElementById("k-input-row");
+  function updateKnowledgeMode() {
+    const m = kMode.value;
+    if (m === "query") {
+      kLabel.textContent = "Question";
+      kInput.placeholder = "How does attention work?";
+      kRow.style.display = "";
+    } else if (m === "organize") {
+      kLabel.textContent = "(no input needed)";
+      kInput.value = "";
+      kRow.style.display = "none";
+    } else if (m === "add") {
+      kLabel.textContent = "Content to add to the KB";
+      kInput.placeholder = "DPO is a closed-form alternative to RLHF that...";
+      kRow.style.display = "";
+    }
+  }
+  kMode.addEventListener("change", updateKnowledgeMode);
+  updateKnowledgeMode();
+
+  // ─── Stream consumer (NDJSON) ────────────────────────────
+  async function streamRun(opts) {
+    const { runBtn, streamEl, streamBody, metaEl, resultEl, endpoint, body, renderResult } = opts;
+    runBtn.disabled = true;
+    runBtn.textContent = "Running…";
+    streamEl.hidden = false;
+    streamBody.innerHTML = "";
+    metaEl.textContent = "";
+    resultEl.hidden = true;
+    resultEl.innerHTML = "";
+
+    let lastResult = null;
+    let lastError = null;
+    let llmCalls = 0;
+    let toolCalls = 0;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!response.body) throw new Error("No response body");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let event;
+          try { event = JSON.parse(line); } catch { continue; }
+          if (event.type === "info") {
+            const el = document.createElement("div");
+            el.className = "status info";
+            el.textContent = "ℹ️ " + event.message;
+            streamBody.appendChild(el);
+          } else if (event.type === "progress") {
+            const step = event.step;
+            const el = document.createElement("div");
+            el.className = "step " + step.kind + (step.isError ? " error" : "");
+            const icon = step.kind === "thought" ? "💭" : step.kind === "tool_call" ? "🔧" : step.kind === "tool_result" ? (step.isError ? "❌" : "📥") : step.kind === "answer" ? "✅" : "•";
+            let text = "";
+            if (step.kind === "thought") {
+              text = step.text;
+            } else if (step.kind === "tool_call") {
+              text = step.tool + "(" + JSON.stringify(step.args).slice(0, 120) + (JSON.stringify(step.args).length > 120 ? "…" : "") + ")";
+              toolCalls++;
+            } else if (step.kind === "tool_result") {
+              const t = typeof step.result === "string" ? step.result : JSON.stringify(step.result);
+              text = t.slice(0, 200) + (t.length > 200 ? "…" : "");
+            } else if (step.kind === "answer") {
+              text = "done";
+              if (typeof step.value === "string" && step.value.length < 200) text = step.value;
+            }
+            el.innerHTML = `<span class="icon">${icon}</span><span class="text"></span>`;
+            el.querySelector(".text").textContent = text;
+            streamBody.appendChild(el);
+            streamBody.scrollTop = streamBody.scrollHeight;
+            if (step.kind === "thought") llmCalls++;
+            metaEl.textContent = `${llmCalls} LLM calls · ${toolCalls} tool calls`;
+          } else if (event.type === "result") {
+            lastResult = event.data;
+            if (event.data.traceSummary) {
+              const ts = event.data.traceSummary;
+              metaEl.textContent = `${ts.llmCalls} LLM calls · ${ts.toolCalls} tool calls · $${ts.cost.toFixed(4)}`;
+            }
+          } else if (event.type === "error") {
+            lastError = event.message;
+          }
+        }
+      }
+
+      if (lastError) {
+        const el = document.createElement("div");
+        el.className = "status error";
+        el.textContent = "❌ " + lastError;
+        streamBody.appendChild(el);
+      }
+      if (lastResult) {
+        resultEl.hidden = false;
+        renderResult(resultEl, lastResult);
+      }
+    } catch (err) {
+      const el = document.createElement("div");
+      el.className = "status error";
+      el.textContent = "❌ " + (err.message ?? String(err));
+      streamBody.appendChild(el);
+    } finally {
+      runBtn.disabled = false;
+      runBtn.textContent = runBtn.dataset.label;
+    }
+  }
+
+  // ─── Result renderers ────────────────────────────────────
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function renderResearch(el, data) {
+    if (!data.synthesis) {
+      el.innerHTML = "<p>No synthesis returned.</p>";
+      return;
+    }
+    const s = data.synthesis;
+    const f = data.faithfulness;
+    let html = `<h2>📝 Synthesis</h2>`;
+    html += `<p>${escapeHtml(s.summary).replace(/\n/g, "<br>")}</p>`;
+    html += `<h3>Key findings</h3><ul>`;
+    for (const k of s.key_findings) html += `<li>${escapeHtml(k)}</li>`;
+    html += `</ul>`;
+    html += `<h3>Citations (${s.citations.length})</h3>`;
+    for (const c of s.citations) {
+      html += `<div class="citation"><span class="id">[${escapeHtml(c.source_id)}] ${escapeHtml(c.title)}</span>`;
+      html += `<div class="supports">${escapeHtml(c.supports)}</div>`;
+      html += `<div class="passage">"${escapeHtml(c.passage.slice(0, 200))}${c.passage.length > 200 ? '…' : ''}"</div></div>`;
+    }
+    html += `<p><strong>Confidence:</strong> ${Math.round(s.confidence * 100)}%</p>`;
+    if (s.caveats && s.caveats.length > 0) {
+      html += `<h4>Caveats</h4><ul class="gaps">`;
+      for (const c of s.caveats) html += `<li>${escapeHtml(c)}</li>`;
+      html += `</ul>`;
+    }
+    if (f) {
+      const cls = f.faithfulness_score === 1 ? "success" : f.faithfulness_score >= 0.8 ? "partial" : "failure";
+      html += `<div class="audit ${cls}"><strong>Faithfulness audit:</strong> ${f.supported}/${f.total_claims} verified (${Math.round(f.faithfulness_score * 100)}%)`;
+      if (f.unsupported_claims && f.unsupported_claims.length > 0) {
+        html += `<ul>`;
+        for (const u of f.unsupported_claims) html += `<li>❌ "${escapeHtml(u.claim)}" — ${escapeHtml(u.reason)}</li>`;
+        html += `</ul>`;
+      }
+      html += `</div>`;
+    }
+    el.innerHTML = html;
+  }
+
+  function renderKnowledge(el, data) {
+    if (data.mode === "query" && data.answer) {
+      const a = data.answer;
+      let html = `<h2>💡 Answer</h2><p>${escapeHtml(a.answer).replace(/\n/g, "<br>")}</p>`;
+      html += `<h3>Citations (${a.citations.length})</h3>`;
+      for (const c of a.citations) {
+        html += `<div class="citation"><span class="id">[${escapeHtml(c.note_id)}] ${escapeHtml(c.note_title)}</span>`;
+        html += `<div class="supports">${escapeHtml(c.supports)}</div></div>`;
+      }
+      if (a.related_notes && a.related_notes.length > 0) {
+        html += `<h4>Related notes</h4><ul class="related">`;
+        for (const r of a.related_notes) html += `<li><code>${escapeHtml(r)}</code></li>`;
+        html += `</ul>`;
+      }
+      if (a.gaps && a.gaps.length > 0) {
+        html += `<h4>Gaps in the KB</h4><ul class="gaps">`;
+        for (const g of a.gaps) html += `<li>${escapeHtml(g)}</li>`;
+        html += `</ul>`;
+      }
+      html += `<p><strong>Confidence:</strong> ${Math.round(a.confidence * 100)}%</p>`;
+      el.innerHTML = html;
+    } else if (data.mode === "organize" && data.report) {
+      const r = data.report;
+      let html = `<h2>🗂️ Organization report</h2><p><strong>Total notes:</strong> ${r.total_notes}</p>`;
+      html += `<h3>Clusters (${r.clusters.length})</h3>`;
+      for (const c of r.clusters) {
+        html += `<div class="idea"><div class="title">${escapeHtml(c.theme)}</div>`;
+        html += `<div class="desc">${escapeHtml(c.summary)}</div>`;
+        html += `<div class="meta">${c.note_ids.map(id => `<span class="pill">${escapeHtml(id)}</span>`).join("")}</div></div>`;
+      }
+      if (r.orphans && r.orphans.length > 0) {
+        html += `<h4>Orphans (no links)</h4><p>${r.orphans.map(id => `<code>${escapeHtml(id)}</code>`).join(", ")}</p>`;
+      }
+      if (r.suggested_links && r.suggested_links.length > 0) {
+        html += `<h4>Suggested links</h4>`;
+        for (const l of r.suggested_links) {
+          html += `<div class="next-step"><code>${escapeHtml(l.from)}</code> → <code>${escapeHtml(l.to)}</code>: ${escapeHtml(l.reason)}</div>`;
+        }
+      }
+      if (r.gaps && r.gaps.length > 0) {
+        html += `<h4>Suggested topics to add</h4><ul class="gaps">`;
+        for (const g of r.gaps) html += `<li>${escapeHtml(g)}</li>`;
+        html += `</ul>`;
+      }
+      el.innerHTML = html;
+    } else if (data.mode === "add") {
+      let html = `<h2>📦 Add result</h2>`;
+      if (data.summary) html += `<p>${escapeHtml(data.summary)}</p>`;
+      if (data.notesCreated && data.notesCreated.length > 0) {
+        html += `<h4>Notes created</h4><p>${data.notesCreated.map(id => `<code>${escapeHtml(id)}</code>`).join(", ")}</p>`;
+      }
+      if (data.linksAdded && data.linksAdded.length > 0) {
+        html += `<h4>Links added</h4><ul>`;
+        for (const l of data.linksAdded) html += `<li><code>${escapeHtml(l.from)}</code> ↔ <code>${escapeHtml(l.to)}</code></li>`;
+        html += `</ul>`;
+      }
+      el.innerHTML = html;
+    } else {
+      el.innerHTML = "<p>No result.</p>";
+    }
+  }
+
+  function renderBrainstorm(el, data) {
+    if (!data.report) {
+      el.innerHTML = "<p>No report returned.</p>";
+      return;
+    }
+    const r = data.report;
+    let html = `<h2>🎯 Brainstorm report</h2>`;
+    html += `<p><strong>Topic:</strong> ${escapeHtml(r.topic)} · <strong>Ideas:</strong> ${r.ideas.length} · <strong>Techniques:</strong> ${(data.techniquesUsed ?? []).join(", ")}</p>`;
+    html += `<h3>Top 3 picks</h3><div class="top3">`;
+    for (const t of r.top_three) {
+      const idea = r.ideas.find(x => x.id === t.id);
+      html += `<div class="idea">`;
+      html += `<div class="title">${escapeHtml(idea?.title ?? t.id)}</div>`;
+      html += `<div class="desc">${escapeHtml(t.why_chosen)}</div>`;
+      html += `<h4 style="margin-top:8px">Next steps</h4>`;
+      for (const ns of t.next_steps) html += `<div class="next-step">${escapeHtml(ns)}</div>`;
+      html += `</div>`;
+    }
+    html += `</div>`;
+    html += `<h3>All ideas (${r.ideas.length})</h3>`;
+    for (const idea of r.ideas) {
+      const s = idea.scores;
+      const w = (0.35 * s.impact + 0.30 * s.feasibility + 0.20 * s.novelty - 0.15 * s.cost).toFixed(2);
+      html += `<div class="idea">`;
+      html += `<div class="title">${escapeHtml(idea.title)} <span class="pill">${escapeHtml(idea.technique)}</span></div>`;
+      html += `<div class="scores">weighted ${w} · novelty=${s.novelty} feasibility=${s.feasibility} impact=${s.impact} cost=${s.cost}</div>`;
+      html += `<div class="desc">${escapeHtml(idea.description)}</div>`;
+      html += `</div>`;
+    }
+    html += `<h3>Summary</h3><p>${escapeHtml(r.summary)}</p>`;
+    el.innerHTML = html;
+  }
+
+  // ─── Wire buttons ────────────────────────────────────────
+  const rBtn = document.getElementById("r-run"); rBtn.dataset.label = rBtn.textContent;
+  rBtn.addEventListener("click", () => {
+    const q = document.getElementById("r-question").value.trim();
+    if (q.length < 10) { alert("Question must be at least 10 characters."); return; }
+    streamRun({
+      runBtn: rBtn,
+      streamEl: document.getElementById("r-stream"),
+      streamBody: document.getElementById("r-stream-body"),
+      metaEl: document.getElementById("r-meta"),
+      resultEl: document.getElementById("r-result"),
+      endpoint: "/api/research",
+      body: { question: q },
+      renderResult: renderResearch,
+    });
+  });
+
+  const kBtn = document.getElementById("k-run"); kBtn.dataset.label = kBtn.textContent;
+  kBtn.addEventListener("click", () => {
+    const mode = kMode.value;
+    const input = kInput.value.trim();
+    if (mode !== "organize" && !input) { alert("Input is required for query and add modes."); return; }
+    streamRun({
+      runBtn: kBtn,
+      streamEl: document.getElementById("k-stream"),
+      streamBody: document.getElementById("k-stream-body"),
+      metaEl: document.getElementById("k-meta"),
+      resultEl: document.getElementById("k-result"),
+      endpoint: "/api/knowledge",
+      body: { mode, input },
+      renderResult: renderKnowledge,
+    });
+  });
+
+  const bBtn = document.getElementById("b-run"); bBtn.dataset.label = bBtn.textContent;
+  bBtn.addEventListener("click", () => {
+    const t = document.getElementById("b-topic").value.trim();
+    if (t.length < 10) { alert("Topic must be at least 10 characters."); return; }
+    streamRun({
+      runBtn: bBtn,
+      streamEl: document.getElementById("b-stream"),
+      streamBody: document.getElementById("b-stream-body"),
+      metaEl: document.getElementById("b-meta"),
+      resultEl: document.getElementById("b-result"),
+      endpoint: "/api/brainstorm",
+      body: {
+        topic: t,
+        num_techniques: Number(document.getElementById("b-techniques").value),
+        ideas_per_technique: Number(document.getElementById("b-ideas").value),
+      },
+      renderResult: renderBrainstorm,
+    });
+  });
+</script>
+</body>
+</html>
