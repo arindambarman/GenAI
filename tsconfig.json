@@ -16,7 +16,8 @@
     "agents/**/*.ts",
     "apps/web/**/*.ts",
     "apps/web/**/*.tsx",
-    "scripts/course-agent/src/**/*.ts"
+    "scripts/course-agent/src/**/*.ts",
+    "scripts/capstones/src/**/*.ts"
   ],
   "exclude": ["node_modules", "dist", ".next"]
 }

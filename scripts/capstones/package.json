@@ -1,0 +1,26 @@
+{
+  "name": "@adaptlearn/capstones",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "research-agent": "./src/research-agent/run.ts",
+    "knowledge-agent": "./src/knowledge-agent/run.ts",
+    "brainstorm-agent": "./src/brainstorm-agent/run.ts"
+  },
+  "scripts": {
+    "research": "tsx src/research-agent/run.ts",
+    "knowledge": "tsx src/knowledge-agent/run.ts",
+    "brainstorm": "tsx src/brainstorm-agent/run.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.13",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.3"
+  }
+}

@@ -3,6 +3,7 @@ packages:
   - agents/*
   - agents/shared
   - scripts/course-agent
+  - scripts/capstones
 
 ignoredBuiltDependencies:
   - esbuild

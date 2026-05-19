@@ -154,6 +154,25 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  scripts/capstones:
+    dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.39.0
+        version: 0.39.0
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.19.13
+        version: 22.19.13
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   scripts/course-agent:
     dependencies:
       marked:
