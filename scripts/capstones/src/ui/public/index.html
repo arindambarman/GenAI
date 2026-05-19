@@ -109,6 +109,7 @@
     <button class="tab active" data-tab="research">📚 Research</button>
     <button class="tab" data-tab="knowledge">🗂️ Knowledge</button>
     <button class="tab" data-tab="brainstorm">💡 Brainstorm</button>
+    <button class="tab" data-tab="learner">🎓 Learner</button>
   </div>
 
   <main>
@@ -166,6 +167,38 @@
         <div class="stream-body" id="k-stream-body"></div>
       </div>
       <div class="result" id="k-result" hidden></div>
+    </section>
+
+    <!-- LEARNER PANEL -->
+    <section class="panel" id="panel-learner">
+      <div class="form">
+        <div class="form-row">
+          <label for="l-modules">Modules to process (comma-separated, leave blank for ALL)</label>
+          <input type="text" id="l-modules" placeholder="01,02,04 (or blank for all 13)" />
+          <div class="examples">
+            Examples:
+            <a onclick="document.getElementById('l-modules').value=''">all modules</a> ·
+            <a onclick="document.getElementById('l-modules').value='01,04,09'">just 1, 4, 9 (quick demo)</a> ·
+            <a onclick="document.getElementById('l-modules').value='01,02,03,04'">foundations + Sherpa</a>
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="l-output">Output directory (relative to repo root)</label>
+          <input type="text" id="l-output" value="learner-output" />
+        </div>
+        <button class="run" id="l-run">Run Learner Agent</button>
+        <div class="status" style="margin-top:10px">
+          ⚠️ Real-LLM mode reads all selected modules (~7K tokens each). Full course run: ~$1-3 cost, 3-10 min.
+        </div>
+      </div>
+      <div class="stream" id="l-stream" hidden>
+        <div class="stream-header">
+          <span class="stream-title">Live progress</span>
+          <span class="stream-meta" id="l-meta"></span>
+        </div>
+        <div class="stream-body" id="l-stream-body"></div>
+      </div>
+      <div class="result" id="l-result" hidden></div>
     </section>
 
     <!-- BRAINSTORM PANEL -->
@@ -451,6 +484,82 @@
     }
   }
 
+  function renderLearner(el, data) {
+    if (!data.report) {
+      el.innerHTML = "<p>No report returned.</p>";
+      return;
+    }
+    const r = data.report;
+    const rs = data.recordedState ?? { concepts: [], relationships: [], optimizations: [], modulesRead: [] };
+    let html = `<h2>🎓 Learner Report</h2>`;
+    html += `<p>${escapeHtml(r.summary).replace(/\n/g, "<br>")}</p>`;
+    html += `<div class="idea"><div class="title">Statistics</div><div class="meta">`;
+    html += `Modules processed: <strong>${rs.modulesRead.length}</strong> · `;
+    html += `Concepts: <strong>${rs.concepts.length}</strong> · `;
+    html += `Relationships: <strong>${rs.relationships.length}</strong> · `;
+    html += `Optimisations: <strong>${rs.optimizations.length}</strong>`;
+    html += `</div></div>`;
+
+    html += `<h3>Key insights</h3><ul>`;
+    for (const k of r.key_insights) html += `<li>${escapeHtml(k)}</li>`;
+    html += `</ul>`;
+
+    html += `<h3>Recommended learning paths</h3>`;
+    for (const p of r.learning_paths) {
+      html += `<div class="idea">`;
+      html += `<div class="title">${escapeHtml(p.name)} <span class="pill">~${p.estimated_hours}h</span></div>`;
+      html += `<div class="meta">audience: ${escapeHtml(p.audience)}</div>`;
+      html += `<div class="desc">${escapeHtml(p.description)}</div>`;
+      html += `<div class="meta" style="margin-top:6px">${p.lesson_sequence.map(l => `<span class="pill">L${escapeHtml(l)}</span>`).join("")}</div>`;
+      html += `</div>`;
+    }
+
+    html += `<h3>Mindmap (Mermaid source)</h3>`;
+    html += `<pre>${escapeHtml(r.mindmap_mermaid)}</pre>`;
+    html += `<p class="status">Render at <a href="https://mermaid.live" target="_blank">mermaid.live</a> or copy into a markdown viewer.</p>`;
+
+    html += `<h3>Knowledge graph (Mermaid source)</h3>`;
+    html += `<pre>${escapeHtml(r.knowledge_graph_mermaid)}</pre>`;
+
+    if (rs.concepts.length > 0) {
+      html += `<h3>Top concepts (by importance)</h3>`;
+      const top = rs.concepts.slice().sort((a,b) => b.importance - a.importance).slice(0, 10);
+      for (const c of top) {
+        html += `<div class="idea">`;
+        html += `<div class="title">${escapeHtml(c.name)} <span class="pill">${escapeHtml(c.category)}</span><span class="pill">importance ${c.importance}</span></div>`;
+        html += `<div class="meta">id: <code>${escapeHtml(c.id)}</code> · in: ${c.source_lessons.map(l => `L${escapeHtml(l)}`).join(", ")}</div>`;
+        html += `<div class="desc">${escapeHtml(c.definition)}</div>`;
+        html += `</div>`;
+      }
+    }
+
+    if (rs.optimizations.length > 0) {
+      html += `<h3>Top optimisation suggestions</h3>`;
+      const byPri = { high: [], medium: [], low: [] };
+      for (const o of rs.optimizations) (byPri[o.priority] ?? byPri.medium).push(o);
+      for (const pri of ["high", "medium", "low"]) {
+        if (byPri[pri].length === 0) continue;
+        html += `<h4>${pri.toUpperCase()} priority (${byPri[pri].length})</h4>`;
+        for (const o of byPri[pri].slice(0, 5)) {
+          html += `<div class="idea">`;
+          html += `<div class="title">[${escapeHtml(o.type)}] Lessons ${o.target_lessons.join(", ")}</div>`;
+          html += `<div class="desc"><strong>Current:</strong> ${escapeHtml(o.current_state)}</div>`;
+          html += `<div class="desc"><strong>Suggestion:</strong> ${escapeHtml(o.suggestion)}</div>`;
+          html += `<div class="desc"><strong>Why:</strong> ${escapeHtml(o.rationale)}</div>`;
+          html += `</div>`;
+        }
+      }
+    }
+
+    if (data.outputFiles && data.outputFiles.length > 0) {
+      html += `<h3>Output files written</h3><ul>`;
+      for (const f of data.outputFiles) html += `<li><code>${escapeHtml(f)}</code></li>`;
+      html += `</ul>`;
+    }
+
+    el.innerHTML = html;
+  }
+
   function renderBrainstorm(el, data) {
     if (!data.report) {
       el.innerHTML = "<p>No report returned.</p>";
@@ -515,6 +624,27 @@
       endpoint: "/api/knowledge",
       body: { mode, input },
       renderResult: renderKnowledge,
+    });
+  });
+
+  const lBtn = document.getElementById("l-run"); lBtn.dataset.label = lBtn.textContent;
+  lBtn.addEventListener("click", () => {
+    const modulesRaw = document.getElementById("l-modules").value.trim();
+    const outputDir = document.getElementById("l-output").value.trim() || "learner-output";
+    const modules = modulesRaw
+      ? modulesRaw.split(",").map(s => s.trim()).filter(s => s.length > 0)
+      : undefined;
+    const body = { outputDir };
+    if (modules) body.modules = modules;
+    streamRun({
+      runBtn: lBtn,
+      streamEl: document.getElementById("l-stream"),
+      streamBody: document.getElementById("l-stream-body"),
+      metaEl: document.getElementById("l-meta"),
+      resultEl: document.getElementById("l-result"),
+      endpoint: "/api/learner",
+      body,
+      renderResult: renderLearner,
     });
   });
 

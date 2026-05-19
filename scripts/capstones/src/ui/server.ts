@@ -21,11 +21,14 @@ import { ResearchQuerySchema } from "../research-agent/schema.js";
 import { queryKB, organizeKB, addToKB } from "../knowledge-agent/agent.js";
 import { runBrainstormAgent } from "../brainstorm-agent/agent.js";
 import { BrainstormQuerySchema } from "../brainstorm-agent/schema.js";
+import { runLearnerAgent } from "../learner-agent/agent.js";
+import { LearnerInputSchema } from "../learner-agent/schema.js";
 import { env } from "../shared/env.js";
 import { setMockHandler } from "../shared/llm.js";
 import { researchMockHandler } from "../research-agent/mock.js";
 import { knowledgeMockHandler } from "../knowledge-agent/mock.js";
 import { brainstormMockHandler } from "../brainstorm-agent/mock.js";
+import { learnerMockHandler } from "../learner-agent/mock.js";
 import type { Trace, TraceStep } from "../shared/trace.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -202,6 +205,40 @@ async function handleBrainstorm(req: IncomingMessage, res: ServerResponse): Prom
   res.end();
 }
 
+async function handleLearner(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  startNdjsonResponse(res);
+  writeEvent(res, { type: "info", message: infoModeMessage() });
+  try {
+    const body = await readJsonBody(req);
+    if (env.isMockMode) setMockHandler(learnerMockHandler);
+
+    const input = LearnerInputSchema.parse({
+      modules: Array.isArray(body.modules) ? (body.modules as string[]) : undefined,
+      outputDir: typeof body.outputDir === "string" ? body.outputDir : "learner-output",
+    });
+
+    const sent = { n: 0 };
+    const result = await runLearnerAgent(input, (trace) => streamProgress(res, trace, sent));
+
+    writeEvent(res, {
+      type: "result",
+      data: {
+        report: result.report,
+        recordedState: result.recordedState,
+        outputFiles: result.outputFiles,
+        traceSummary: {
+          llmCalls: result.trace.totalLLMCalls,
+          toolCalls: result.trace.totalToolCalls,
+          cost: result.trace.totalCost,
+        },
+      },
+    });
+  } catch (err) {
+    writeEvent(res, { type: "error", message: err instanceof Error ? err.message : String(err) });
+  }
+  res.end();
+}
+
 async function serveStatic(res: ServerResponse, path: string, contentType: string): Promise<void> {
   try {
     const data = await readFile(join(PUBLIC_DIR, path));
@@ -236,6 +273,10 @@ const server = createServer((req, res) => {
   }
   if (method === "POST" && url === "/api/brainstorm") {
     void handleBrainstorm(req, res);
+    return;
+  }
+  if (method === "POST" && url === "/api/learner") {
+    void handleLearner(req, res);
     return;
   }
   res.writeHead(404, { "Content-Type": "text/plain" });
