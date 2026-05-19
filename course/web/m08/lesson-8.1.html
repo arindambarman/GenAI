@@ -418,6 +418,82 @@ $$</p>
 <p>The regression set is <em>frozen</em>. Don&#39;t add cases that are particularly hard for the current version — that&#39;s gaming. Add cases that reflect production distribution.</p>
 <h3>8.3 Adversarial generation</h3>
 <p>For edge cases: have a separate LLM <em>generate</em> adversarial cases (different from the agent&#39;s model, with prompts like &quot;generate a SWIFT break that would be ambiguous&quot;). Human review for plausibility.</p>
+<h3>8.4 The &quot;task vs system&quot; eval distinction</h3>
+<p>A common confusion: are you evaluating the <em>agent</em> or the <em>system</em>?</p>
+<table>
+<thead>
+<tr>
+<th>Eval target</th>
+<th>What it measures</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Task accuracy</strong></td>
+<td>Does the agent&#39;s final output match ground truth?</td>
+<td>Always</td>
+</tr>
+<tr>
+<td><strong>Tool-selection accuracy</strong></td>
+<td>Did the agent pick the right tool at each step?</td>
+<td>When wrong-tool errors dominate failures</td>
+</tr>
+<tr>
+<td><strong>Reasoning faithfulness</strong></td>
+<td>Does the trace&#39;s stated reasoning match the actual evidence?</td>
+<td>For high-stakes decisions where the <em>why</em> matters</td>
+</tr>
+<tr>
+<td><strong>System-level (end-to-end)</strong></td>
+<td>Does the user achieve their goal?</td>
+<td>For agents embedded in user workflows</td>
+</tr>
+<tr>
+<td><strong>Operational</strong></td>
+<td>p95 latency, cost, escalation rate</td>
+<td>Always — adjacent to quality</td>
+</tr>
+</tbody></table>
+<p>Most teams measure only task accuracy. Adding tool-selection and reasoning-faithfulness evals catches a different class of failure (the agent gets right answers via wrong reasoning, which fails on the next adjacent task).</p>
+<h3>8.5 The hidden cost of evals: prompt leakage</h3>
+<p>If your regression set is in the repo and the agent&#39;s prompts are also in the repo, you&#39;ve implicitly trained on the test set (humans tune prompts on the test set). Mitigations:</p>
+<ul>
+<li><strong>Separate eval repo</strong> with restricted access.</li>
+<li><strong>Holdout set</strong> that&#39;s never seen by prompt authors.</li>
+<li><strong>Periodic refresh</strong> of the eval set (rotate 20% / quarter).</li>
+<li><strong>Sample-size accounting</strong>: report which slice of the eval set was used for tuning vs measurement.</li>
+</ul>
+<p>Without these, eval numbers drift upward without real quality improvement. Honest evaluation requires discipline.</p>
+<h3>8.6 Eval set size: the binomial CI calculator</h3>
+<p>To detect a true accuracy difference of $\delta$ percentage points at 95% confidence (two-sided):</p>
+<p>$$
+N \geq \frac{2 \cdot 1.96^2 \cdot p \cdot (1-p)}{\delta^2}
+$$</p>
+<p>For $p \approx 0.85$ (Sherpa&#39;s accuracy):</p>
+<ul>
+<li>Detect 5pp difference: N ≥ 196</li>
+<li>Detect 3pp difference: N ≥ 544</li>
+<li>Detect 1pp difference: N ≥ 4,900</li>
+</ul>
+<p>In practice: 200-case eval reliably catches large regressions; 500 for sensitive tuning; 5K+ only when you have a serious quality dispute to resolve.</p>
+<h3>8.7 Stratified accuracy: report per-slice always</h3>
+<p>Aggregate accuracy hides serious regressions. Always report per-slice:</p>
+<pre><code>| Slice | Cases | Accuracy | Δ from baseline |
+|-------|-------|----------|-----------------|
+| Overall | 200 | 87.5% | -0.5pp |
+| Category: amount_diff | 80 | 92.5% | +1.0pp |
+| Category: counterparty_mismatch | 50 | 88.0% | 0.0pp |
+| Category: stale_static | 40 | 82.5% | -5.0pp ⚠ |
+| Category: duplicate | 20 | 90.0% | +0.0pp |
+| Category: unknown | 10 | 70.0% | 0.0pp |
+| Counterparty tier: top-20 | 100 | 91.0% | +0.5pp |
+| Counterparty tier: long-tail | 100 | 84.0% | -1.5pp |
+</code></pre>
+<p>The aggregate &quot;-0.5pp&quot; looks fine. The stale_static &quot;-5.0pp&quot; is a serious regression. Without stratification, you&#39;d ship and discover the bug in production.</p>
+<h3>8.8 The &quot;shadow eval&quot; as the gold standard</h3>
+<p>Most reliable signal for production behaviour: shadow the production traffic with the new version, compare outputs. Disadvantages: requires production traffic; delayed signal (need ground truth, which comes from human review hours-to-days later).</p>
+<p>For HSBC Sherpa: every prompt change runs in shadow for 5 nights before being canary&#39;d. Catches issues the regression set can&#39;t (production-specific distributions, new counterparty patterns, etc.).</p>
+<p>Trade-off: shadow eval is slow (5 days). Regression set is fast (5 min). Use both: regression in CI, shadow before canary.</p>
 
         </div>
       </section>

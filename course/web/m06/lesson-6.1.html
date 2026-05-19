@@ -437,6 +437,160 @@ For coupled sub-tasks: speedup capped by critical path (Amdahl).</p>
 <p>Scope-restriction makes each worker reliable. Wide-scope workers behave like a worse single agent.</p>
 <h3>8.3 The synthesis step</h3>
 <p>After workers report, the orchestrator synthesises. This step is high-leverage and often gets undersized. Give it explicit instructions on conflict resolution: &quot;if two workers disagree, prefer the one with higher confidence; if both high confidence, escalate.&quot;</p>
+<h3>8.4 Specific signals to switch from single-agent to orchestrator-worker</h3>
+<p>Don&#39;t multi-agent on instinct. Use these objective triggers:</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Threshold</th>
+<th>Reason multi-agent helps</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Single-agent step-cap hits</td>
+<td>&gt; 15% of tasks</td>
+<td>Agent is wandering; sub-task decomposition would scope-restrict</td>
+</tr>
+<tr>
+<td>Tool-set size for one agent</td>
+<td>&gt; 25 tools</td>
+<td>Wrong-tool selection rate climbs; per-worker tool subsets cut it</td>
+</tr>
+<tr>
+<td>Context length exceeds</td>
+<td>60% of model max</td>
+<td>Specialisation lets each worker see only relevant context</td>
+</tr>
+<tr>
+<td>Per-task latency budget</td>
+<td>&lt; average task latency</td>
+<td>Parallelism via independent workers compresses critical path</td>
+</tr>
+<tr>
+<td>Expert-rule sets that don&#39;t compose well</td>
+<td>3+ distinct rule books</td>
+<td>Each becomes a specialist worker; orchestrator routes</td>
+</tr>
+</tbody></table>
+<p>If you don&#39;t have at least two of these signals: stay single-agent. The complexity cost (Lesson 6.4) outweighs the benefit.</p>
+<h3>8.5 The &quot;specialist supervisor&quot; pattern (more common than pure delegation)</h3>
+<p>Most production &quot;multi-agent&quot; systems aren&#39;t true orchestrator-worker. They&#39;re a <em>supervisor with specialist consultants</em>:</p>
+<pre><code class="language-typescript">// Specialist supervisor pattern
+async function classifyComplexBreak(breakId: string): Promise&lt;Classification&gt; {
+  const supervisor = new ReActAgent(SUPERVISOR_PROMPT, supervisorTools);
+  // Supervisor is a normal ReAct agent. Its tools include consulting specialists.
+
+  return supervisor.run({
+    breakId,
+    consultants: {
+      fxExpert: createSpecialist(&quot;fx&quot;, fxTools, FX_PROMPT),
+      settlementExpert: createSpecialist(&quot;settlement&quot;, setTools, SET_PROMPT),
+      regulatoryExpert: createSpecialist(&quot;reg&quot;, regTools, REG_PROMPT),
+    },
+  });
+}
+</code></pre>
+<p>Differences from pure orchestrator-worker:</p>
+<ul>
+<li>Supervisor decides <em>whether</em> to consult, <em>which</em> specialist, and <em>when to stop consulting</em> — dynamically.</li>
+<li>Specialists are <em>invoked</em> (like tools), not <em>dispatched</em> (like jobs).</li>
+<li>Supervisor maintains the conversation; specialists are stateless per consultation.</li>
+</ul>
+<p>When to prefer this over pure orchestrator-worker:</p>
+<ul>
+<li>The set of needed specialists is dynamic (you don&#39;t know upfront which to call).</li>
+<li>Specialists&#39; answers may <em>prompt new questions</em> the supervisor needs to ask.</li>
+<li>The synthesis is iterative, not one-shot.</li>
+</ul>
+<p>When pure orchestrator-worker is better:</p>
+<ul>
+<li>All specialists need to run regardless (parallelism wins).</li>
+<li>Sub-tasks are heavyweight (you want fan-out, not pull).</li>
+</ul>
+<h3>8.6 Operational considerations the topology question hides</h3>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Single-agent</th>
+<th>Orchestrator-worker</th>
+<th>Specialist supervisor</th>
+<th>Hierarchical</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>End-to-end latency</td>
+<td>LLM-call serial</td>
+<td>Critical path = slowest worker</td>
+<td>Sum of consultations</td>
+<td>Sum across depth</td>
+</tr>
+<tr>
+<td>Debugging</td>
+<td>One trace</td>
+<td>One trace per sub-job + orchestrator trace</td>
+<td>One trace with nested consultations</td>
+<td>Tree of traces</td>
+</tr>
+<tr>
+<td>Observability cost</td>
+<td>1×</td>
+<td>1× orchestrator + N× workers</td>
+<td>1× supervisor + M× specialists</td>
+<td>Exponential in depth</td>
+</tr>
+<tr>
+<td>Cost per task</td>
+<td>$c$</td>
+<td>$1.2c$ to $3c$</td>
+<td>$1.5c$ to $4c$</td>
+<td>$5c$ to $20c$</td>
+</tr>
+<tr>
+<td>Failure modes</td>
+<td>Loop, wrong-tool, hallucination</td>
+<td>+ bad decomposition, lost handoff, partial failure</td>
+<td>+ spurious consultation, supervisor drift</td>
+<td>+ cascading failure across levels</td>
+</tr>
+</tbody></table>
+<p>The &quot;right&quot; topology depends on which failure modes you&#39;re willing to accept, not just on capability.</p>
+<h3>8.7 Worked example: HSBC&#39;s novel FX swap, end-to-end</h3>
+<p>A real-shape example (numbers illustrative). The break: cross-currency basis swap, USD/JPY/EUR three-way, settles across Tokyo/London/New York, ~$45M notional, broke at the JPY leg by ~$1.2M after counterparty refused settlement.</p>
+<p><strong>Topology chosen:</strong> specialist supervisor (more flexible than pure orchestrator-worker for this case).</p>
+<p><strong>Supervisor&#39;s trace (compressed):</strong></p>
+<pre><code>Thought: Three-currency basis swap. The FX, settlement, and regulatory dimensions
+         all need investigation. Start with regulatory — if a jurisdiction is
+         the blocker, FX/settlement analysis is moot.
+Action: consult(regulatoryExpert, &quot;Are there jurisdictional issues with this
+                  counterparty + currency mix as of trade date?&quot;)
+Observation: { conclusion: &quot;no_issue&quot;, confidence: 0.9, evidence: [...] }
+Thought: Regulatory clean. Now FX leg pricing.
+Action: consult(fxExpert, &quot;Was the JPY leg priced consistently with market on
+                  trade date?&quot;)
+Observation: { conclusion: &quot;issue&quot;, confidence: 0.85,
+              detail: &quot;JPY priced at 158.4 vs market 158.7, ~$340k discrepancy&quot; }
+Thought: FX off by ~$340k. But break is ~$1.2M. Need settlement chain check.
+Action: consult(settlementExpert, &quot;Trace the JPY leg settlement chain.
+                  Was any leg failed or reversed?&quot;)
+Observation: { conclusion: &quot;issue&quot;, confidence: 0.9,
+              detail: &quot;Tokyo leg failed at 09:14 JST; auto-reversed at 09:42;
+              counterparty refused re-submission&quot; }
+Thought: Two issues identified — FX mispricing (~$340k) and settlement failure
+         (~$860k from refusal). Sum matches break. High confidence on cause.
+Action: synthesise(...)
+Answer: { classification: &quot;settlement_failure_with_pricing_error&quot;,
+          confidence: 0.88, recommended_action: &quot;escalate_to_FX_desk_and_ops&quot;,
+          evidence_chain: [3 consultant reports] }
+</code></pre>
+<p><strong>Cost:</strong> 1 supervisor call + 3 specialist calls × ~5 LLM-calls each + 1 synthesis = ~17 LLM calls, ~$0.18.</p>
+<p><strong>Compared to:</strong></p>
+<ul>
+<li>Single-agent (Sherpa v5) on same break: cap hit at 8 calls, returned &quot;unknown&quot;, $0.06 wasted.</li>
+<li>Pure orchestrator-worker (decompose upfront into 3 fixed jobs): would have run all three even when regulatory came back clean, $0.24.</li>
+</ul>
+<p>The supervisor pattern saved $0.06 vs orchestrator-worker by <em>not consulting regulatory in depth</em> once the first response was clean, while still solving what single-agent couldn&#39;t. <strong>The pattern matters more than the dial setting.</strong></p>
 
         </div>
       </section>

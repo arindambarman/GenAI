@@ -402,6 +402,52 @@ $$</p>
 <p>Most production multi-agent systems should have ≤3 agents. Beyond that, complexity outpaces value for most tasks.</p>
 <h3>8.3 The &quot;would a human team work this way?&quot; check</h3>
 <p>If you wouldn&#39;t structure a human team this way for the same task, you probably shouldn&#39;t structure agents this way either. Humans evolved to coordinate well; the constraints that make their coordination work also apply to agents.</p>
+<h3>8.4 The cost-attribution problem</h3>
+<p>In a multi-agent system, when an outcome is wrong, <em>which agent&#39;s fault is it?</em></p>
+<ul>
+<li>Workers blame the orchestrator&#39;s decomposition.</li>
+<li>Orchestrator blames the workers&#39; execution.</li>
+<li>Synthesis blames the workers&#39; confidence values.</li>
+</ul>
+<p>Without per-agent accountability, the system is impossible to improve.</p>
+<p>The fix: log per-agent metrics independently.</p>
+<pre><code class="language-typescript">// Per-agent eval metrics (logged separately)
+interface AgentMetrics {
+  agent_id: string;
+  agent_role: &quot;orchestrator&quot; | &quot;worker&quot; | &quot;supervisor&quot; | &quot;specialist&quot;;
+  accuracy_on_role: number;       // did agent do its job correctly?
+  contribution_to_outcome: number; // was the outcome correct given this agent&#39;s input?
+  cost_per_invocation: number;
+  latency_p95: number;
+}
+</code></pre>
+<p>If accuracy_on_role is high but contribution_to_outcome is low: the agent does its job, but the integration loses the value. That&#39;s a coordination bug, not an agent bug.</p>
+<p>If accuracy_on_role is low: the agent itself is the problem. Fix that agent in isolation.</p>
+<p>Without this split, you debug forever. With it, debugging is mechanical.</p>
+<h3>8.5 The code-review checklist for multi-agent designs</h3>
+<p>Before approving a multi-agent design, ask:</p>
+<ul>
+<li><input disabled="" type="checkbox"> Have we built and measured the single-agent baseline?</li>
+<li><input disabled="" type="checkbox"> Have we documented the specific signals (§8.4 of 6.1) that justify multi-agent?</li>
+<li><input disabled="" type="checkbox"> Is the topology in the simplest shape that solves the problem?</li>
+<li><input disabled="" type="checkbox"> Are all inter-agent messages typed (Zod schemas)?</li>
+<li><input disabled="" type="checkbox"> Is every cross-agent message logged for replay?</li>
+<li><input disabled="" type="checkbox"> Do we have per-agent eval metrics defined?</li>
+<li><input disabled="" type="checkbox"> Is the recursion depth capped (≤ 2 for production)?</li>
+<li><input disabled="" type="checkbox"> Is total agent count ≤ 5?</li>
+<li><input disabled="" type="checkbox"> Have we identified all four anti-patterns (§4) and documented why each is avoided?</li>
+<li><input disabled="" type="checkbox"> Have we defined the rollback path to single-agent if metrics regress?</li>
+</ul>
+<p>If you can&#39;t tick all 10, the design isn&#39;t ready.</p>
+<h3>8.6 The &quot;would a single Sonnet call solve this?&quot; sanity check</h3>
+<p>A surprising fraction of multi-agent designs collapse to a single, well-prompted Sonnet call. Before any multi-agent investment:</p>
+<ol>
+<li>Spend an hour writing the best possible single-agent prompt for the task.</li>
+<li>Run it on 20 representative inputs.</li>
+<li>Compare to the multi-agent design&#39;s hypothesised performance.</li>
+</ol>
+<p>If single-agent within 80% of multi-agent&#39;s hypothesised quality: ship single-agent, save the engineering.</p>
+<p>This check has killed roughly half of proposed multi-agent designs in the orgs I&#39;ve seen apply it. The savings are enormous.</p>
 
         </div>
       </section>

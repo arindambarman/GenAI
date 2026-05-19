@@ -423,6 +423,75 @@ spans:
 <p>PII unless authorised. Encrypt traces containing customer data. Apply 7-year retention for audit; shorter for the rest.</p>
 <h3>8.3 Replay infrastructure</h3>
 <p>Build a &quot;replay&quot; mode: take a stored trace, re-run with the same inputs but new prompt/model. Compare outputs. This is how you A/B prompt changes without re-running on real traffic.</p>
+<h3>8.4 Span design: granularity that matters</h3>
+<p>A trace that&#39;s &quot;one span = one LLM call&quot; tells you nothing. Useful spans:</p>
+<pre><code>agent.classify                      [outer span — whole task]
+├── memory.retrieve                 [tier 1: which past cases were fetched?]
+│   └── vectordb.search             [how long did retrieval take?]
+├── prompt.render                   [what was the prompt&#39;s token count?]
+├── llm.call (step 1)               [model name, latency, tokens, cost]
+│   └── tool.query_GL               [tool latency, returned size]
+├── llm.call (step 2)
+│   └── tool.query_counterparty
+├── reflection.critique             [optional; was the answer challenged?]
+└── output.validate                 [did the answer pass schema?]
+</code></pre>
+<p>Each span carries attributes:</p>
+<ul>
+<li><code>latency_ms</code>, <code>cost_usd</code>, <code>tokens_in</code>, <code>tokens_out</code></li>
+<li><code>agent.version</code>, <code>model.name</code>, <code>prompt.version</code></li>
+<li>Custom: confidence, tool name, error type if any</li>
+</ul>
+<p>This level of granularity is what makes regression diagnosis fast. Aggregate metrics from spans = your dashboards.</p>
+<h3>8.5 The &quot;alert fatigue&quot; prevention rule</h3>
+<p>If you have more than ~3 alerts/week firing without action, the alerts will be ignored. Either:</p>
+<ul>
+<li>The thresholds are too tight (false positives), or</li>
+<li>The system is genuinely unstable (real issue).</li>
+</ul>
+<p>For Sherpa: alert ratesretargeted at &lt;2/month after initial tuning. Each alert triggers a runbook action. Anything more frequent = revise threshold.</p>
+<h3>8.6 The metrics that actually matter</h3>
+<p>Most teams over-instrument and then can&#39;t find the signal. Focus on these 5 per agent:</p>
+<ol>
+<li><strong>Accuracy</strong> (rolling 7-day, on shadow set) — quality</li>
+<li><strong>Cost per task</strong> (rolling daily) — efficiency</li>
+<li><strong>p95 latency</strong> (rolling hourly) — user experience</li>
+<li><strong>Escalation rate</strong> (rolling daily) — agent&#39;s &quot;I don&#39;t know&quot; rate</li>
+<li><strong>Calibration ECE</strong> (rolling weekly) — confidence quality</li>
+</ol>
+<p>Five metrics, four dashboards. If any of these regresses &gt; 10%, you investigate. Everything else is derived or diagnostic.</p>
+<h3>8.7 Trace sampling at scale</h3>
+<p>100% trace storage is expensive at high volume. Sampling strategy:</p>
+<pre><code class="language-typescript">function shouldSampleTrace(trace: PartialTrace): boolean {
+  // ALWAYS sample:
+  if (trace.outcome === &quot;failure&quot;) return true;
+  if (trace.outcome === &quot;escalation&quot;) return true;
+  if (trace.confidence &gt; 0.9 &amp;&amp; trace.wasOverridden) return true;
+  if (trace.cost &gt; P95_COST * 2) return true;  // anomalous cost
+
+  // PER-TASK-TYPE rates:
+  const taskType = trace.taskType;
+  const baseRate = SAMPLING_RATES[taskType] ?? 0.01;
+
+  // RARE task types: always sample
+  if (taskTypeVolume[taskType] &lt; 100/day) return true;
+
+  return Math.random() &lt; baseRate;
+}
+</code></pre>
+<p>This keeps storage cost bounded while ensuring high-signal traces are always preserved.</p>
+<h3>8.8 The on-call investigation playbook</h3>
+<p>When an alert fires:</p>
+<ol>
+<li><strong>Confirm</strong>: is this real or alert flake? Check the metric in the dashboard directly.</li>
+<li><strong>Scope</strong>: how many tasks affected? Which slices?</li>
+<li><strong>Recent changes</strong>: any deploy in the last 24h? Any upstream change?</li>
+<li><strong>Sample traces</strong>: pull 5-10 traces from the affected window. Look at the diff with healthy traces.</li>
+<li><strong>Hypothesis</strong>: what&#39;s the most likely cause? Test by replay on canary.</li>
+<li><strong>Rollback or fix</strong>: rollback is fastest; fix is permanent. Pick by severity.</li>
+<li><strong>Document</strong>: post-incident note for runbook.</li>
+</ol>
+<p>A team with this playbook resolves incidents in 30-90 min. Without it: 3-6 hours and growing blast radius.</p>
 
         </div>
       </section>

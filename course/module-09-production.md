@@ -167,6 +167,95 @@ After successful completion: delete checkpoint (or move to archive). Don't accum
 
 If the agent code changes (new system prompt, new tool), old checkpoints may not be replayable. Tag checkpoints with agent version; on resume, refuse to continue if versions differ; restart.
 
+### 8.4 Choosing between custom and framework checkpointing
+
+| Aspect | Custom (Postgres) | Temporal |
+|---|---|---|
+| Setup time | ~1 day | ~1 week (workflow modelling + deployment) |
+| Lines of code (init) | ~50 | ~200 (workflows + activities + workers) |
+| Cron-style retries | DIY | Built-in |
+| Cross-workflow signals | DIY | Built-in |
+| Scheduled future continuations | DIY (need a queue) | Built-in |
+| Cost | Postgres cost | Temporal cluster cost OR cloud pricing |
+| Vendor lock-in | None | Moderate (Workflow API) |
+| When to switch (custom → Temporal) | When you have >5 workflow types, or need scheduled-resume semantics | — |
+
+For Sherpa standalone: custom Postgres for 12+ months. When Acme support also needs durable execution, then standardise on Temporal.
+
+### 8.5 Concrete checkpoint schema (Postgres)
+
+```sql
+CREATE TABLE agent_checkpoints (
+  trace_id        TEXT PRIMARY KEY,
+  agent_id        TEXT NOT NULL,
+  agent_version   TEXT NOT NULL,
+  task_input      JSONB NOT NULL,
+  trace_state     JSONB NOT NULL,  -- the full Trace object
+  step_count      INTEGER NOT NULL,
+  last_updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  status          TEXT NOT NULL CHECK (status IN ('running', 'completed', 'failed')),
+  result          JSONB,
+  error           TEXT
+);
+
+CREATE INDEX idx_checkpoints_status ON agent_checkpoints(status) WHERE status = 'running';
+CREATE INDEX idx_checkpoints_agent_version ON agent_checkpoints(agent_id, agent_version);
+```
+
+On host startup, scan for `status = 'running'` checkpoints and resume each. Stale running checkpoints (last_updated_at > 1 hour ago) get auto-retried.
+
+### 8.6 The "save before tool call, save after observation" pattern
+
+When in the loop:
+
+```typescript
+for (let step = trace.steps.length; step < MAX_STEPS; step++) {
+  const next = await llm.callWithTools(...);
+  trace.steps.push(next);
+
+  await saveCheckpoint(trace);  // ← save before potentially-long tool call
+
+  if (next.kind === "answer") {
+    await markCompleted(trace.id, next);
+    return next;
+  }
+
+  if (next.kind === "action") {
+    const result = await invokeTool(next);
+    trace.steps.push({ kind: "observation", id: next.id, result });
+    await saveCheckpoint(trace);  // ← save after observation
+  }
+}
+```
+
+Saving twice per step (before tool call AND after observation) is the right granularity. Saving once (only after observation) loses work if the tool call hangs. Saving more often is wasteful.
+
+### 8.7 The host-restart procedure
+
+When the agent host (Node.js process, Lambda, k8s pod) restarts:
+
+```
+1. Acquire a host-id lease (so multiple hosts don't both resume the same checkpoint).
+2. Scan checkpoints with status='running' AND (last_updated_at < now() - 5 min OR host_id IS NULL).
+3. For each: claim by setting host_id = my_id, last_updated_at = now().
+4. For each claimed: spawn a resume task.
+5. Heartbeat last_updated_at every 30 seconds for each in-flight resume.
+6. On graceful shutdown: release leases.
+```
+
+The lease + heartbeat pattern prevents two hosts from both processing the same checkpoint after a network partition.
+
+### 8.8 Cost of durable execution
+
+For Sherpa at 1,400 tasks/night × ~6 checkpoints/task:
+- Postgres writes: 8,400/night
+- Average payload: ~5KB (full trace)
+- Storage: ~42 MB/night ≈ 1.3 GB/month
+- Postgres write cost: negligible on a $50/month instance
+- Pruning: delete completed traces > 30 days old (keep failures for analysis)
+
+Total cost: well under $50/month. Cheap insurance against multi-hour outages.
+
 ## §9 · Unlocks
 
 - 9.2 covers idempotency for the tool layer.
@@ -274,6 +363,191 @@ Server stores idempotency keys for some TTL (typically 24h). Beyond that, treats
 ### 8.3 Circuit breakers
 
 If a tool fails > N times in M seconds: open circuit (refuse calls for K seconds). Prevents the agent from hammering a failing dependency.
+
+### 8.4 The full retry middleware (production-grade)
+
+```typescript
+interface RetryConfig {
+  maxAttempts: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+  jitterRatio: number;        // 0.5 = ±50% jitter
+  retryableErrors: (e: Error) => boolean;
+}
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  config: RetryConfig,
+  idempotencyKey: string,
+): Promise<T> {
+  let lastError: Error;
+  for (let attempt = 0; attempt < config.maxAttempts; attempt++) {
+    try {
+      // Idempotency check: did this call already succeed?
+      const cached = await idempotencyCache.get(idempotencyKey);
+      if (cached) return cached;
+
+      const result = await fn();
+      await idempotencyCache.set(idempotencyKey, result, { ttlSec: 86400 });
+      return result;
+    } catch (err) {
+      lastError = err as Error;
+      if (!config.retryableErrors(lastError)) {
+        throw lastError;  // Permanent error: don't retry
+      }
+      if (attempt === config.maxAttempts - 1) {
+        throw lastError;  // Out of retries
+      }
+      const baseDelay = Math.min(
+        config.baseDelayMs * Math.pow(2, attempt),
+        config.maxDelayMs
+      );
+      const jitter = baseDelay * config.jitterRatio * (Math.random() - 0.5) * 2;
+      await sleep(baseDelay + jitter);
+    }
+  }
+  throw lastError!;
+}
+```
+
+Use:
+```typescript
+const result = await withRetry(
+  () => queryGL(breakId),
+  {
+    maxAttempts: 4,
+    baseDelayMs: 1000,
+    maxDelayMs: 30000,
+    jitterRatio: 0.5,
+    retryableErrors: (e) => e instanceof NetworkError || e.message.includes("503"),
+  },
+  `query_GL:${breakId}`
+);
+```
+
+### 8.5 Circuit breaker implementation
+
+```typescript
+class CircuitBreaker {
+  private state: "closed" | "open" | "half-open" = "closed";
+  private failureCount = 0;
+  private nextAttempt = 0;
+
+  constructor(
+    private threshold: number,
+    private timeoutMs: number,
+    private halfOpenProbability: number = 0.1,
+  ) {}
+
+  async call<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.state === "open") {
+      if (Date.now() < this.nextAttempt) {
+        throw new CircuitOpenError();
+      }
+      // Try half-open
+      this.state = "half-open";
+    }
+
+    try {
+      const result = await fn();
+      if (this.state === "half-open") {
+        this.state = "closed";
+        this.failureCount = 0;
+      }
+      return result;
+    } catch (err) {
+      this.failureCount++;
+      if (this.failureCount >= this.threshold) {
+        this.state = "open";
+        this.nextAttempt = Date.now() + this.timeoutMs;
+      }
+      throw err;
+    }
+  }
+}
+```
+
+Per-tool circuit breaker. Threshold: 5 failures. Timeout: 30s.
+
+### 8.6 Surfacing tool failures to the agent (don't silently retry forever)
+
+When retries exhaust:
+
+```typescript
+// Bad — agent doesn't know the tool failed
+const result = await withRetry(() => callTool(), config, key);
+return result;  // throws on exhaustion; loop crashes
+
+// Good — agent sees the failure and adapts
+let result: ToolResult;
+try {
+  result = await withRetry(() => callTool(), config, key);
+} catch (err) {
+  result = {
+    success: false,
+    error: err.message,
+    retries_attempted: config.maxAttempts,
+  };
+}
+// Inject into trace as the observation
+trace.steps.push({ kind: "observation", id: actionId, result });
+```
+
+The agent's next thought now factors in the tool failure. It can: switch to a different tool, mark uncertain, abort, or alert. *Hidden* failures cause silently-wrong outputs.
+
+### 8.7 Rate-limit awareness in the agent
+
+If the agent knows rate limits, it can pace itself:
+
+```typescript
+class RateLimiter {
+  private tokens: number;
+  private lastRefill: number;
+  constructor(private rate: number, private capacity: number) {
+    this.tokens = capacity;
+    this.lastRefill = Date.now();
+  }
+  async consume(): Promise<void> {
+    this.refill();
+    if (this.tokens < 1) {
+      const wait = Math.ceil(1000 / this.rate);
+      await sleep(wait);
+      return this.consume();
+    }
+    this.tokens -= 1;
+  }
+  private refill() {
+    const now = Date.now();
+    const elapsed = (now - this.lastRefill) / 1000;
+    this.tokens = Math.min(this.capacity, this.tokens + elapsed * this.rate);
+    this.lastRefill = now;
+  }
+}
+```
+
+Per-tool rate limiter. Agent's tool call waits if limit reached. Smoother throughput than fail-and-retry.
+
+### 8.8 The interaction between retry, idempotency, and observability
+
+These three layers compose:
+
+```
+[Agent loop]
+       ↓ (calls tool)
+[Rate limiter] — paces calls to upstream
+       ↓
+[Circuit breaker] — opens on persistent failures
+       ↓
+[Retry middleware] — handles transient
+       ↓
+[Idempotency check] — dedupes
+       ↓
+[Tool invocation] — actual work
+       ↓
+[Observability span] — logs every layer's decision
+```
+
+Each layer should *log its own behaviour*: "rate-limited; waited 250ms", "circuit half-open; trial", "retry attempt 2/4", "idempotent return from cache". Without this, debugging "why is this tool call slow?" is impossible.
 
 ## §9 · Unlocks
 
@@ -387,6 +661,111 @@ For new task types: route to Sonnet (high accuracy). After 50 successful runs of
 
 Dashboard: $/task by task type, by hour, by counterparty. Spikes catch regressions early.
 
+### 8.4 The cost-attribution model (where the dollars actually go)
+
+For Sherpa at production scale (~1,400 tasks/night):
+
+```
+Cost breakdown by component, per task average:
+  LLM input (uncached):    $0.0012  (5% — bulk of input is cached)
+  LLM input (cached):      $0.0036  (16%)
+  LLM output:              $0.0150  (66% — output tokens dominate)
+  Tool calls:              $0.0020  (9% — mostly internal services, near-free)
+  Memory retrieval:        $0.0005  (2%)
+  Observability:           $0.0002  (1%)
+  Storage (checkpoints):   $0.0001  (<1%)
+  Total:                   $0.0226  (≈ $0.023)
+```
+
+**Output tokens dominate cost.** Lessons:
+1. Output-token reduction has the biggest cost impact. Use structured outputs (Lesson 3.3) to keep responses short.
+2. Cache hit rate matters but is second-order (saves ~$0.005/task at high hit rate).
+3. Tools are usually free or near-free; don't over-engineer tool selection for cost.
+4. Storage and observability costs are negligible at this scale.
+
+### 8.5 Semantic cache: when it helps and when it hurts
+
+Semantic cache works for *recurring* tasks (Sherpa's Sigma Capital pattern). It hurts when:
+- Tasks are *almost* similar but with critical differences (false hits).
+- Underlying state changes between cache write and read (stale answer).
+- Cache lookup latency > value of cached answer.
+
+Guards:
+- **Verification step**: before returning cached answer, do one cheap tool call to confirm state hasn't changed.
+- **Conservative similarity threshold**: 0.90+ for high-stakes; 0.85 for low-stakes.
+- **TTL on cache entries**: 24 hours for slow-changing state, 1 hour for fast-changing.
+
+Sherpa's cache after tuning: 30% hit rate, <0.1% false-hit rate. Worth the engineering.
+
+### 8.6 Model tiering: the routing decision
+
+Three-tier routing for Sherpa:
+
+```typescript
+async function routeTask(task: Task): Promise<Model> {
+  // Triage: cheap Haiku call to assess complexity
+  const triage = await haiku.call({
+    prompt: TRIAGE_PROMPT,
+    input: task,
+  });
+
+  if (triage.complexity === "trivial" && triage.confidence > 0.95) {
+    return "haiku";  // Triage IS the answer
+  }
+  if (triage.complexity === "standard") {
+    return "sonnet";
+  }
+  if (triage.complexity === "novel" || triage.complexity === "high-stakes") {
+    return "opus";  // Or escalate to multi-agent
+  }
+  return "sonnet";  // Default
+}
+```
+
+For Sherpa: 40% routed to Haiku, 50% Sonnet, 10% Opus. Avg cost dropped 40%. Quality: matched within 0.5pp accuracy.
+
+The triage call costs ~$0.002. Justified when it saves more than that in 50% of cases.
+
+### 8.7 Budget gates in the agent loop
+
+Hard budget caps at multiple levels:
+
+```typescript
+class BudgetGate {
+  private spent: number = 0;
+  constructor(
+    private hardCap: number,
+    private softCap: number,
+    private onSoftBreach: () => void,
+  ) {}
+  charge(cost: number): void {
+    this.spent += cost;
+    if (this.spent > this.softCap && this.spent - cost <= this.softCap) {
+      this.onSoftBreach();
+    }
+    if (this.spent > this.hardCap) {
+      throw new BudgetExceededError(this.spent, this.hardCap);
+    }
+  }
+}
+```
+
+Per task: $0.50 hard, $0.20 soft (warn). Per day: $100 hard, $80 soft. Per minute (rate spike protection): $1.
+
+When hard cap hits: graceful failure. Return "unknown" + flag for human + log.
+
+### 8.8 Cost-per-task degradation over time
+
+Cost typically rises slowly without intervention:
+- New tools added → more selection space
+- Prompts evolved → larger system prompt
+- Cache hit rate decays as new patterns appear
+- Models upgraded to more expensive variants
+
+Mitigation: monthly cost review. If cost-per-task has risen >5% in a month with no quality improvement: dedicated optimisation sprint.
+
+For Sherpa: $0.023/task in Q1 → $0.026 in Q2 (drift). Q3 optimisation sprint brought it back to $0.022. Without the discipline, would have hit $0.040+ within a year.
+
 ## §9 · Unlocks
 
 - 9.4 covers running all this at production scale.
@@ -492,6 +871,196 @@ Once a quarter: deliberately trigger an outage in non-production to verify recov
 ### 8.3 Vendor diversity
 
 For mission-critical agents: route across multiple LLM providers. Anthropic primary, OpenAI fallback. Costs extra config; gains availability.
+
+### 8.4 Sample runbooks (the 5 alerts Sherpa actually has)
+
+**Alert: Sherpa accuracy below 88% (7-day rolling)**
+
+```
+1. Check the per-slice dashboard. Is one category responsible?
+2. If yes: pull 10 failure traces from that category.
+3. Look at recent deploys (last 48h). Any prompt or tool change?
+4. If a change correlates: rollback (config flip + redeploy, ~5 min).
+5. If no change correlates: check upstream model version. Did Anthropic
+   release a new minor? Sometimes silent regressions on niche tasks.
+6. If still unclear: file ticket, page secondary on-call. Don't roll back
+   until cause is identified — random rollbacks make things worse.
+```
+
+**Alert: Cost per task > $0.08 (24h rolling)**
+
+```
+1. Check cost breakdown dashboard. Which component spiked?
+2. If LLM cost: check cache hit rate. Has it dropped? (Indicates prompt
+   churn or a new task type missing the cache.)
+3. If tool cost: which tool? Has its provider raised prices, or are agents
+   using it more?
+4. Common cause: new prompt deploy invalidated cache. Wait 4h for re-warm
+   before further action.
+5. If persistent (>12h after deploy): investigate prompt structure for
+   cacheability regression (Lesson 3.1).
+```
+
+**Alert: p95 latency > 15s (1h rolling)**
+
+```
+1. Check trace dashboard. Which span is slow?
+2. If LLM call slow: check model provider status page.
+3. If tool call slow: check tool provider; possibly circuit-break this tool.
+4. If overall trace has many steps: agent is wandering. Check for recent
+   prompt changes that loosened constraints.
+5. Action: if widespread, enable degraded mode (Lesson 9.4 §4.2). If single
+   tool: circuit-break it.
+```
+
+**Alert: Tool error rate > 1% on any tool**
+
+```
+1. Check tool's provider status.
+2. Check our caller-side: any recent change to how we invoke it?
+3. Look at error distribution: is it concentrated in time (provider) or
+   random (us)?
+4. Action: if provider-side, circuit-break and enable fallback. If our side,
+   investigate the recent change.
+```
+
+**Alert: Calibration ECE > 0.05 (7-day rolling)**
+
+```
+1. Look at confidence histogram. Is the agent over-confident on hard cases,
+   or under-confident on easy cases?
+2. Pull 10 cases where confidence > 0.85 but answer was wrong (over-confidence).
+3. Look for a pattern. Often: a class of inputs that "look easy" but isn't.
+4. Mitigation: add adversarial examples to regression set; possibly add
+   prompt rule warning the model about this pattern.
+```
+
+### 8.5 The "ladder of degradation" — actual config
+
+For Sherpa, three operating modes:
+
+```yaml
+# operating-modes.yaml
+normal:
+  enabled_features: all
+  cost_cap_per_task: 0.50
+  step_cap: 8
+  max_concurrent_tasks: 50
+
+degraded:
+  enabled_features: [hybrid_agent, basic_memory]
+  disabled_features: [reflection, multi_agent_handoff]
+  cost_cap_per_task: 0.20
+  step_cap: 5
+  max_concurrent_tasks: 100  # higher throughput, lower quality
+
+critical:
+  mode: fallback_to_workflow
+  message: "Agent disabled; routing to manual queue"
+  notify: ['ops-oncall', 'aisha@hsbc']
+```
+
+Auto-switch triggers:
+- Normal → Degraded: latency p95 > 20s OR cost spike > 2× baseline.
+- Degraded → Critical: accuracy < 80% OR provider sustained outage.
+- Critical → Degraded → Normal: manual approval required (one-step rollback prevents flapping).
+
+### 8.6 Capacity-planning math (concrete)
+
+For Sherpa, projecting Q4 traffic:
+
+```
+Current Q3: 1,400 tasks/night × 6 LLM calls × 8K input tokens = 67.2M input tokens/night
+Q4 forecast (seasonal +30%): 87.4M input tokens/night
+Anthropic Tier 4 limit: 4M tokens/minute = 240M tokens/hour
+
+Peak hour during nightly batch (~3 hours):
+  87.4M / 3 = 29.1M tokens/hour
+  = 12% of rate limit → comfortable headroom
+```
+
+Black-Friday-shape projection (10× normal):
+```
+292M tokens/hour during peak → 122% of rate limit → would exceed
+Mitigations:
+  - Pre-arrange Tier 5 with Anthropic for Nov 1-Dec 31
+  - Provision OpenAI as backup for overflow routing
+  - Implement queueing with prioritised draining
+```
+
+Do this exercise quarterly. Surprises during peak are avoidable.
+
+### 8.7 The "blameless post-mortem" template
+
+After any production incident:
+
+```
+=== Incident Post-Mortem: 2026-05-19 ===
+
+What happened
+  Sherpa accuracy dropped from 91% to 71% between 02:30 and 04:15 UTC.
+  287 tasks classified as 'unknown' that should have been classified.
+
+Timeline
+  02:14 — Routine prompt update deployed (added 1,200 tokens of
+          regulatory boilerplate).
+  02:30 — Accuracy alert fires.
+  02:38 — On-call (me) acknowledges. Initial hypothesis: model issue.
+  02:45 — Trace inspection shows agent failing to identify amount_diff
+          cases — was previously >95% on those.
+  03:02 — Correlation with prompt deploy noticed.
+  03:05 — Rolled back. (Config change + redeploy.)
+  03:18 — Accuracy normalising.
+  04:15 — All accuracy metrics back to baseline.
+
+Root cause
+  Attention dilution from larger system prompt. Specifically, the
+  per-amount-class instructions got "lost in the middle" of the new
+  regulatory content.
+
+Why it wasn't caught
+  Regression eval focused on novel cases; didn't have stratification
+  by category, so the 5-pp drop on amount_diff was masked in aggregate.
+
+Action items
+  1. Add per-category accuracy to the regression eval gate. (owner: me, due: 2026-05-26)
+  2. Move regulatory content from system prompt to retrieval (Lesson 5.3).
+     (owner: me, due: 2026-06-02)
+  3. Update runbook: prompt-deploy alerts should specifically flag
+     cache-invalidation events.
+     (owner: ops, due: 2026-05-30)
+
+What we did right
+  - Caught within 16 min via alerting.
+  - Rollback procedure worked first try.
+  - No customer-facing impact (Sherpa is decision-support, not autonomous).
+
+What we did wrong
+  - Prompt change went through normal review without specific attention
+    to attention-budget impact.
+  - Regression eval missed this category of failure.
+
+No blame. The system enabled the mistake; the system needs better guards.
+```
+
+This template, used consistently, builds institutional memory of how to avoid past failures.
+
+### 8.8 Final operations checklist
+
+Before declaring an agent "in production":
+
+- [ ] Eval gate in CI; passes on every PR.
+- [ ] Regression set + adversarial set, both stratified.
+- [ ] Trace logging at OTel-compatible granularity.
+- [ ] Dashboards: 5 core metrics + per-component cost.
+- [ ] Alerts with documented thresholds and runbooks.
+- [ ] Rollback procedure documented and tested.
+- [ ] Degraded mode defined and tested.
+- [ ] Capacity plan for 2× peak.
+- [ ] Post-mortem template ready.
+- [ ] Vendor fallback (secondary LLM provider) configured.
+
+If any checkbox is unchecked, you're not in production — you're in "production-ish" and you will be paged about it.
 
 ## §9 · Unlocks
 

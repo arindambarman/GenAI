@@ -408,6 +408,151 @@ $$</p>
 <p>For regulated industries: agents often have a regulatory uplift cost (compliance reviews, audit prep, model risk validation). Add to &quot;cost added.&quot;</p>
 <h3>8.3 The &quot;second-order&quot; benefits</h3>
 <p>Sherpa might enable Aisha to spend her time on the truly novel breaks (instead of repetitive ones). That quality uplift to her work is real but hard to quantify. Estimate; flag uncertainty.</p>
+<h3>8.4 The full Sherpa ROI worked example</h3>
+<p>Five-year NPV calculation:</p>
+<pre><code>ASSUMPTIONS:
+- Current labour: 8 analysts × $80/hr loaded × 6h/night × 250 nights/yr
+                = $960K/yr (we&#39;ll round to $1.0M)
+- Sherpa runs cover 70% of breaks at 30% of analyst time
+  → Labour displacement: 30% × 70% = 21% of total labour
+  → = $210K/yr
+
+COSTS (Year 1):
+  Engineering (build): $400K (one engineer + DevOps for 4 months)
+  Engineering (maintain): $150K/yr (0.75 FTE)
+  Infrastructure: $25K/yr (LLM, Postgres, observability)
+  LLM tokens: 1,400 tasks/night × 250 nights × $0.05 = $17.5K/yr
+  Model risk validation: $50K/yr (annual external audit + internal review)
+  
+  Year 1 total cost: $642.5K
+  Year 2+ total cost: $242.5K/yr (no build cost)
+
+BENEFITS (annual):
+  Labour displacement: $210K
+  Error reduction (estimated): 30% fewer downstream rework = $80K
+  Quality uplift on novel breaks (Aisha effect): $50K [low confidence]
+  
+  Total annual benefit: $340K [point estimate]
+                       $290-$390K [80% confidence interval]
+
+NPV CALCULATION (8% discount rate, 5 years):
+  Year 0: -$400K   (build)
+  Year 1: +$340K - $242.5K = $97.5K (net)
+  Year 2: $97.5K / 1.08 = $90.3K
+  Year 3: $97.5K / 1.08² = $83.6K
+  Year 4: $97.5K / 1.08³ = $77.4K
+  Year 5: $97.5K / 1.08⁴ = $71.7K
+  
+  5-year NPV = -$400K + 5 × ~$84K avg = $20.5K
+  
+  IRR: ~10% (just above hurdle rate)
+</code></pre>
+<p><strong>Verdict</strong>: borderline positive, sensitive to error-reduction assumption. Justifies the pilot; not a slam dunk.</p>
+<p><strong>Sensitivity analysis</strong> (varying key inputs ±20%):</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>-20%</th>
+<th>Base</th>
+<th>+20%</th>
+<th>Sign-change point</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Labour displacement %</td>
+<td>-$60K NPV</td>
+<td>+$20.5K</td>
+<td>+$110K</td>
+<td>17% displacement</td>
+</tr>
+<tr>
+<td>Build cost</td>
+<td>+$80K</td>
+<td>+$20.5K</td>
+<td>-$60K</td>
+<td>$480K build</td>
+</tr>
+<tr>
+<td>Maintenance cost</td>
+<td>+$110K</td>
+<td>+$20.5K</td>
+<td>-$60K</td>
+<td>$230K/yr maintenance</td>
+</tr>
+<tr>
+<td>LLM cost</td>
+<td>+$20K</td>
+<td>+$20.5K</td>
+<td>+$20K</td>
+<td>(minor sensitivity)</td>
+</tr>
+</tbody></table>
+<p>The labour displacement assumption is the deal-maker. If you can&#39;t credibly defend ≥17% displacement, don&#39;t build.</p>
+<h3>8.5 Common pitfalls in agent business cases</h3>
+<table>
+<thead>
+<tr>
+<th>Pitfall</th>
+<th>What it looks like</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Optimistic displacement</td>
+<td>&quot;We&#39;ll save 50% of headcount&quot;</td>
+<td>Build on hours, not headcount; show ramp-up curve</td>
+</tr>
+<tr>
+<td>Hidden engineering cost</td>
+<td>&quot;Our team can build it in their spare time&quot;</td>
+<td>Allocate real FTE; track time honestly</td>
+</tr>
+<tr>
+<td>Ignored ops cost</td>
+<td>&quot;It&#39;s just an API call&quot;</td>
+<td>Include observability, on-call, retraining cycles</td>
+</tr>
+<tr>
+<td>Missing quality risk</td>
+<td>&quot;We&#39;ll reach human-level accuracy&quot;</td>
+<td>Model the cost of being below human-level + escalation</td>
+</tr>
+<tr>
+<td>Single-vendor assumption</td>
+<td>&quot;Anthropic costs $X&quot;</td>
+<td>Model 50% price increase; if NPV flips, you have vendor risk</td>
+</tr>
+<tr>
+<td>Ignored compliance work</td>
+<td>&quot;Same as our other ML&quot;</td>
+<td>Add SR 11-7 / EU AI Act uplift; ~10-20% of base cost in regulated industries</td>
+</tr>
+</tbody></table>
+<h3>8.6 The &quot;show me the displacement&quot; challenge</h3>
+<p>When labour displacement is the dominant benefit, leadership will ask: <em>&quot;Where is the displaced time actually going?&quot;</em></p>
+<p>Honest answers:</p>
+<ol>
+<li><strong>Re-deployed to higher-value work</strong> (most common) — net headcount unchanged, productivity rises.</li>
+<li><strong>Slower hiring</strong> — you would have hired 2 more analysts; now you don&#39;t need to.</li>
+<li><strong>Genuine reduction</strong> — rare, ethically fraught, usually slower than projections.</li>
+</ol>
+<p>Pre-write your answer. Without it, the business case dies in committee.</p>
+<h3>8.7 The &quot;year zero&quot; framing</h3>
+<p>For agents replacing repetitive work, often the right framing isn&#39;t NPV but:</p>
+<blockquote>
+<p><em>&quot;In year zero, our analysts spend X% of their time on tasks the agent can do better. After deployment, they spend that time on tasks no one&#39;s doing today — investigating systemic patterns, training junior staff, working with the model-risk team on new product launches.&quot;</em></p>
+</blockquote>
+<p>This frames the agent as <em>capacity expansion</em>, not cost reduction. Often more palatable to stakeholders; often more honest about what actually happens.</p>
+<h3>8.8 Quarterly business-case refresh</h3>
+<p>ROI models go stale. Refresh quarterly:</p>
+<ul>
+<li>Update actual labour saved (vs projected)</li>
+<li>Update actual LLM costs (model prices change)</li>
+<li>Update accuracy metrics (regression eval results)</li>
+<li>Update displacement reality (where did the saved time go?)</li>
+</ul>
+<p>After 1 year of Sherpa: actual NPV was $35K (slightly above projected $20K). Labour displacement came in at 23% (vs 21% modeled) because Aisha&#39;s team became more efficient at the residual work too.</p>
 
         </div>
       </section>

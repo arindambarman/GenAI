@@ -390,6 +390,157 @@ kbd {
 <p>Lead: invest now, hope to deploy before competitors when capability matures.
 Lag: wait for proven patterns, deploy with lower risk.</p>
 <p>Most orgs should lag on bleeding-edge capability and lead on careful deployment of mature capability. Trying to lead on both is overcommitment.</p>
+<h3>8.2 Application maturity timeline (concrete forecast)</h3>
+<p>Best estimates for production-readiness windows (high uncertainty):</p>
+<table>
+<thead>
+<tr>
+<th>Application</th>
+<th>Production-ready</th>
+<th>Maturity gates</th>
+<th>Risk</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Coding agents (well-scoped issues)</strong></td>
+<td>Q4 2025 — already</td>
+<td>SWE-bench &gt;70%; integration patterns</td>
+<td>Medium — already shipping</td>
+</tr>
+<tr>
+<td><strong>Coding agents (multi-file refactors)</strong></td>
+<td>Q3 2026</td>
+<td>Long-context reasoning maturity</td>
+<td>High — capability gap</td>
+</tr>
+<tr>
+<td><strong>Research synthesis (cite-faithful)</strong></td>
+<td>Q2 2026</td>
+<td>Verification frameworks; trust thresholds</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><strong>Customer support (Tier 1)</strong></td>
+<td>Q1 2026 — already shipping</td>
+<td>Privilege separation; eval discipline</td>
+<td>Low</td>
+</tr>
+<tr>
+<td><strong>Customer support (Tier 2/Escalation)</strong></td>
+<td>Q4 2027</td>
+<td>Reasoning depth; tool composition</td>
+<td>High</td>
+</tr>
+<tr>
+<td><strong>Personal email/calendar agents</strong></td>
+<td>Q2 2027</td>
+<td>Privacy frameworks; verified actions</td>
+<td>Very high — privacy unsolved</td>
+</tr>
+<tr>
+<td><strong>Multi-day project agents</strong></td>
+<td>Q3 2027</td>
+<td>Durable execution at scale; memory architectures</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><strong>Regulated decisions (medical, legal)</strong></td>
+<td>2028+</td>
+<td>Regulatory frameworks; explainability standards</td>
+<td>High — regulatory not capability</td>
+</tr>
+<tr>
+<td><strong>Scientific hypothesis generation</strong></td>
+<td>Already (narrow domains); broadening Q4 2026</td>
+<td>Verifier infrastructure</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><strong>Robotics for non-warehouse environments</strong></td>
+<td>2029+</td>
+<td>Sim-to-real progress; sensor reliability</td>
+<td>Very high</td>
+</tr>
+</tbody></table>
+<p>Use this as a rough planning grid. Update annually.</p>
+<h3>8.3 The &quot;wedge&quot; strategy for each application</h3>
+<p>For any application you want to deploy at the frontier: don&#39;t try to do everything. Find the <em>wedge</em> — the narrowest, highest-value, lowest-risk slice.</p>
+<p>For coding agents: don&#39;t try &quot;ship features&quot; first. Wedge: &quot;fix bugs from issues that include reproduction steps.&quot;</p>
+<p>For research synthesis: don&#39;t try &quot;answer any question.&quot; Wedge: &quot;summarise findings on a known target from a curated corpus.&quot;</p>
+<p>For personal email: don&#39;t try full triage. Wedge: &quot;draft replies for specific structured patterns (meeting requests, status updates).&quot;</p>
+<p>Wedge first. Expand later. Trying to do everything ships nothing.</p>
+<h3>8.4 The 12-month / 36-month planning split</h3>
+<p>Most orgs need two horizons:</p>
+<ul>
+<li><strong>12-month plan</strong>: based on today&#39;s capability + known near-term improvements. Concrete deliverables, ROI commitments.</li>
+<li><strong>36-month aspiration</strong>: based on plausible capability trajectory. Architecture decisions, capability investments, talent acquisition.</li>
+</ul>
+<p>Don&#39;t conflate them. 12-month commitments based on 36-month aspirations are how teams over-promise.</p>
+<h3>8.5 The cross-application learning that actually transfers</h3>
+<p>When you&#39;ve built one agent (Sherpa), what transfers to the next?</p>
+<table>
+<thead>
+<tr>
+<th>Transfers</th>
+<th>Doesn&#39;t transfer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Architecture (agency dial, hybrid pattern, memory tiers)</td>
+<td>Domain-specific prompts</td>
+</tr>
+<tr>
+<td>Discipline (eval gates, observability, audit)</td>
+<td>Domain-specific tools</td>
+</tr>
+<tr>
+<td>Mental models (POMDP, Bayesian, EVoI)</td>
+<td>Domain-specific business rules</td>
+</tr>
+<tr>
+<td>Infrastructure (MCP servers, sandbox, durable execution)</td>
+<td>Domain-specific case studies</td>
+</tr>
+<tr>
+<td>Operations (runbooks, on-call, post-mortems)</td>
+<td>Domain-specific stakeholders</td>
+</tr>
+</tbody></table>
+<p>Roughly 60% of the work transfers to the second agent. 70% to the third. After three agents, the org has the muscle memory; new agents take 30% of the time of the first.</p>
+<p>This is the <em>compounding return</em> of agent investment — invest in the discipline once, ship many agents on top.</p>
+<h3>8.6 The &quot;wrong sequencing&quot; mistake</h3>
+<p>Common mistake: try to ship the highest-value application first.</p>
+<p>Better: ship the lowest-risk application first (to build the discipline and team), then ratchet to higher-value, higher-risk applications.</p>
+<p>For HSBC&#39;s hypothetical sequencing:</p>
+<ul>
+<li>Year 1: Sherpa (decision support, low risk, modest value)</li>
+<li>Year 2: Settlement reconciliation agent (similar pattern, builds on Sherpa&#39;s discipline)</li>
+<li>Year 3: P&amp;L commentary agent (more open-ended, higher value)</li>
+<li>Year 4: Trader-research-assistant (high value, requires Years 1-3 discipline)</li>
+</ul>
+<p>Each year builds on the previous. Trying to jump to Year 4 in Year 1 fails — not because of capability, but because of organisational readiness.</p>
+<h3>8.7 What changes vs what stays the same</h3>
+<p>As frontier capability advances over 5 years:</p>
+<p><strong>What changes:</strong></p>
+<ul>
+<li>Models more capable; per-task quality rises.</li>
+<li>Cost-per-task drops.</li>
+<li>New applications become tractable.</li>
+<li>Multi-modal becomes default.</li>
+</ul>
+<p><strong>What doesn&#39;t change:</strong></p>
+<ul>
+<li>Need for evaluation discipline.</li>
+<li>Need for safety / privilege separation.</li>
+<li>Need for observability and runbooks.</li>
+<li>Need for human-in-the-loop on high-stakes decisions.</li>
+<li>Need for change management with users.</li>
+</ul>
+<p>Bet on the unchanging parts. The capability layer is somebody else&#39;s problem (the model labs). The discipline layer is yours.</p>
+<h3>8.8 The &quot;team scaling&quot; question</h3>
+<p>For each application you deploy, allocate ~0.5-0.75 FTE for ongoing maintenance (Modules 8-10 work). For 4 production agents: 2-3 FTE.</p>
+<p>Beyond that, you need a <em>platform team</em> (1-3 engineers) that owns the shared infrastructure (MCP, eval framework, observability, safety primitives).</p>
+<p>For a 4-agent org: 4 agents × 0.6 FTE + 2 platform = ~4.4 FTE allocated to &quot;agent operations.&quot; That&#39;s the steady-state cost.</p>
 
         </div>
       </section>

@@ -405,6 +405,94 @@ $$</p>
 <p>For new task types: route to Sonnet (high accuracy). After 50 successful runs of that type, allow Haiku triage. New types pay tax for being new.</p>
 <h3>8.3 Monitoring cost per workload</h3>
 <p>Dashboard: $/task by task type, by hour, by counterparty. Spikes catch regressions early.</p>
+<h3>8.4 The cost-attribution model (where the dollars actually go)</h3>
+<p>For Sherpa at production scale (~1,400 tasks/night):</p>
+<pre><code>Cost breakdown by component, per task average:
+  LLM input (uncached):    $0.0012  (5% — bulk of input is cached)
+  LLM input (cached):      $0.0036  (16%)
+  LLM output:              $0.0150  (66% — output tokens dominate)
+  Tool calls:              $0.0020  (9% — mostly internal services, near-free)
+  Memory retrieval:        $0.0005  (2%)
+  Observability:           $0.0002  (1%)
+  Storage (checkpoints):   $0.0001  (&lt;1%)
+  Total:                   $0.0226  (≈ $0.023)
+</code></pre>
+<p><strong>Output tokens dominate cost.</strong> Lessons:</p>
+<ol>
+<li>Output-token reduction has the biggest cost impact. Use structured outputs (Lesson 3.3) to keep responses short.</li>
+<li>Cache hit rate matters but is second-order (saves ~$0.005/task at high hit rate).</li>
+<li>Tools are usually free or near-free; don&#39;t over-engineer tool selection for cost.</li>
+<li>Storage and observability costs are negligible at this scale.</li>
+</ol>
+<h3>8.5 Semantic cache: when it helps and when it hurts</h3>
+<p>Semantic cache works for <em>recurring</em> tasks (Sherpa&#39;s Sigma Capital pattern). It hurts when:</p>
+<ul>
+<li>Tasks are <em>almost</em> similar but with critical differences (false hits).</li>
+<li>Underlying state changes between cache write and read (stale answer).</li>
+<li>Cache lookup latency &gt; value of cached answer.</li>
+</ul>
+<p>Guards:</p>
+<ul>
+<li><strong>Verification step</strong>: before returning cached answer, do one cheap tool call to confirm state hasn&#39;t changed.</li>
+<li><strong>Conservative similarity threshold</strong>: 0.90+ for high-stakes; 0.85 for low-stakes.</li>
+<li><strong>TTL on cache entries</strong>: 24 hours for slow-changing state, 1 hour for fast-changing.</li>
+</ul>
+<p>Sherpa&#39;s cache after tuning: 30% hit rate, &lt;0.1% false-hit rate. Worth the engineering.</p>
+<h3>8.6 Model tiering: the routing decision</h3>
+<p>Three-tier routing for Sherpa:</p>
+<pre><code class="language-typescript">async function routeTask(task: Task): Promise&lt;Model&gt; {
+  // Triage: cheap Haiku call to assess complexity
+  const triage = await haiku.call({
+    prompt: TRIAGE_PROMPT,
+    input: task,
+  });
+
+  if (triage.complexity === &quot;trivial&quot; &amp;&amp; triage.confidence &gt; 0.95) {
+    return &quot;haiku&quot;;  // Triage IS the answer
+  }
+  if (triage.complexity === &quot;standard&quot;) {
+    return &quot;sonnet&quot;;
+  }
+  if (triage.complexity === &quot;novel&quot; || triage.complexity === &quot;high-stakes&quot;) {
+    return &quot;opus&quot;;  // Or escalate to multi-agent
+  }
+  return &quot;sonnet&quot;;  // Default
+}
+</code></pre>
+<p>For Sherpa: 40% routed to Haiku, 50% Sonnet, 10% Opus. Avg cost dropped 40%. Quality: matched within 0.5pp accuracy.</p>
+<p>The triage call costs ~$0.002. Justified when it saves more than that in 50% of cases.</p>
+<h3>8.7 Budget gates in the agent loop</h3>
+<p>Hard budget caps at multiple levels:</p>
+<pre><code class="language-typescript">class BudgetGate {
+  private spent: number = 0;
+  constructor(
+    private hardCap: number,
+    private softCap: number,
+    private onSoftBreach: () =&gt; void,
+  ) {}
+  charge(cost: number): void {
+    this.spent += cost;
+    if (this.spent &gt; this.softCap &amp;&amp; this.spent - cost &lt;= this.softCap) {
+      this.onSoftBreach();
+    }
+    if (this.spent &gt; this.hardCap) {
+      throw new BudgetExceededError(this.spent, this.hardCap);
+    }
+  }
+}
+</code></pre>
+<p>Per task: $0.50 hard, $0.20 soft (warn). Per day: $100 hard, $80 soft. Per minute (rate spike protection): $1.</p>
+<p>When hard cap hits: graceful failure. Return &quot;unknown&quot; + flag for human + log.</p>
+<h3>8.8 Cost-per-task degradation over time</h3>
+<p>Cost typically rises slowly without intervention:</p>
+<ul>
+<li>New tools added → more selection space</li>
+<li>Prompts evolved → larger system prompt</li>
+<li>Cache hit rate decays as new patterns appear</li>
+<li>Models upgraded to more expensive variants</li>
+</ul>
+<p>Mitigation: monthly cost review. If cost-per-task has risen &gt;5% in a month with no quality improvement: dedicated optimisation sprint.</p>
+<p>For Sherpa: $0.023/task in Q1 → $0.026 in Q2 (drift). Q3 optimisation sprint brought it back to $0.022. Without the discipline, would have hit $0.040+ within a year.</p>
 
         </div>
       </section>

@@ -398,6 +398,166 @@ kbd {
 <h3>8.2 When LLMs are good world models</h3>
 <p>For symbolic, low-novelty domains (text adventures, structured games, well-documented procedures): pretty good.
 For physical dynamics, novel chemistry, novel biology: poor. Use real simulators.</p>
+<h3>8.3 Imagined rollouts as a practical pattern</h3>
+<p>Even without a formal world model, you can do imagined rollouts in prompt-space:</p>
+<pre><code class="language-typescript">// Pseudo-rollout: ask the model to &quot;imagine forward&quot; before acting
+async function imaginedRolloutDecide(
+  state: AgentState,
+  candidate_actions: Action[]
+): Promise&lt;Action&gt; {
+  const evaluations = await Promise.all(
+    candidate_actions.map(async (action) =&gt; {
+      const projection = await llm.call({
+        prompt: `Given state ${JSON.stringify(state)}, if I take action ${action}, 
+                 predict the next observation and the long-term outcome. 
+                 Score 0-10 for goal achievement.`,
+      });
+      return { action, projection };
+    })
+  );
+  
+  // Pick action with best projected outcome
+  return evaluations.sort((a, b) =&gt; b.projection.score - a.projection.score)[0].action;
+}
+</code></pre>
+<p>This is Tree-of-Thoughts in spirit. Cost: linear in candidate actions × LLM call. Value: detects &quot;obviously-bad&quot; actions before committing.</p>
+<p>For Helix hypothesis generation: imagined rollouts of &quot;what would the experiment results be if this hypothesis is true?&quot; filters out testable-but-uninteresting hypotheses.</p>
+<h3>8.4 The simulator-quality trade-off</h3>
+<p>A learned world model is only as useful as its accuracy. Three regimes:</p>
+<table>
+<thead>
+<tr>
+<th>Simulator accuracy</th>
+<th>Use case</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&lt;60%</td>
+<td>Useless; predictions are noise</td>
+</tr>
+<tr>
+<td>60-80%</td>
+<td>Useful for filtering; not for committing</td>
+</tr>
+<tr>
+<td>80-95%</td>
+<td>Useful for planning; verify with real execution</td>
+</tr>
+<tr>
+<td>&gt;95%</td>
+<td>Can drive decisions directly</td>
+</tr>
+</tbody></table>
+<p>LLMs as world models for <em>narrative</em> domains: 70-85%.
+LLMs as world models for <em>quantitative</em> physical domains: 30-50%. Insufficient.</p>
+<p>Use formal simulators where they exist (physics engines, finance simulators, biology models). Use LLMs only for the narrative/symbolic glue.</p>
+<h3>8.5 Embodied agents: the sim-to-real gap</h3>
+<p>For agents acting in the physical world (robotics) or in the GUI world (computer use):</p>
+<ul>
+<li><strong>Sim-to-real gap</strong>: simulator-trained agents underperform reality by 20-50%.</li>
+<li><strong>Vision quality</strong>: even SOTA vision models have failure modes on edge cases that don&#39;t appear in simulation.</li>
+<li><strong>Action precision</strong>: micro-misalignments in robotics; click-target errors in GUI.</li>
+</ul>
+<p>Practical pattern for GUI computer-use agents (today&#39;s frontier):</p>
+<pre><code class="language-typescript">async function clickWithFallback(target: UIElement) {
+  // Primary: visual click via screenshot
+  const click_result = await visualClick(target);
+  if (verifyClickSucceeded(click_result)) return;
+  
+  // Fallback 1: semantic accessibility-tree click
+  const semantic_result = await accessibilityClick(target.aria_label);
+  if (verifyClickSucceeded(semantic_result)) return;
+  
+  // Fallback 2: report failure; agent decides next step
+  return { failed: true, reason: &quot;click_target_not_found&quot; };
+}
+</code></pre>
+<p>Belt-and-suspenders. Each layer covers the previous layer&#39;s failure modes.</p>
+<h3>8.6 Scientific discovery agents: the FunSearch / AlphaEvolve pattern</h3>
+<p>The pattern that&#39;s actually producing publishable results:</p>
+<pre><code>1. LLM proposes candidate solutions (mathematical conjectures, algorithms, etc.)
+2. Verifier (formal proof checker, simulator, programmatic test) accepts/rejects each
+3. Successful candidates feed back as examples for the next round
+4. Iterate; the population of accepted solutions improves over time
+</code></pre>
+<p>Why this works:</p>
+<ul>
+<li>Generation by LLM (creative but unreliable)</li>
+<li>Verification by formal system (deterministic, reliable)</li>
+<li>Population-based exploration finds non-obvious paths</li>
+<li>Verifier doesn&#39;t trust generator; only accepts what passes</li>
+</ul>
+<p>This is the pattern most likely to drive agent-led scientific discovery in the next 3-5 years. Requires: cheap, reliable verifier in your domain.</p>
+<p>For Helix: drug-target binding affinity predictors are good verifiers. Wet-lab experiments are the gold-standard verifier (slow, expensive). The agent can shortlist; humans decide what to actually run.</p>
+<h3>8.7 The &quot;agentic discovery&quot; workflow at Helix</h3>
+<p>A practical near-term workflow:</p>
+<pre><code>Week 1-4: Set up agent + verifier
+  - Agent prompts: &quot;Given target X, propose 10 novel candidate drugs with rationale&quot;
+  - Verifier: existing binding-affinity prediction model
+  - Filter: reject candidates the verifier says are unlikely to bind
+
+Week 5-8: Pilot run
+  - Agent generates 500 candidates over 4 weeks
+  - Verifier filters to top 50
+  - Maya reviews top 50 with biological intuition
+  - Top 10 enter wet-lab pipeline
+
+Week 9-16: Evaluate results
+  - Wet-lab confirms binding for 6/10 (60% — typical for first pass)
+  - Of those, 2 advance to further validation
+  - Compare to baseline (Maya alone, same time): 1 advancing typically
+
+Result: agent-augmented workflow finds ~2× as many viable leads.
+</code></pre>
+<p>Today&#39;s reality, not 2030 promise.</p>
+<h3>8.8 Frontiers vs near-term practice</h3>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Production-ready today</th>
+<th>Research today</th>
+<th>5-year forecast</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>World-model planning</td>
+<td>LLM rollouts (limited)</td>
+<td>Trained simulators (RL)</td>
+<td>Hybrid: trained sims + LLM glue</td>
+</tr>
+<tr>
+<td>Continual learning</td>
+<td>LoRA adapters</td>
+<td>RLAIF</td>
+<td>Standard practice for high-volume agents</td>
+</tr>
+<tr>
+<td>Embodied (GUI)</td>
+<td>Anthropic computer use, OpenAI Operator</td>
+<td>Multi-modal action models</td>
+<td>Routine for many business workflows</td>
+</tr>
+<tr>
+<td>Embodied (robotics)</td>
+<td>Narrow domains (warehouse, lab)</td>
+<td>Foundation models for action</td>
+<td>Expanding to general-purpose tasks</td>
+</tr>
+<tr>
+<td>Scientific discovery</td>
+<td>Pattern above; narrow domains</td>
+<td>AlphaEvolve, FunSearch</td>
+<td>Routine for math + simulation-heavy science</td>
+</tr>
+<tr>
+<td>Multi-agent ensembles</td>
+<td>2-3 agent production deployments</td>
+<td>10+ agent research systems</td>
+<td>5-10 agent production routine</td>
+</tr>
+</tbody></table>
+<p>Plan for what you can deploy today. Track what&#39;s likely in 2-3 years. Stay informed but don&#39;t bet the business on what&#39;s &quot;5 years out&quot; — you&#39;d be planning for the road that doesn&#39;t exist yet.</p>
 
         </div>
       </section>

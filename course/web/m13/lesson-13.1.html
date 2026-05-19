@@ -388,6 +388,113 @@ kbd {
 <p>Tempting: defer building because next-year&#39;s model will be better. Wrong: every year delay = one year of forgone benefit. Build now with abstractions that let you upgrade later.</p>
 <h3>8.2 The &quot;build for today&quot; rule</h3>
 <p>Build for today&#39;s models. Architect for tomorrow&#39;s. Specifically: keep model-specific tricks out of your codebase; keep model upgrades as one-line config changes.</p>
+<h3>8.3 Five capability directions in detail</h3>
+<p><strong>Context window</strong>: 200K → 1M → 10M tokens</p>
+<ul>
+<li><em>Today (200K-1M)</em>: enables whole-codebase reasoning, multi-day conversation memory.</li>
+<li><em>2027 (10M+)</em>: whole-quarter trace analysis, entire research-paper-corpus in context.</li>
+<li><em>Caveat</em>: attention quality degrades with length faster than capacity grows. Effective context lags nominal context by ~40%. Retrieval (Module 5) remains essential.</li>
+</ul>
+<p><strong>Tool generalisation</strong>: zero-shot tools</p>
+<ul>
+<li><em>Today</em>: models use familiar tools well; struggle with novel tools (high false-call rate first 100 uses).</li>
+<li><em>2027</em>: models read a tool description and use it correctly on first try, like a senior engineer reading API docs.</li>
+<li><em>Implication for design</em>: invest less in prompt-tuning per tool; invest more in tool description quality.</li>
+</ul>
+<p><strong>Multimodality</strong>: vision + audio + video → action</p>
+<ul>
+<li><em>Today</em>: Anthropic computer use, OpenAI Operator — vision + click/keystroke.</li>
+<li><em>2027</em>: voice-native agents (real-time speech), time-series + action (forecasting agents acting on dashboards), video understanding for monitoring.</li>
+<li><em>Implication</em>: input/output modes diversify; agent architecture stays the same (loop + state + tools).</li>
+</ul>
+<p><strong>Agent ensembles</strong>: from 2-3 to 5-10</p>
+<ul>
+<li><em>Today</em>: 2-3 agent production is brittle but feasible.</li>
+<li><em>2027</em>: 5-10 agent systems become routine for complex domains.</li>
+<li><em>Caveat</em>: depends on coordination protocols (A2A, MCP) maturing. Not a model question.</li>
+</ul>
+<p><strong>On-device</strong>: sub-1B models with useful capability</p>
+<ul>
+<li><em>Today</em>: small models (Phi-3, Llama 3 8B) good for narrow tasks; bad as general agents.</li>
+<li><em>2027</em>: 3B-class models comparable to 2024 70B-class on agent benchmarks.</li>
+<li><em>Implication</em>: privacy-critical workloads can move on-device; cost-critical workloads have new options.</li>
+</ul>
+<h3>8.4 Direction-specific design implications</h3>
+<p>For each frontier direction, ask: <em>what architecture decision today shapes whether I can adopt it later?</em></p>
+<table>
+<thead>
+<tr>
+<th>If you anticipate adopting...</th>
+<th>...today&#39;s decision is</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Longer context</td>
+<td>Keep retrieval optional; don&#39;t hardcode 200K as upper bound</td>
+</tr>
+<tr>
+<td>Better tool generalisation</td>
+<td>Invest in tool descriptions; keep tool registry standard (MCP)</td>
+</tr>
+<tr>
+<td>New modalities</td>
+<td>Abstract input modality from agent logic</td>
+</tr>
+<tr>
+<td>Larger ensembles</td>
+<td>Use A2A protocol from the start, not custom messaging</td>
+</tr>
+<tr>
+<td>On-device</td>
+<td>Keep model interface generic; support multiple backends</td>
+</tr>
+</tbody></table>
+<p>The cost of these decisions today is ~10% extra engineering. The cost of <em>not</em> making them: rewriting in 18 months.</p>
+<h3>8.5 Indicators to track quarterly</h3>
+<p>How do you know when a frontier capability is production-ready?</p>
+<ul>
+<li><strong>Benchmark leadership stabilises</strong>: when SOTA on a benchmark has been within 2pp for two quarters, the capability is mature.</li>
+<li><strong>Tooling appears</strong>: when there are 2+ frameworks/libraries treating it as a first-class concern, the pattern is settling.</li>
+<li><strong>Production case studies emerge</strong>: when 3+ companies publish &quot;we deployed X in production&quot; with numbers, it&#39;s beyond research.</li>
+<li><strong>Cost drops below threshold</strong>: when per-task cost is &lt;50% of your labour displacement, it&#39;s economic.</li>
+</ul>
+<p>Track these quarterly. Move when all four hit.</p>
+<h3>8.6 The &quot;moving model under you&quot; problem</h3>
+<p>Frontier models update faster than your prompt tuning. Mitigations:</p>
+<ul>
+<li><strong>Version pinning</strong>: lock to specific model snapshots (<code>claude-sonnet-4-6:2025-09-01</code>).</li>
+<li><strong>Upgrade gate</strong>: regression eval (Module 8) blocks model upgrades until tested.</li>
+<li><strong>Provider opt-out</strong>: opt out of automatic upgrades; manual approval for new model versions.</li>
+</ul>
+<p>Cost of pinning: missing capability improvements for some weeks.
+Cost of not pinning: silent regressions when provider updates.</p>
+<p>For Sherpa: pin + monthly review. Two weeks max behind frontier. Acceptable trade-off.</p>
+<h3>8.7 The &quot;evaluation framework for capability adoption&quot; template</h3>
+<p>When a new capability appears:</p>
+<pre><code>Capability: [name]
+Vendor maturity: [research / preview / GA / enterprise-ready]
+Production case studies: [number, in what domains]
+Cost vs current solution: [%]
+Required architectural change: [low / medium / high]
+Risk of adopting: [low / medium / high — and why]
+Risk of NOT adopting: [low / medium / high — and why]
+
+Decision: [adopt now / pilot Q[X] / monitor / decline]
+Owner: [name]
+Review date: [+90 days]
+</code></pre>
+<p>Standardise the format. Every quarterly architecture review covers the relevant capabilities. Decisions are tracked and revisited.</p>
+<h3>8.8 The &quot;calibrated skepticism&quot; stance</h3>
+<p>Most &quot;next year&#39;s capability&quot; headlines underdeliver. Most &quot;5-year horizon&quot; predictions either arrive in 18 months or never arrive.</p>
+<p>Healthy stance:</p>
+<ul>
+<li>Take SOTA benchmarks at face value but discount real-world performance by 30%.</li>
+<li>Take published case studies at face value but discount the typical case by 40%.</li>
+<li>Take vendor roadmaps with substantial skepticism.</li>
+<li>Take open-source benchmarks more seriously than vendor benchmarks.</li>
+<li>Distrust any claim that requires &quot;ignore the cost question.&quot;</li>
+</ul>
+<p>Engineers who develop this skepticism build agents that work. Those who chase every announcement waste cycles on capabilities that don&#39;t materialise.</p>
 
         </div>
       </section>

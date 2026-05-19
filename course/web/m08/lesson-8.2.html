@@ -398,6 +398,118 @@ kbd {
 <p>Each pair comparison = one LLM call. For 100 hypotheses × 4 rubric items × 2 position swaps = 800 calls. At $0.05/call: $40 per full eval. Worth it for the time saved.</p>
 <h3>8.3 When to skip LLM-as-judge</h3>
 <p>If you have programmatically-checkable correctness (math, code), use that. LLM-as-judge is for the cases where you genuinely need judgment.</p>
+<h3>8.4 Rubric design: the load-bearing component</h3>
+<p>A poor rubric makes any LLM-as-judge unreliable. Components of a strong rubric:</p>
+<pre><code>Each candidate is evaluated on 4 dimensions, each scored 1-5:
+
+1. NOVELTY (1=trivial restating; 5=genuinely new hypothesis)
+   - Score 1: just restates existing literature
+   - Score 3: connects two known ideas in a new way
+   - Score 5: proposes a mechanism not in the input papers
+
+2. PLAUSIBILITY (1=contradicts known biology; 5=fully consistent)
+   - Score 1: violates established facts
+   - Score 3: consistent with most known facts; one unexplained tension
+   - Score 5: explains the literature better than current consensus
+
+3. TESTABILITY (1=untestable; 5=specific experiment proposed)
+   - Score 1: no testable prediction
+   - Score 3: testable in principle; no specific experiment named
+   - Score 5: specific protocol, dose, readout proposed
+
+4. SPECIFICITY (1=vague; 5=mechanism + parameters named)
+   - Score 1: &quot;drug works on pathway&quot;
+   - Score 3: &quot;drug inhibits enzyme E in pathway&quot;
+   - Score 5: &quot;drug inhibits enzyme E via residue R, blocking
+             phosphorylation of substrate S, expected effect Δ&quot;
+
+The total score is sum of dimensions (4 to 20).
+Pairwise: prefer the higher total; break ties by NOVELTY.
+</code></pre>
+<p>Key rubric principles:</p>
+<ul>
+<li><strong>Anchored scales</strong> (specific examples per level) reduce judge variance.</li>
+<li><strong>Independent dimensions</strong> prevent halo effects.</li>
+<li><strong>Tie-breakers</strong> make outputs comparable.</li>
+<li><strong>Total</strong> is the actionable metric.</li>
+</ul>
+<h3>8.5 Inter-rater reliability and judge calibration</h3>
+<p>To trust LLM-as-judge, periodically calibrate against human judgment:</p>
+<ol>
+<li>Pick 50 candidates spanning expected quality range.</li>
+<li>Have 2-3 human experts judge each independently.</li>
+<li>Have the LLM judge each.</li>
+<li>Compute Cohen&#39;s κ (or Spearman ρ on scores) between LLM and human.</li>
+<li>If κ &lt; 0.6 or ρ &lt; 0.7: revise the rubric, retry.</li>
+</ol>
+<p>Acceptable thresholds depend on the task. For Helix hypothesis scoring (which has fuzzy ground truth even between humans): κ = 0.65 is good. For a clearer task (well-defined eval), κ = 0.8 is the target.</p>
+<h3>8.6 The &quot;ensemble judge&quot; pattern</h3>
+<p>Single-judge LLM-as-judge has variance. Mitigation: ensemble.</p>
+<pre><code class="language-typescript">async function ensembleJudge(
+  candidates: Pair,
+  judges: Model[] = [&quot;claude-opus-4-7&quot;, &quot;gpt-4o&quot;, &quot;gemini-pro&quot;]
+): Promise&lt;Verdict&gt; {
+  const verdicts = await Promise.all(
+    judges.map(model =&gt; judgePair(candidates, model))
+  );
+  return {
+    winner: majority(verdicts.map(v =&gt; v.winner)),
+    confidence: agreement(verdicts) / judges.length,
+    individual: verdicts,
+  };
+}
+</code></pre>
+<p>When all three judges agree: high confidence. When they split: low confidence — flag for human. This catches model-specific quirks.</p>
+<p>Cost: 3× single judge. Justified for high-stakes evals (e.g., release-gate decisions); overkill for routine A/B prompt tuning.</p>
+<h3>8.7 Common LLM-as-judge biases (and detection methods)</h3>
+<table>
+<thead>
+<tr>
+<th>Bias</th>
+<th>Symptom</th>
+<th>Detection</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Position</td>
+<td>Judge prefers position 1</td>
+<td>Swap; rerun; &gt;55% pos-1 preference = bias</td>
+<td>Always run both positions; average</td>
+</tr>
+<tr>
+<td>Verbosity</td>
+<td>Judge prefers longer answers</td>
+<td>Correlate score with length; r &gt; 0.3 = bias</td>
+<td>Penalty term in rubric; normalize by length</td>
+</tr>
+<tr>
+<td>Self-preference</td>
+<td>Judge prefers same-model outputs</td>
+<td>Compare cross-model judges; &gt;5pp gap = bias</td>
+<td>Use a <em>different</em> model as judge</td>
+</tr>
+<tr>
+<td>Sycophancy</td>
+<td>Judge sides with the &quot;client&quot; position</td>
+<td>Compare assistant-mode vs adversarial-prompt judges</td>
+<td>Use neutral framing</td>
+</tr>
+<tr>
+<td>Anchoring</td>
+<td>Judge over-weights first dimension</td>
+<td>Randomise dimension order</td>
+<td>Independent per-dimension scoring</td>
+</tr>
+</tbody></table>
+<p>Build these checks into your eval CI. If any trip, investigate before trusting numbers.</p>
+<h3>8.8 When to <em>avoid</em> LLM-as-judge entirely</h3>
+<ul>
+<li><strong>Programmatically checkable</strong>: math, code, structured output. Don&#39;t burn LLM tokens to check what <code>assert</code> could check.</li>
+<li><strong>Adversarial cases</strong>: judging whether a prompt-injection succeeded — the judge can be injected too.</li>
+<li><strong>Domains the judge model is bad at</strong>: judging cardiology hypotheses with a non-medical model gives confident wrong answers.</li>
+</ul>
+<p>When in doubt: combine programmatic checks (where possible) + human spot-check (always) + LLM-as-judge (for scale).</p>
 
         </div>
       </section>

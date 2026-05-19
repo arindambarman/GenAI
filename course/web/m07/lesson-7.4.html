@@ -407,6 +407,95 @@ denied_tools:
 <p>Audit logs themselves must be tamper-evident. Append-only storage + cryptographic chaining (each log entry hashes the previous). Detects tampering even if attacker has logs access.</p>
 <h3>8.3 Rotation</h3>
 <p>API tokens, OAuth credentials: rotate quarterly. Automate rotation; manual rotation is missed rotation.</p>
+<h3>8.4 The agent-identity model (who is &quot;the agent&quot;?)</h3>
+<p>When auditing or authorising, you need to answer: <em>which</em> agent invocation called this tool? Three identity dimensions:</p>
+<pre><code class="language-typescript">interface AgentIdentity {
+  agent_id: string;       // &quot;sherpa&quot; — the agent type
+  agent_version: string;  // &quot;5.2.1&quot; — the deployed code
+  invocation_id: string;  // &quot;inv_2026-05-19_1714_a3f2&quot; — this specific run
+  triggered_by: {
+    type: &quot;scheduled&quot; | &quot;user&quot; | &quot;agent&quot; | &quot;webhook&quot;;
+    user_id?: string;     // if user-triggered
+    parent_invocation?: string;  // if agent-triggered
+  };
+  roles: string[];        // active roles for this invocation
+}
+</code></pre>
+<p>ACLs check <code>roles</code>. Audit logs key on <code>invocation_id</code>. Debugging follows <code>parent_invocation</code> chains.</p>
+<p>If you collapse these into a single string identity, you lose the ability to answer common questions (&quot;did Sherpa v5.1 ever issue refunds &gt; $100?&quot;).</p>
+<h3>8.5 The &quot;confused deputy&quot; attack pattern</h3>
+<p>Classic security pitfall: agent has high privileges (read all customer data); user has limited privileges (read only their own). Attacker tricks agent into reading another user&#39;s data because the agent&#39;s privilege doesn&#39;t check who&#39;s asking.</p>
+<p>Defence: agents acting on behalf of a user <em>carry</em> the user&#39;s effective permissions, not their own elevated ones. For Sherpa, this isn&#39;t relevant (no user context). For Acme support agent, it&#39;s critical:</p>
+<pre><code class="language-typescript">async function refundFlow(userId: string, request: RefundRequest) {
+  const userPermissions = await fetchPermissions(userId);
+  const agent = new AcmeSupportAgent({
+    capabilities: intersect(agent.maxCapabilities, userPermissions),
+  });
+  return agent.handle(request);
+}
+</code></pre>
+<p>The agent&#39;s effective permissions are the <em>intersection</em> of the agent&#39;s own permissions and the requesting user&#39;s. This prevents privilege escalation by impersonation.</p>
+<h3>8.6 Capability tokens vs role-based access</h3>
+<p>Two production-grade auth models:</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>How it works</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Role-based</strong> (RBAC)</td>
+<td>Agent has roles; roles grant tool permissions.</td>
+<td>Stable role set; few principals.</td>
+</tr>
+<tr>
+<td><strong>Capability tokens</strong></td>
+<td>Each call carries explicit capability tokens for what it can do.</td>
+<td>Dynamic permissions; fine-grained delegation.</td>
+</tr>
+</tbody></table>
+<p>Capability tokens compose better in multi-agent systems: supervisor mints a token granting &quot;refund up to $50 for order X&quot; and passes it to a worker; worker can only refund that specific order, that specific amount. Token expires after use.</p>
+<h3>8.7 Audit log query patterns</h3>
+<p>The audit log only earns its keep if it&#39;s <em>queryable</em>. Common production queries:</p>
+<ul>
+<li>&quot;All refunds &gt; $100 issued by Sherpa v5.x in Q4 2025&quot;</li>
+<li>&quot;All tool calls from agent invocations triggered by user X&quot;</li>
+<li>&quot;All denied tool calls in the last 7 days, grouped by tool and reason&quot;</li>
+<li>&quot;Mean tool calls per task by month — detecting drift&quot;</li>
+</ul>
+<p>Index by: agent_id, invocation_id, tool_name, decision, timestamp. Without these, queries take hours. With them, seconds.</p>
+<h3>8.8 Compliance frameworks and their tool-auth implications</h3>
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>Implication for tool auth</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SR 11-7 (US banking model risk)</td>
+<td>Every automated decision auditable; explainable in business terms</td>
+</tr>
+<tr>
+<td>EU AI Act (high-risk systems)</td>
+<td>Log inputs, outputs, intermediate decisions; retention 6+ months</td>
+</tr>
+<tr>
+<td>GDPR</td>
+<td>Right to deletion includes audit logs; design retention with deletion in mind</td>
+</tr>
+<tr>
+<td>HIPAA</td>
+<td>Tools touching PHI need explicit audit + access logs + minimum necessary principle</td>
+</tr>
+<tr>
+<td>SOC 2</td>
+<td>Periodic access reviews; documented change management for tool ACLs</td>
+</tr>
+</tbody></table>
+<p>Build to the union of applicable frameworks. Don&#39;t retrofit later.</p>
 
         </div>
       </section>

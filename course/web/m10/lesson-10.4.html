@@ -411,6 +411,86 @@ kbd {
 <p>Every override (accept/reject/modify) logged with reason. This feeds back into the regression eval (Lesson 8.4) and into prompt refinement.</p>
 <h3>8.4 Regulatory checklists</h3>
 <p>For banking (SR 11-7), insurance, healthcare, automotive — each has specific requirements for AI/agent systems. Map your audit fields to each applicable framework. Don&#39;t reinvent.</p>
+<h3>8.5 The audit query API (production-grade)</h3>
+<p>Auditors want a query interface, not raw logs. Build this:</p>
+<pre><code class="language-typescript">// GET /audit/v1/decisions?customer=X&amp;date_range=Y&amp;classification=Z
+interface AuditDecision {
+  decision_id: string;
+  timestamp: string;
+  agent: { id: string; version: string };
+  input: { type: string; reference_id: string; redacted_content?: string };
+  decision: {
+    classification: string;
+    confidence: number;
+    rationale: string;
+    evidence_citations: { source: string; passage: string }[];
+  };
+  human_review?: {
+    reviewer_id: string;
+    accepted: boolean;
+    override_classification?: string;
+    notes?: string;
+    timestamp: string;
+  };
+  versions: {
+    model: string;
+    prompt: string;
+    tool_registry: string;
+  };
+}
+
+// Auditor&#39;s typical query:
+GET /audit/v1/decisions?
+    customer=ACME-12345
+    &amp;date_range=2025-Q3
+    &amp;decision.classification=settlement_failure
+    &amp;include_overrides=true
+</code></pre>
+<p>Response: full audit decisions, queryable. Standard tooling (Elasticsearch, Postgres with JSONB, etc.).</p>
+<h3>8.6 SR 11-7 specifically (US banking model risk)</h3>
+<p>Five pillars for any agent under SR 11-7:</p>
+<ol>
+<li><strong>Conceptual soundness</strong>: documented methodology — why does this agent&#39;s approach make sense? (Modules 1-3 of the course are your &quot;conceptual soundness&quot; documentation.)</li>
+<li><strong>Performance monitoring</strong>: ongoing eval — accuracy, calibration, drift detection (Module 8).</li>
+<li><strong>Process verification</strong>: implementation matches design — code review + integration tests.</li>
+<li><strong>Outcomes analysis</strong>: post-deployment metrics tracked vs business goals (Module 11 ROI model).</li>
+<li><strong>Independent review</strong>: a separate team reviews the above and signs off annually.</li>
+</ol>
+<p>For Sherpa: each of these has a documentation owner. The audit-query API is part of #2 and #4.</p>
+<h3>8.7 EU AI Act specifically (high-risk systems)</h3>
+<p>If your agent is classified as &quot;high-risk&quot; (most regulated industries qualify):</p>
+<ul>
+<li><strong>Risk management system</strong>: continuous, throughout the lifecycle.</li>
+<li><strong>Data quality and governance</strong>: training/eval data documented and traceable.</li>
+<li><strong>Technical documentation</strong>: architecture, intended purpose, known limitations.</li>
+<li><strong>Logging</strong>: automatic logs sufficient for traceability.</li>
+<li><strong>Transparency</strong>: human-readable instructions on how the system works.</li>
+<li><strong>Human oversight</strong>: humans can interpret outputs, override decisions, stop the system.</li>
+<li><strong>Accuracy, robustness, cybersecurity</strong>: appropriate for the risk class.</li>
+</ul>
+<p>Most of this is naturally satisfied by the course&#39;s discipline. The new requirement: explicit &quot;intended purpose&quot; documentation that you can show a regulator.</p>
+<h3>8.8 The compliance audit dry-run</h3>
+<p>Once a year, run a <em>dry-run audit</em> internally:</p>
+<ol>
+<li>Pretend you&#39;re an external auditor.</li>
+<li>Make 10 typical audit queries against the audit-query API.</li>
+<li>For each: can you answer with documentation alone? Or do you need to dig into code?</li>
+<li>Anything that requires code-diving is a gap. Fix it.</li>
+</ol>
+<p>Catches gaps before regulators do. Inexpensive insurance.</p>
+<h3>8.9 Closing the safety/security/audit loop</h3>
+<p>Three threads of this module weave together:</p>
+<pre><code>Safety (10.1, 10.2) → prevents bad outputs from compromised inputs
+   ↓
+Red-team (10.3) → finds where prevention falls short
+   ↓
+Audit (10.4) → reconstructs what happened when prevention fails
+   ↓
+Eval (Module 8) → adds failure modes to regression set
+   ↓
+Improvements ship → loop closes
+</code></pre>
+<p>A team operating this loop reliably is what separates a &quot;production agent&quot; from &quot;a prototype with a deployment URL.&quot;</p>
 
         </div>
       </section>

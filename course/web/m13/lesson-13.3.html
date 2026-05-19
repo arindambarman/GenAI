@@ -383,6 +383,153 @@ kbd {
 <p>Among the regimes you operate in, pick the strictest. Build to it. Easier than building to each separately; over-compliance is rarely a problem.</p>
 <h3>8.2 The agent-as-fiduciary question</h3>
 <p>Agents act on behalf of principals. Legal frameworks for fiduciary duties (financial advisors, lawyers) are being extended. Watch this space.</p>
+<h3>8.3 Agent-to-agent economic activity: concrete scenarios</h3>
+<p>What &quot;agents negotiating with agents&quot; looks like in practice:</p>
+<p><strong>Scenario A: B2B supplier negotiation</strong></p>
+<ul>
+<li>Your procurement agent talks to supplier&#39;s pricing agent.</li>
+<li>Both follow protocol-defined etiquette (request quote, counter, accept/decline).</li>
+<li>Each is bounded by hard limits set by humans (max price, min quantity).</li>
+<li>Audit log records every offer and acceptance.</li>
+</ul>
+<p><em>Risk</em>: supplier&#39;s agent finds an exploit (e.g., subtle ambiguity in your max-price logic). Your principal — you — is bound by what the agent agreed.</p>
+<p><em>Mitigation</em>: hard limits in code, not prompt. Human approval for any commitment above threshold. Standard contracts with explicit &quot;no agent autonomy beyond X.&quot;</p>
+<p><strong>Scenario B: Customer-agent ↔ vendor-agent</strong></p>
+<ul>
+<li>Customer&#39;s personal agent negotiates a refund with vendor&#39;s support agent.</li>
+<li>Both have policies they enforce.</li>
+<li>Outcome: customer gets resolution in seconds; vendor saves support cost.</li>
+</ul>
+<p><em>Risk</em>: race to the bottom — increasingly aggressive customer agents, increasingly defensive vendor agents. Both sides escalate.</p>
+<p><em>Mitigation</em>: industry standards for agent behaviour; arbitration protocols.</p>
+<p><strong>Scenario C: Multi-party coordination</strong></p>
+<ul>
+<li>Three agents (buyer, seller, escrow) coordinate a transaction.</li>
+<li>Trustless protocols (smart-contract-like) enforce the rules.</li>
+</ul>
+<p><em>Risk</em>: protocol bugs become exploit vectors at scale.</p>
+<p><em>Mitigation</em>: formal verification of coordination protocols; bounded blast radius.</p>
+<p>These scenarios are all 2-5 years out for non-trivial use cases. Worth tracking; not worth planning for in 12-month roadmaps.</p>
+<h3>8.4 Concentration risk: when 3 model providers run 90% of agents</h3>
+<p>If 3 providers (Anthropic, OpenAI, Google) run &gt;90% of production agent inference, what risks does that create?</p>
+<ul>
+<li><strong>Coordinated outage</strong>: provider hiccup affects most of the economy simultaneously.</li>
+<li><strong>Coordinated capability shift</strong>: provider deprecates a model; thousands of agents need rework.</li>
+<li><strong>Coordinated pricing</strong>: oligopoly pricing dynamics.</li>
+<li><strong>Coordinated value alignment</strong>: providers&#39; choices about what models will/won&#39;t do propagates to all downstream applications.</li>
+</ul>
+<p>Mitigations at org level:</p>
+<ul>
+<li>Multi-provider routing (Lesson 9.4).</li>
+<li>Local model fallback for critical paths.</li>
+<li>Industry-collective bargaining for pricing/SLAs.</li>
+</ul>
+<p>Mitigations at policy level: open-source model support; alternative providers; regulatory caps on concentration.</p>
+<p>This is a real long-term consideration for the <em>industry</em>, not just any one org.</p>
+<h3>8.5 The misuse landscape (what to watch for)</h3>
+<p>Agent capability enables new misuse:</p>
+<table>
+<thead>
+<tr>
+<th>Misuse</th>
+<th>Scale change</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Phishing</td>
+<td>Personalised at scale; harder to detect</td>
+</tr>
+<tr>
+<td>Disinformation</td>
+<td>Generated at scale; campaign coordination</td>
+</tr>
+<tr>
+<td>Targeted harassment</td>
+<td>Persistent and tireless</td>
+</tr>
+<tr>
+<td>Fraud (financial, romance)</td>
+<td>Patient, personalised, multi-channel</td>
+</tr>
+<tr>
+<td>Vulnerability research / exploitation</td>
+<td>Lower attacker skill threshold</td>
+</tr>
+</tbody></table>
+<p>Defensive responses (some already deployed):</p>
+<ul>
+<li>Content provenance (C2PA, watermarking)</li>
+<li>Multi-factor verification for high-stakes transactions</li>
+<li>Behavioural analysis (rate limits, pattern detection)</li>
+<li>Regulatory frameworks for AI-generated content</li>
+</ul>
+<p>If you&#39;re building defensive systems: this is your roadmap. If you&#39;re building offensive capabilities: please don&#39;t, and read Module 10 again.</p>
+<h3>8.6 The governance landscape (what to comply with)</h3>
+<p>Active frameworks as of 2026:</p>
+<ul>
+<li><strong>EU AI Act</strong> (in force): risk-based tiering; high-risk systems need conformity assessment, technical documentation, human oversight.</li>
+<li><strong>NIST AI Risk Management Framework</strong> (US, voluntary but quasi-standard): risk-management lifecycle for AI systems.</li>
+<li><strong>SR 11-7</strong> (US banking): model risk management; applies to agents in regulated banking.</li>
+<li><strong>UK AI Regulation</strong> (sector-specific): defers to existing regulators; agents fall under banking/insurance/healthcare oversight.</li>
+<li><strong>Singapore AI Verify</strong> (voluntary): testing framework; basis for certifications.</li>
+<li><strong>China interim measures</strong> (in force): registration, content review, generative AI specifics.</li>
+</ul>
+<p>Build to the strictest applicable. The discipline (Modules 8-10) covers most requirements.</p>
+<h3>8.7 Industry-specific obligations</h3>
+<table>
+<thead>
+<tr>
+<th>Industry</th>
+<th>Top obligations</th>
+<th>Where to invest</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Banking</td>
+<td>SR 11-7 model validation; CFPB consumer protection</td>
+<td>Audit trail; explainability; calibration eval</td>
+</tr>
+<tr>
+<td>Insurance</td>
+<td>NAIC model regulation; state-specific rules</td>
+<td>Eval per state; documentation per use case</td>
+</tr>
+<tr>
+<td>Healthcare</td>
+<td>FDA SaMD; HIPAA</td>
+<td>Clinical validation; PHI controls</td>
+</tr>
+<tr>
+<td>Legal</td>
+<td>State bar opinions; client confidentiality</td>
+<td>Audit; privilege separation</td>
+</tr>
+<tr>
+<td>HR</td>
+<td>EEOC; AI bias regulations</td>
+<td>Bias audits; impact assessments</td>
+</tr>
+<tr>
+<td>Education</td>
+<td>FERPA; state-level rules</td>
+<td>Privacy; consent</td>
+</tr>
+</tbody></table>
+<p>Map your deployment to the union. Don&#39;t retrofit.</p>
+<h3>8.8 The professional-ethics layer</h3>
+<p>Beyond regulation: professional norms emerging for agent builders.</p>
+<ul>
+<li><strong>Honesty about capability</strong>: don&#39;t overstate what your agent can do. Underestimate in product copy; let users be pleasantly surprised.</li>
+<li><strong>Honesty about limitations</strong>: explicitly document what the agent can&#39;t do; surface uncertainty to users.</li>
+<li><strong>Affordance for override</strong>: every consequential decision should be human-overridable.</li>
+<li><strong>Reversibility-first design</strong>: prefer reversible actions; require explicit consent for irreversible ones.</li>
+<li><strong>Accountability</strong>: when something goes wrong, the org owns it. Not &quot;the AI did it.&quot;</li>
+</ul>
+<p>These norms aren&#39;t enforced by law (yet). But they&#39;re the difference between an industry that earns trust and one that erodes it.</p>
+<h3>8.9 The closing thought</h3>
+<p>The &quot;future&quot; of agents will look a lot like the present — capability changes will compound, but the <em>discipline</em> of building good agents (Modules 1-10) will remain the bottleneck.</p>
+<p>The teams that win in 2027 are the ones building robust foundations in 2026 — eval gates, observability, safety patterns, audit trails. The capability layer takes care of itself; the model labs are competing fiercely. The discipline layer is yours alone.</p>
+<p>Build the boring, durable stuff. The future will reward you.</p>
 
         </div>
       </section>

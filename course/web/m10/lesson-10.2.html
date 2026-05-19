@@ -393,6 +393,147 @@ kbd {
 <p>The full policy. No customer text. Only validated extractions. The supervisor&#39;s reasoning is over structured data only.</p>
 <h3>8.3 Logging</h3>
 <p>Log both agents&#39; decisions separately. Audit can reconstruct: what the quarantined extracted, what the supervisor decided, why.</p>
+<h3>8.4 Full CaMeL implementation (Acme refund flow)</h3>
+<pre><code class="language-typescript">// QUARANTINED — sees customer email but has no refund capability
+const ExtractionSchema = z.object({
+  intent: z.enum([&quot;refund&quot;, &quot;shipping&quot;, &quot;sizing&quot;, &quot;info&quot;, &quot;other&quot;]),
+  refund_amount: z.number().nullable(),
+  order_id: z.string().nullable(),
+  reasoning: z.string(),
+  red_flags: z.array(z.string()).default([]),  // injection attempts noted
+});
+
+async function extractIntent(email: CustomerEmail): Promise&lt;Extraction&gt; {
+  const quarantined = new Agent({
+    systemPrompt: QUARANTINED_EXTRACTION_PROMPT,
+    tools: [],  // NO tools — pure text processing
+    responseSchema: ExtractionSchema,
+  });
+  
+  return quarantined.run({
+    input: `&lt;untrusted_email&gt;${email.body}&lt;/untrusted_email&gt;`,
+  });
+}
+
+// SUPERVISOR — has refund capability but never sees raw email
+async function processRequest(emailId: string): Promise&lt;ResolutionResult&gt; {
+  const email = await fetchEmail(emailId);
+  
+  // Step 1: extract intent (quarantined; no tools)
+  const extracted = await extractIntent(email);
+  
+  // Audit injection attempts immediately
+  if (extracted.red_flags.length &gt; 0) {
+    await auditLog.write({
+      event: &quot;injection_attempt_detected&quot;,
+      email_id: emailId,
+      flags: extracted.red_flags,
+    });
+  }
+  
+  // Step 2: supervisor decides (trusted; sees only structured extraction)
+  const supervisor = new Agent({
+    systemPrompt: SUPERVISOR_REFUND_POLICY_PROMPT,
+    tools: [issueRefund, escalateToHuman, sendResponse],
+    responseSchema: ResolutionSchema,
+  });
+  
+  return supervisor.run({
+    input: {
+      customer_id: email.customer_id,
+      verified_order: extracted.order_id ? await verifyOrder(extracted.order_id, email.customer_id) : null,
+      intent: extracted.intent,
+      claimed_refund_amount: extracted.refund_amount,
+      reasoning: extracted.reasoning,
+      // Note: email body NOT in supervisor&#39;s context
+    },
+  });
+}
+</code></pre>
+<p>The supervisor literally cannot see the email body. Any injection in the email can only affect the extracted structured data — and the supervisor&#39;s policy enforces hard constraints regardless.</p>
+<h3>8.5 Capability tokens in production</h3>
+<p>For systems with many agents and many resources, capability tokens scale better than role-based ACLs:</p>
+<pre><code class="language-typescript">// Supervisor mints a capability token for a specific action
+const token = await capabilityIssuer.mint({
+  agent: &quot;acme-refund-worker-v2&quot;,
+  capability: &quot;refund&quot;,
+  resource: { type: &quot;order&quot;, id: &quot;84291&quot; },
+  amount_limit: 30.00,
+  expires_at: Date.now() + 5 * 60_000,  // 5 minutes
+});
+
+// Worker calls refund tool with token
+await issueRefund({
+  order_id: &quot;84291&quot;,
+  amount: 25.00,
+  capability_token: token,
+});
+
+// issueRefund validates the token: matches caller, matches resource,
+// within amount limit, not expired. Otherwise denied.
+</code></pre>
+<p>Tokens give <em>fine-grained delegation</em>: the supervisor can grant exactly the privilege needed for this specific operation, scoped narrowly, with built-in expiration.</p>
+<h3>8.6 The injection-vs-jailbreak distinction</h3>
+<p>Often conflated; different defences:</p>
+<table>
+<thead>
+<tr>
+<th>Attack</th>
+<th>What it is</th>
+<th>Primary defence</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Prompt injection</td>
+<td>Untrusted data contains instructions</td>
+<td>Input quoting, privilege separation, output validation</td>
+</tr>
+<tr>
+<td>Jailbreak</td>
+<td>Direct attempt to bypass safety training</td>
+<td>Built into model; layered with content filters</td>
+</tr>
+<tr>
+<td>Tool abuse</td>
+<td>Convincing agent to use tools incorrectly</td>
+<td>Capability scoping, output validation</td>
+</tr>
+<tr>
+<td>Data exfiltration</td>
+<td>Tricking agent into leaking system info</td>
+<td>Output filtering, schema-constrained responses</td>
+</tr>
+<tr>
+<td>Hijacking</td>
+<td>Taking control of multi-step task</td>
+<td>Per-step authorisation; replay-based detection</td>
+</tr>
+</tbody></table>
+<p>Each requires its own threat model and defences. CaMeL primarily defends against #1 and #3.</p>
+<h3>8.7 When CaMeL is overkill (and what to do instead)</h3>
+<p>If the input is trusted (e.g., from your own system), full CaMeL is overhead. For Sherpa with SWIFT messages from upstream systems:</p>
+<ul>
+<li>The SWIFT messages are <em>somewhat</em> trusted (came from authenticated counterparties through the bank&#39;s network).</li>
+<li>But individual <em>fields</em> are untrusted (counterparty name, free-text comments).</li>
+</ul>
+<p>So Sherpa doesn&#39;t need full CaMeL. It needs:</p>
+<ul>
+<li>Input quoting for free-text fields</li>
+<li>Output validation (the deterministic break-class enum already enforces this)</li>
+<li>Capability scoping (Sherpa can read GL, can&#39;t write GL)</li>
+</ul>
+<p>Match the defence to the threat. CaMeL is for tasks where the <em>whole input</em> is untrusted (customer emails, scraped web content).</p>
+<h3>8.8 The privilege-separation review checklist</h3>
+<p>For any agent processing untrusted input:</p>
+<ul>
+<li><input disabled="" type="checkbox"> Identify all inputs that could be attacker-controlled.</li>
+<li><input disabled="" type="checkbox"> List all sensitive actions the agent could take (refunds, data access, system changes).</li>
+<li><input disabled="" type="checkbox"> Map: which inputs flow into which action decisions?</li>
+<li><input disabled="" type="checkbox"> For each sensitive action: is there a <em>trusted</em> intermediary (supervisor, code) deciding, based on <em>validated</em> extracted data, not raw input?</li>
+<li><input disabled="" type="checkbox"> If not: refactor. Add the supervisor layer.</li>
+<li><input disabled="" type="checkbox"> Test: can a crafted input cause a sensitive action without the supervisor&#39;s approval?</li>
+</ul>
+<p>This review takes 30 minutes per agent. Catches the most damaging architectural mistakes.</p>
 
         </div>
       </section>

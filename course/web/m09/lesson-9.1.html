@@ -411,6 +411,116 @@ kbd {
 <p>After successful completion: delete checkpoint (or move to archive). Don&#39;t accumulate forever.</p>
 <h3>8.3 Versioning across deploys</h3>
 <p>If the agent code changes (new system prompt, new tool), old checkpoints may not be replayable. Tag checkpoints with agent version; on resume, refuse to continue if versions differ; restart.</p>
+<h3>8.4 Choosing between custom and framework checkpointing</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Custom (Postgres)</th>
+<th>Temporal</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Setup time</td>
+<td>~1 day</td>
+<td>~1 week (workflow modelling + deployment)</td>
+</tr>
+<tr>
+<td>Lines of code (init)</td>
+<td>~50</td>
+<td>~200 (workflows + activities + workers)</td>
+</tr>
+<tr>
+<td>Cron-style retries</td>
+<td>DIY</td>
+<td>Built-in</td>
+</tr>
+<tr>
+<td>Cross-workflow signals</td>
+<td>DIY</td>
+<td>Built-in</td>
+</tr>
+<tr>
+<td>Scheduled future continuations</td>
+<td>DIY (need a queue)</td>
+<td>Built-in</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>Postgres cost</td>
+<td>Temporal cluster cost OR cloud pricing</td>
+</tr>
+<tr>
+<td>Vendor lock-in</td>
+<td>None</td>
+<td>Moderate (Workflow API)</td>
+</tr>
+<tr>
+<td>When to switch (custom → Temporal)</td>
+<td>When you have &gt;5 workflow types, or need scheduled-resume semantics</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<p>For Sherpa standalone: custom Postgres for 12+ months. When Acme support also needs durable execution, then standardise on Temporal.</p>
+<h3>8.5 Concrete checkpoint schema (Postgres)</h3>
+<pre><code class="language-sql">CREATE TABLE agent_checkpoints (
+  trace_id        TEXT PRIMARY KEY,
+  agent_id        TEXT NOT NULL,
+  agent_version   TEXT NOT NULL,
+  task_input      JSONB NOT NULL,
+  trace_state     JSONB NOT NULL,  -- the full Trace object
+  step_count      INTEGER NOT NULL,
+  last_updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  status          TEXT NOT NULL CHECK (status IN (&#39;running&#39;, &#39;completed&#39;, &#39;failed&#39;)),
+  result          JSONB,
+  error           TEXT
+);
+
+CREATE INDEX idx_checkpoints_status ON agent_checkpoints(status) WHERE status = &#39;running&#39;;
+CREATE INDEX idx_checkpoints_agent_version ON agent_checkpoints(agent_id, agent_version);
+</code></pre>
+<p>On host startup, scan for <code>status = &#39;running&#39;</code> checkpoints and resume each. Stale running checkpoints (last_updated_at &gt; 1 hour ago) get auto-retried.</p>
+<h3>8.6 The &quot;save before tool call, save after observation&quot; pattern</h3>
+<p>When in the loop:</p>
+<pre><code class="language-typescript">for (let step = trace.steps.length; step &lt; MAX_STEPS; step++) {
+  const next = await llm.callWithTools(...);
+  trace.steps.push(next);
+
+  await saveCheckpoint(trace);  // ← save before potentially-long tool call
+
+  if (next.kind === &quot;answer&quot;) {
+    await markCompleted(trace.id, next);
+    return next;
+  }
+
+  if (next.kind === &quot;action&quot;) {
+    const result = await invokeTool(next);
+    trace.steps.push({ kind: &quot;observation&quot;, id: next.id, result });
+    await saveCheckpoint(trace);  // ← save after observation
+  }
+}
+</code></pre>
+<p>Saving twice per step (before tool call AND after observation) is the right granularity. Saving once (only after observation) loses work if the tool call hangs. Saving more often is wasteful.</p>
+<h3>8.7 The host-restart procedure</h3>
+<p>When the agent host (Node.js process, Lambda, k8s pod) restarts:</p>
+<pre><code>1. Acquire a host-id lease (so multiple hosts don&#39;t both resume the same checkpoint).
+2. Scan checkpoints with status=&#39;running&#39; AND (last_updated_at &lt; now() - 5 min OR host_id IS NULL).
+3. For each: claim by setting host_id = my_id, last_updated_at = now().
+4. For each claimed: spawn a resume task.
+5. Heartbeat last_updated_at every 30 seconds for each in-flight resume.
+6. On graceful shutdown: release leases.
+</code></pre>
+<p>The lease + heartbeat pattern prevents two hosts from both processing the same checkpoint after a network partition.</p>
+<h3>8.8 Cost of durable execution</h3>
+<p>For Sherpa at 1,400 tasks/night × ~6 checkpoints/task:</p>
+<ul>
+<li>Postgres writes: 8,400/night</li>
+<li>Average payload: ~5KB (full trace)</li>
+<li>Storage: ~42 MB/night ≈ 1.3 GB/month</li>
+<li>Postgres write cost: negligible on a $50/month instance</li>
+<li>Pruning: delete completed traces &gt; 30 days old (keep failures for analysis)</li>
+</ul>
+<p>Total cost: well under $50/month. Cheap insurance against multi-hour outages.</p>
 
         </div>
       </section>

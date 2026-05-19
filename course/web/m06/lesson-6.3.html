@@ -411,6 +411,81 @@ $$</p>
 <p>Forces structural disagreement, surfaces blind spots.</p>
 <h3>8.2 The escalation cost</h3>
 <p>Escalation = human time. If your escalation rate is 5%, that&#39;s 5% × 45 min × analyst rate. Make sure the cost of escalation is less than the cost of being wrong without it.</p>
+<h3>8.3 Multi-round debate protocols (when 1 round isn&#39;t enough)</h3>
+<p>Two-agent agree-or-escalate is the production default. For truly ambiguous tasks (open-ended research, novel hypothesis generation), multi-round debate adds value.</p>
+<p>Standard protocol:</p>
+<pre><code>Round 1: Agent A and Agent B independently propose answers with reasoning.
+Round 2: Each sees the other&#39;s reasoning. Each can either:
+         - Update their answer (with explicit reason).
+         - Stand firm (with rebuttal to the other&#39;s points).
+Round 3: A judge (separate, neutral) sees both final positions + reasoning.
+         Either declares a winner or escalates.
+</code></pre>
+<p>Concrete example — Helix hypothesis &quot;Does drug X target pathway Y?&quot;:</p>
+<pre><code>Round 1:
+  Agent A: Yes (0.78). Cites papers 1, 3, 7.
+  Agent B: No (0.65). Cites paper 2 (counter-evidence) and notes
+           papers 3 and 7 are correlational, not causal.
+
+Round 2:
+  Agent A: Standing firm. Counter to B: paper 2&#39;s counter-evidence
+           is in a different cell line; not directly comparable.
+           Updated confidence: 0.72.
+  Agent B: Conceding partially. Paper 2 critique is correct.
+           Updated answer: &quot;Likely targets pathway Y in some cell types,
+           not others.&quot; Confidence: 0.60.
+
+Round 3 judge:
+  Both agents now agree on a more nuanced position. Synthesise:
+  &quot;Drug X likely targets pathway Y in cell types similar to those
+  in papers 3, 7. Effect in different cell types remains uncertain.&quot;
+  Confidence: 0.75.
+</code></pre>
+<p>The multi-round debate found a better answer than either Round-1 position. Cost: ~6 LLM calls per round × 3 rounds = ~18 calls vs ~2 for single-agent. Justified only for high-stakes, low-volume tasks.</p>
+<h3>8.4 Adversarial debate vs collaborative debate</h3>
+<p>Two flavours:</p>
+<ul>
+<li><strong>Adversarial</strong>: explicit roles (&quot;you find faults&quot;). Catches blind spots but can over-disagree.</li>
+<li><strong>Collaborative</strong>: both agents try to reach truth (&quot;steelman the other position&quot;). Converges faster; risks groupthink.</li>
+</ul>
+<p>For HSBC: adversarial (the bank tolerates false-positive escalations more than false-negative commits). For Helix: collaborative (researchers want the best answer, not the most cautious).</p>
+<h3>8.5 When 3+ agents help</h3>
+<p>Two-agent debate gives you (agree, disagree) — binary. Three-agent gives you majority signal. Beyond three: diminishing returns.</p>
+<table>
+<thead>
+<tr>
+<th>Agents</th>
+<th>Useful signal</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>One answer</td>
+<td>1×</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Agreement check (binary)</td>
+<td>2×</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Majority + dissent visible</td>
+<td>3×</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Majority + outlier detection + reliability estimate</td>
+<td>5×</td>
+</tr>
+<tr>
+<td>7+</td>
+<td>Marginal returns; coordination overhead dominates</td>
+<td>&gt;7×</td>
+</tr>
+</tbody></table>
+<p>For production: 2 or 3 agents covers 95% of cases. 5+ is research territory.</p>
 
         </div>
       </section>

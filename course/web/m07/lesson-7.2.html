@@ -429,6 +429,89 @@ With MCP: O(N+M) — each agent and each tool integrates once.</p>
 <p>If the data is <em>read-only</em> and doesn&#39;t have parameters, expose it as a resource (cheaper, cacheable). If it requires parameters or has side effects, expose as a tool.</p>
 <h3>8.4 Prompt templates</h3>
 <p>MCP can serve <em>prompts</em> — parameterised templates the server provides. Useful for tools where the right prompt depends on server-side state (e.g., &quot;summarise this trade according to the most recent risk policy&quot;).</p>
+<h3>8.5 MCP server lifecycle in production</h3>
+<p>A production MCP server isn&#39;t a script — it&#39;s a long-running service with the usual concerns:</p>
+<pre><code class="language-typescript">import { MCPServer } from &quot;@modelcontextprotocol/sdk&quot;;
+
+const server = new MCPServer({
+  name: &quot;hsbc-compliance&quot;,
+  version: &quot;2.3.1&quot;,
+  capabilities: { tools: true, resources: true, prompts: false },
+});
+
+// Health endpoint for orchestrators to probe
+server.tool({
+  name: &quot;_health&quot;,
+  description: &quot;Health check. Returns server status, version, uptime.&quot;,
+  input_schema: { type: &quot;object&quot;, properties: {} },
+  handler: async () =&gt; ({
+    status: &quot;ok&quot;,
+    version: server.version,
+    uptime_seconds: process.uptime(),
+    dependencies: await checkDeps(),
+  }),
+});
+
+// Per-tool rate limiting
+const rateLimiter = createTokenBucket({ rate: 100, capacity: 200 });
+
+server.middleware(async (call, next) =&gt; {
+  if (!await rateLimiter.consume(call.tool, 1)) {
+    throw new RateLimitError(call.tool);
+  }
+  return next();
+});
+
+// Per-tool observability
+server.middleware(async (call, next) =&gt; {
+  const span = otel.startSpan(`mcp.tool.${call.tool}`);
+  try {
+    const result = await next();
+    span.setStatus(&quot;ok&quot;);
+    return result;
+  } catch (err) {
+    span.setStatus(&quot;error&quot;);
+    span.recordException(err);
+    throw err;
+  } finally {
+    span.end();
+  }
+});
+
+await server.serve({ port: 8080, host: &quot;0.0.0.0&quot; });
+</code></pre>
+<p>This shape is what makes MCP usable at scale — not the protocol itself, but the operational discipline around the protocol.</p>
+<h3>8.6 The MCP client side: connection management</h3>
+<p>Agents connecting to MCP servers need:</p>
+<ul>
+<li><strong>Connection pooling</strong> — one connection per (agent, server) pair; reuse across calls.</li>
+<li><strong>Reconnection logic</strong> — exponential backoff with jitter; circuit breaker after N failures.</li>
+<li><strong>Tool discovery cache</strong> — refresh tool list on first connect and every N minutes; not on every call.</li>
+<li><strong>Graceful degradation</strong> — if MCP server is unavailable, agent should know which tools become unavailable and adapt (e.g., fall back to &quot;I cannot verify this in the current state&quot;).</li>
+</ul>
+<h3>8.7 Cross-org MCP federation</h3>
+<p>If multiple orgs expose MCP servers and you want one agent to use them all:</p>
+<pre><code class="language-typescript">const federation = new MCPFederation([
+  { name: &quot;hsbc-compliance&quot;, url: &quot;https://internal/mcp/compliance&quot;, auth: mtls(certs) },
+  { name: &quot;pubmed&quot;, url: &quot;https://pubmed.ncbi.nlm.nih.gov/mcp&quot;, auth: apiKey(env.PUBMED_KEY) },
+  { name: &quot;internal-ops&quot;, url: &quot;stdio:./mcp-ops-server&quot; },
+]);
+
+await federation.discover();  // pulls all tools/resources/prompts
+
+const tools = federation.allTools();  // union; namespaced by server
+// tools[0].name === &quot;hsbc-compliance.check_jurisdiction&quot;
+</code></pre>
+<p>Namespacing tools by server prevents collision and gives the model clear provenance signals.</p>
+<h3>8.8 The &quot;MCP server as a vendor abstraction&quot; pattern</h3>
+<p>If you depend on a third-party API (say, a credit-score service), wrap it as an MCP server <em>in your control</em> even if the vendor doesn&#39;t natively support MCP. Benefits:</p>
+<ul>
+<li>Standardises agent&#39;s view (same protocol regardless of vendor).</li>
+<li>Lets you swap vendors without changing agent code.</li>
+<li>Centralises auth, rate limiting, observability for that vendor.</li>
+<li>Enables A/B-ing two vendors via different MCP servers.</li>
+</ul>
+<p>This is the production-grade pattern. Don&#39;t have agents call vendor APIs directly.</p>
 
         </div>
       </section>

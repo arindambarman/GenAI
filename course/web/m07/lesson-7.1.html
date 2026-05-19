@@ -418,6 +418,69 @@ kbd {
 <p>Tag each tool: <code>read-only</code>, <code>creates</code>, <code>modifies</code>, <code>deletes</code>. Auth and audit layers can enforce different policies per category.</p>
 <h3>8.3 Documentation as prompt</h3>
 <p>Tool descriptions ARE the model&#39;s documentation. Treat them with the same care as user-facing docs.</p>
+<h3>8.4 The &quot;tool description style guide&quot; applied</h3>
+<p>Bad tool description (real example, anonymised):</p>
+<pre><code>get_data: &quot;Gets data from the system&quot;
+</code></pre>
+<p>Good tool description (rewrite):</p>
+<pre><code>get_data: &quot;Retrieve customer order history from Shopify.
+
+WHEN TO USE: After confirming the customer&#39;s identity, when you need
+their last 90 days of orders to verify a complaint or process a refund.
+
+WHEN NOT TO USE: For real-time order status (use lookup_order instead).
+For payment details (use check_payment).
+
+RETURNS: Array of up to 50 most recent orders with id, total_amount,
+status, created_at. To get older orders, paginate with cursor.&quot;
+</code></pre>
+<p>Five rules:</p>
+<ol>
+<li><strong>Lead with WHEN TO USE.</strong> This is the most important sentence.</li>
+<li><strong>State WHAT IT RETURNS</strong> in concrete terms.</li>
+<li><strong>State WHAT NOT TO USE IT FOR</strong> — prevents wrong-tool selection.</li>
+<li><strong>Reference adjacent tools.</strong> Helps the model navigate the catalogue.</li>
+<li><strong>Include constraints</strong> (limits, pagination, rate limits).</li>
+</ol>
+<p>After applying this rewrite to Acme&#39;s 31 tools, wrong-tool-selection rate dropped from 8.4% to 2.1%. Worth the half-day of writing.</p>
+<h3>8.5 Tool naming conventions</h3>
+<p>Naming carries enormous weight in model behaviour. Conventions that work:</p>
+<ul>
+<li><strong><code>verb_noun</code> not <code>noun_verb</code></strong> — <code>get_order</code> not <code>order_get</code>. Verbs match how the model thinks about actions.</li>
+<li><strong>Snake_case, lowercase</strong> — consistent with most APIs the model has seen.</li>
+<li><strong>Domain prefix for ambiguity</strong> — <code>pubmed_search</code> not <code>search</code> if you also have <code>web_search</code>.</li>
+<li><strong>Numbered versions</strong> — <code>get_order_v2</code> during transitions; helps the model and your registry agree.</li>
+<li><strong>Avoid synonyms</strong> — pick one of <code>retrieve</code>/<code>get</code>/<code>fetch</code> and stick to it.</li>
+</ul>
+<p>Bad naming patterns make agents pick wrong tools even when the description is good. The model&#39;s first heuristic is the <em>name</em>.</p>
+<h3>8.6 Tool deprecation in practice</h3>
+<p>When a tool changes incompatibly:</p>
+<pre><code class="language-yaml">- name: query_GL
+  version: 2.1.0
+  status: active
+  deprecation:
+    deprecated_at: null
+    sunset_at: null
+    replaces: query_GL_v1
+    replaced_by: null
+
+- name: query_GL_v1
+  version: 1.0.0
+  status: deprecated
+  deprecation:
+    deprecated_at: &quot;2026-01-15&quot;
+    sunset_at: &quot;2026-04-15&quot;
+    replaces: null
+    replaced_by: query_GL@2.1.0
+</code></pre>
+<p>Three-month sunset window minimum. Deprecation announced via:</p>
+<ol>
+<li>Tool registry metadata (above) — registry consumers see it.</li>
+<li>Slack to all agent owners.</li>
+<li>Email to on-call rotation for each consuming team.</li>
+<li>Last week before sunset: warnings in the tool&#39;s response payload.</li>
+</ol>
+<p>Skip any of these and you&#39;ll discover the dependency at sunset, not before.</p>
 
         </div>
       </section>

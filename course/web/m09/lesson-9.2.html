@@ -399,6 +399,167 @@ $$</p>
 <p>Server stores idempotency keys for some TTL (typically 24h). Beyond that, treats as new request. Match client retry policy to this window.</p>
 <h3>8.3 Circuit breakers</h3>
 <p>If a tool fails &gt; N times in M seconds: open circuit (refuse calls for K seconds). Prevents the agent from hammering a failing dependency.</p>
+<h3>8.4 The full retry middleware (production-grade)</h3>
+<pre><code class="language-typescript">interface RetryConfig {
+  maxAttempts: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+  jitterRatio: number;        // 0.5 = ±50% jitter
+  retryableErrors: (e: Error) =&gt; boolean;
+}
+
+async function withRetry&lt;T&gt;(
+  fn: () =&gt; Promise&lt;T&gt;,
+  config: RetryConfig,
+  idempotencyKey: string,
+): Promise&lt;T&gt; {
+  let lastError: Error;
+  for (let attempt = 0; attempt &lt; config.maxAttempts; attempt++) {
+    try {
+      // Idempotency check: did this call already succeed?
+      const cached = await idempotencyCache.get(idempotencyKey);
+      if (cached) return cached;
+
+      const result = await fn();
+      await idempotencyCache.set(idempotencyKey, result, { ttlSec: 86400 });
+      return result;
+    } catch (err) {
+      lastError = err as Error;
+      if (!config.retryableErrors(lastError)) {
+        throw lastError;  // Permanent error: don&#39;t retry
+      }
+      if (attempt === config.maxAttempts - 1) {
+        throw lastError;  // Out of retries
+      }
+      const baseDelay = Math.min(
+        config.baseDelayMs * Math.pow(2, attempt),
+        config.maxDelayMs
+      );
+      const jitter = baseDelay * config.jitterRatio * (Math.random() - 0.5) * 2;
+      await sleep(baseDelay + jitter);
+    }
+  }
+  throw lastError!;
+}
+</code></pre>
+<p>Use:</p>
+<pre><code class="language-typescript">const result = await withRetry(
+  () =&gt; queryGL(breakId),
+  {
+    maxAttempts: 4,
+    baseDelayMs: 1000,
+    maxDelayMs: 30000,
+    jitterRatio: 0.5,
+    retryableErrors: (e) =&gt; e instanceof NetworkError || e.message.includes(&quot;503&quot;),
+  },
+  `query_GL:${breakId}`
+);
+</code></pre>
+<h3>8.5 Circuit breaker implementation</h3>
+<pre><code class="language-typescript">class CircuitBreaker {
+  private state: &quot;closed&quot; | &quot;open&quot; | &quot;half-open&quot; = &quot;closed&quot;;
+  private failureCount = 0;
+  private nextAttempt = 0;
+
+  constructor(
+    private threshold: number,
+    private timeoutMs: number,
+    private halfOpenProbability: number = 0.1,
+  ) {}
+
+  async call&lt;T&gt;(fn: () =&gt; Promise&lt;T&gt;): Promise&lt;T&gt; {
+    if (this.state === &quot;open&quot;) {
+      if (Date.now() &lt; this.nextAttempt) {
+        throw new CircuitOpenError();
+      }
+      // Try half-open
+      this.state = &quot;half-open&quot;;
+    }
+
+    try {
+      const result = await fn();
+      if (this.state === &quot;half-open&quot;) {
+        this.state = &quot;closed&quot;;
+        this.failureCount = 0;
+      }
+      return result;
+    } catch (err) {
+      this.failureCount++;
+      if (this.failureCount &gt;= this.threshold) {
+        this.state = &quot;open&quot;;
+        this.nextAttempt = Date.now() + this.timeoutMs;
+      }
+      throw err;
+    }
+  }
+}
+</code></pre>
+<p>Per-tool circuit breaker. Threshold: 5 failures. Timeout: 30s.</p>
+<h3>8.6 Surfacing tool failures to the agent (don&#39;t silently retry forever)</h3>
+<p>When retries exhaust:</p>
+<pre><code class="language-typescript">// Bad — agent doesn&#39;t know the tool failed
+const result = await withRetry(() =&gt; callTool(), config, key);
+return result;  // throws on exhaustion; loop crashes
+
+// Good — agent sees the failure and adapts
+let result: ToolResult;
+try {
+  result = await withRetry(() =&gt; callTool(), config, key);
+} catch (err) {
+  result = {
+    success: false,
+    error: err.message,
+    retries_attempted: config.maxAttempts,
+  };
+}
+// Inject into trace as the observation
+trace.steps.push({ kind: &quot;observation&quot;, id: actionId, result });
+</code></pre>
+<p>The agent&#39;s next thought now factors in the tool failure. It can: switch to a different tool, mark uncertain, abort, or alert. <em>Hidden</em> failures cause silently-wrong outputs.</p>
+<h3>8.7 Rate-limit awareness in the agent</h3>
+<p>If the agent knows rate limits, it can pace itself:</p>
+<pre><code class="language-typescript">class RateLimiter {
+  private tokens: number;
+  private lastRefill: number;
+  constructor(private rate: number, private capacity: number) {
+    this.tokens = capacity;
+    this.lastRefill = Date.now();
+  }
+  async consume(): Promise&lt;void&gt; {
+    this.refill();
+    if (this.tokens &lt; 1) {
+      const wait = Math.ceil(1000 / this.rate);
+      await sleep(wait);
+      return this.consume();
+    }
+    this.tokens -= 1;
+  }
+  private refill() {
+    const now = Date.now();
+    const elapsed = (now - this.lastRefill) / 1000;
+    this.tokens = Math.min(this.capacity, this.tokens + elapsed * this.rate);
+    this.lastRefill = now;
+  }
+}
+</code></pre>
+<p>Per-tool rate limiter. Agent&#39;s tool call waits if limit reached. Smoother throughput than fail-and-retry.</p>
+<h3>8.8 The interaction between retry, idempotency, and observability</h3>
+<p>These three layers compose:</p>
+<pre><code>[Agent loop]
+       ↓ (calls tool)
+[Rate limiter] — paces calls to upstream
+       ↓
+[Circuit breaker] — opens on persistent failures
+       ↓
+[Retry middleware] — handles transient
+       ↓
+[Idempotency check] — dedupes
+       ↓
+[Tool invocation] — actual work
+       ↓
+[Observability span] — logs every layer&#39;s decision
+</code></pre>
+<p>Each layer should <em>log its own behaviour</em>: &quot;rate-limited; waited 250ms&quot;, &quot;circuit half-open; trial&quot;, &quot;retry attempt 2/4&quot;, &quot;idempotent return from cache&quot;. Without this, debugging &quot;why is this tool call slow?&quot; is impossible.</p>
 
         </div>
       </section>

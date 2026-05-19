@@ -417,6 +417,58 @@ kbd {
 <p>Start with synchronous calls between agents. Add async only when you can justify the complexity. Async multi-agent systems are 5× harder to debug.</p>
 <h3>8.2 Replay</h3>
 <p>Log every cross-agent message. To debug a bad outcome, replay the message sequence and inspect each schema-validated payload. This is what makes orchestrator-worker debuggable; peer-to-peer breaks this because there&#39;s no canonical sequence.</p>
+<h3>8.3 Versioning schemas across agent deployments</h3>
+<p>Cross-agent schemas evolve. Without discipline, you ship a worker that emits v2 of a schema to a supervisor that still expects v1, and integration silently fails.</p>
+<pre><code class="language-typescript">const FXExpertResultV2 = z.object({
+  schema_version: z.literal(&quot;2.0&quot;),
+  conclusion: z.enum([&quot;ok&quot;, &quot;issue&quot;, &quot;uncertain&quot;, &quot;out_of_scope&quot;]),  // added one
+  confidence: z.number().min(0).max(1),
+  evidence: z.array(EvidenceSchema),
+  caveats: z.array(z.string()),
+  next_action_recommended: z.string().nullable(),
+  // new in v2:
+  alternative_hypotheses: z.array(z.object({
+    conclusion: z.string(),
+    confidence: z.number(),
+  })).default([]),
+});
+</code></pre>
+<p>Versioning rules that work in production:</p>
+<ol>
+<li><strong>Every payload carries <code>schema_version</code>.</strong> Never inferable.</li>
+<li><strong>Supervisors register acceptable versions per worker.</strong> Refuse out-of-range.</li>
+<li><strong>Workers can emit ≥ 1 prior major version</strong> during transition windows.</li>
+<li><strong>Breaking changes bump major; additions bump minor.</strong> Workers should accept either.</li>
+<li><strong>Sunset old versions in writing</strong>, with deadlines. Don&#39;t accumulate forever.</li>
+</ol>
+<p>In Sherpa&#39;s hybrid system: when we added <code>alternative_hypotheses</code> (v1.x → v2.0), the supervisor was updated first to accept both, workers were upgraded over two weeks, then v1 was deprecated. Zero integration incidents.</p>
+<h3>8.4 Debugging cross-agent failures: the canonical procedure</h3>
+<p>When a multi-agent task produces a wrong outcome:</p>
+<pre><code>1. Pull the top-level trace.
+2. For each cross-agent message:
+   a. Validate against current schema (catches drift).
+   b. Compare to what the receiver *expected* (typed handoffs make this trivial).
+   c. Check the sender&#39;s confidence vs the actual support in evidence.
+3. Identify the *first* handoff where the message was either:
+   - Wrongly formed (sender bug), or
+   - Correctly formed but misinterpreted (receiver bug), or
+   - Correctly interpreted but acted on wrongly (decision bug).
+4. Reproduce locally with the same message; debug the responsible agent.
+</code></pre>
+<p>Without structured handoffs and full trace logging, this procedure is impossible. With them, mean-time-to-diagnose drops from hours to minutes.</p>
+<h3>8.5 Backpressure and shared state contention</h3>
+<p>If multiple workers write to shared state simultaneously, you get either:</p>
+<ul>
+<li><strong>Lost updates</strong> (no locking) — invisible corruption.</li>
+<li><strong>Throughput collapse</strong> (heavy locking) — visible slowdown.</li>
+</ul>
+<p>Production-tested patterns:</p>
+<ul>
+<li><strong>Append-only event log</strong> with monotonic IDs (no locking; writers append, readers project).</li>
+<li><strong>Optimistic concurrency</strong> with version numbers (writers retry on conflict; works for low-contention).</li>
+<li><strong>Single-writer model</strong> (one agent owns the canonical state; others propose updates as events).</li>
+</ul>
+<p>For Sherpa&#39;s multi-agent extension: append-only event log. Each agent emits decisions as events; supervisor projects them into the synthesis. Zero locking; zero corruption; replayable.</p>
 
         </div>
       </section>

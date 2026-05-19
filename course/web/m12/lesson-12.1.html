@@ -400,6 +400,136 @@ Continual: online updates from every trace.</p>
 <p>When self-improving: hold out an eval set that the training process <em>never sees</em>. Use it to detect overfitting to the training distribution.</p>
 <h3>8.3 The &quot;rollback&quot; plan</h3>
 <p>Self-improvement can degrade performance unexpectedly. Always able to revert to a previous model + prompt. Tag every deployment with the version that produced it.</p>
+<h3>8.4 The full prompt-level improvement pipeline</h3>
+<p>Production-feasible today, low risk:</p>
+<pre><code class="language-typescript">async function refreshPromptFromTraces() {
+  // Step 1: pull recent traces (last 30 days)
+  const traces = await traceStore.recent({ days: 30 });
+  
+  // Step 2: classify each: success / failure / borderline
+  const labelled = await Promise.all(traces.map(async (t) =&gt; ({
+    trace: t,
+    label: await classifyOutcome(t),  // ground truth from human review
+  })));
+  
+  // Step 3: mine cautionary lessons from failures
+  const failureLessons: Lesson[] = [];
+  for (const t of labelled.filter(x =&gt; x.label === &quot;failure&quot;)) {
+    const lesson = await llm.extractLesson({
+      trace: t.trace,
+      prompt: &quot;What single rule, if shown to the agent on similar future cases, would prevent this error?&quot;,
+    });
+    failureLessons.push({
+      text: lesson.text,
+      triggers: extractTriggers(t.trace),
+      source_case_id: t.trace.id,
+    });
+  }
+  
+  // Step 4: mine examples from successes
+  const examples = await Promise.all(
+    labelled
+      .filter(x =&gt; x.label === &quot;success&quot;)
+      .slice(0, 50)
+      .map(async (t) =&gt; ({
+        trace: t.trace,
+        score: await scoreExample(t.trace, { dimensions: [&quot;clarity&quot;, &quot;diversity&quot;] }),
+      }))
+  );
+  // Top 5 by score, diverse coverage
+  const bestExamples = diversify(examples.sort((a, b) =&gt; b.score - a.score), 5);
+  
+  // Step 5: propose new prompt
+  const proposedPrompt = buildPrompt({
+    base: BASE_PROMPT,
+    examples: bestExamples,
+    lessons: failureLessons.filter(l =&gt; l.source_case_id),
+  });
+  
+  // Step 6: A/B test the proposed prompt
+  const abTest = await runABTest({
+    control: currentPrompt,
+    treatment: proposedPrompt,
+    eval_set: regressionEvalSet,
+    cases_per_arm: 100,
+  });
+  
+  // Step 7: promote only if treatment wins on accuracy without
+  // significant cost or latency regression
+  if (abTest.accuracy_delta &gt; 0 &amp;&amp; abTest.cost_delta &lt; 1.10) {
+    await promotePrompt(proposedPrompt);
+    return { success: true, accuracyGain: abTest.accuracy_delta };
+  }
+  return { success: false, reason: &quot;no_improvement&quot; };
+}
+</code></pre>
+<p>Run quarterly. Catches systematic regressions; surfaces lessons; refreshes the prompt without manual labour.</p>
+<h3>8.5 DPO on agent rollouts: when it&#39;s worth it</h3>
+<p>DPO (Direct Preference Optimization) trades pretraining-quality preference data for inference-time preference data.</p>
+<p>Cost-benefit (Sherpa case):</p>
+<ul>
+<li>Trace pairs to collect: ~5,000 (one good, one corrected, per case)</li>
+<li>Annotation cost: free (we already have human corrections from Aisha&#39;s team)</li>
+<li>Training cost: ~$15K (Sonnet-class fine-tune via Anthropic&#39;s training API or self-hosted)</li>
+<li>Expected accuracy gain: 2-4pp (literature estimate)</li>
+<li>Annual value of 3pp accuracy gain: ~$30K (avoided wrong classifications)</li>
+</ul>
+<p><strong>Verdict</strong>: borderline. Worth piloting; not slam-dunk.</p>
+<p>When DPO clearly wins:</p>
+<ul>
+<li>High volume (&gt;10K tasks/day) with measurable accuracy gradient</li>
+<li>Substantial preference data (&gt;10K pairs)</li>
+<li>Tasks where prompt engineering has saturated</li>
+</ul>
+<p>When it doesn&#39;t:</p>
+<ul>
+<li>Low volume (gains don&#39;t amortise)</li>
+<li>No reliable preference signal (everything&#39;s already &quot;correct&quot;)</li>
+<li>Tasks where capability gap matters more than calibration (use a bigger model instead)</li>
+</ul>
+<h3>8.6 The catastrophic-forgetting protection scheme</h3>
+<p>For any weights-level update:</p>
+<pre><code>Pre-training-step:
+  1. Snapshot current weights (versioned).
+  2. Snapshot regression-eval baseline performance per slice.
+
+Post-training-step:
+  3. Re-run regression eval per slice.
+  4. For each slice: did accuracy drop &gt;2pp? If yes, training over-fit a different slice; reject.
+  5. Run &quot;old test&quot; — a holdout from the previous training round; ensures we haven&#39;t forgotten what we already knew.
+  6. If all checks pass: promote new weights.
+  7. If checks fail: rollback to snapshot.
+</code></pre>
+<p>This is the elasticity-vs-stability trade-off made operational. Most self-improvement work that fails in production fails at step 4 or 5.</p>
+<h3>8.7 The &quot;synthetic data&quot; temptation (and why to resist initially)</h3>
+<p>Generating training data with an LLM is tempting but high-risk:</p>
+<ul>
+<li>Synthetic data inherits the generator&#39;s biases.</li>
+<li>Hard to verify quality at scale.</li>
+<li>Can introduce subtle distributional shift.</li>
+<li>Sometimes the model trains on its own outputs and degrades.</li>
+</ul>
+<p>Use synthetic data only:</p>
+<ul>
+<li>For <em>augmenting</em> real data (10% synthetic + 90% real, not the reverse).</li>
+<li>With explicit human review of a sample.</li>
+<li>For known-rare categories you can&#39;t naturally collect.</li>
+</ul>
+<p>Production teams that get heavily into synthetic data within their first year usually regret it. Start with real data; consider synthetic after you&#39;ve shipped a working system.</p>
+<h3>8.8 RLAIF break-even (updated with worked numbers)</h3>
+<p>For Sherpa specifically:</p>
+<ul>
+<li>Task volume: 1,400/night × 365 = ~511K/year</li>
+<li>Cost of being wrong: $42 (analyst rework + audit overhead)</li>
+<li>Current accuracy: 89%</li>
+<li>Projected accuracy with RLAIF: 91-92% (literature; high uncertainty)</li>
+<li>Expected value of 2pp gain: 511K × 0.02 × $42 = $429K/year</li>
+<li>RLAIF cost (one-time): ~$200K</li>
+<li>RLAIF cost (annual refresh): ~$100K</li>
+</ul>
+<p><strong>Net</strong>: +$329K Year 1, +$329K/year ongoing.</p>
+<p><strong>But</strong>: literature gains often don&#39;t transfer (the +2pp may not materialise in your domain). Pilot before committing.</p>
+<p><strong>Recommended path</strong>: prompt-level improvements first (cheap, low-risk, captures 50% of the value). DPO if prompt-level saturates. Full RLAIF only if DPO gain is convincing.</p>
 
         </div>
       </section>

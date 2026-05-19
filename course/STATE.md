@@ -1,7 +1,8 @@
 # Course State — Agentic Systems Course
 
-**Generated:** 2026-05-19 (autonomous run)
-**Status:** Complete first draft; ready for review.
+**Generated:** 2026-05-19 (initial autonomous run)
+**Updated:** 2026-05-19 (Modules 6–13 enhancement pass)
+**Status:** Modules 1–4 full depth; Modules 5–13 deepened with worked code, concrete numbers, and production patterns; capstones spec'd.
 
 ## Inventory
 
@@ -16,7 +17,7 @@
 | Module index pages | 13 | `course/web/mNN/index.html` |
 | Root index page | 1 | `course/web/index.html` |
 | Capstones index page | 1 | `course/web/capstones/index.html` |
-| **Total words of prose** | **~49,500** | across module markdown |
+| **Total words of prose** | **~62,000** | across module markdown (+12.5K from Module 6–13 enhancement) |
 
 ## What was built per the tiered plan
 
@@ -65,9 +66,26 @@ npx tsx scripts/course-agent/src/index.ts indices
 2. Or, for source, read `course/module-01-foundations.md` and follow forward references.
 3. Slide-deck format is not generated (the user pivoted from slides to web pages mid-build).
 
+## Module 6-13 enhancement pass (2026-05-19)
+
+Each lesson in Modules 6–13 received substantial additions to §8 (Technical Deep-Dive):
+
+| Module | Words added | Key additions |
+|---|---|---|
+| 6 (Multi-Agent) | ~1,900 | Specialist-supervisor pattern; schema versioning; debugging procedure; debate protocols; cost-attribution; code-review checklist |
+| 7 (Tools/MCP) | ~1,500 | Tool description style guide; naming conventions; MCP lifecycle code; cross-org federation; agent identity model; capability tokens; compliance frameworks |
+| 8 (Eval) | ~1,700 | Task-vs-system eval; prompt leakage; sample-size calculator; stratified accuracy; shadow eval; rubric design; ensemble judge; bias detection; CI pipeline; runbook |
+| 9 (Production) | ~1,900 | Custom vs Temporal trade-off; checkpoint schema; full retry middleware; circuit breaker code; cost-attribution model; semantic cache guards; sample runbooks; capacity math; post-mortem template |
+| 10 (Safety) | ~1,500 | Input quoting patterns; injection detector; indirect injection (supply chain); full CaMeL implementation; capability tokens; injection-vs-jailbreak; red-team campaign template; SR 11-7 + EU AI Act specifics |
+| 11 (Business) | ~1,300 | Full Sherpa ROI worked example; pitfalls table; framework choice matrix; change-management playbook; stakeholder mapping; kill criteria; risk register; success scorecard |
+| 12 (Advanced) | ~1,400 | Full prompt-improvement pipeline; DPO break-even; LoRA adapters; distribution-shift detection; shadow training; maturity curve |
+| 13 (Future) | ~1,300 | Capability direction depth; design implications; application timeline; wedge strategy; sequencing; concentration risk; misuse landscape; governance map; professional ethics |
+
+Total: ~12,500 words of new technical depth, primarily worked code examples, concrete numbers from the case studies, and decision matrices.
+
 ## Known gaps / follow-up work (in priority order)
 
-1. **Standard-depth modules (5-10) are tighter than full-depth Modules 1-4.** This is by design (user's tiered plan), but if those modules ship to a paying audience, they should be expanded to match.
+1. **Module 5 (Memory/RAG) was not enhanced in this pass.** It was already at standard depth and skipped to focus on 6-13. Worth a follow-up.
 2. **Outline modules (11-13) need worked examples** — the templates are stated but readers benefit from concrete walkthroughs.
 3. **Capstone solutions are not provided** — intentional (capstones are open-ended). If used in a graded setting, build a rubric (the grading rubric in `capstones.md` is a start).
 4. **Lab code (`lab-X.Y/` directories) is referenced but not shipped.** The architecture is described; the runnable code is not. To ship as a real course, build the labs for Modules 4 (Sherpa) and 7 (MCP server) at minimum.

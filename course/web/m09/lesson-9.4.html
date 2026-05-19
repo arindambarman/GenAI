@@ -401,6 +401,163 @@ kbd {
 <p>Once a quarter: deliberately trigger an outage in non-production to verify recovery, alerts, and runbooks work. Find the gaps before real outages do.</p>
 <h3>8.3 Vendor diversity</h3>
 <p>For mission-critical agents: route across multiple LLM providers. Anthropic primary, OpenAI fallback. Costs extra config; gains availability.</p>
+<h3>8.4 Sample runbooks (the 5 alerts Sherpa actually has)</h3>
+<p><strong>Alert: Sherpa accuracy below 88% (7-day rolling)</strong></p>
+<pre><code>1. Check the per-slice dashboard. Is one category responsible?
+2. If yes: pull 10 failure traces from that category.
+3. Look at recent deploys (last 48h). Any prompt or tool change?
+4. If a change correlates: rollback (config flip + redeploy, ~5 min).
+5. If no change correlates: check upstream model version. Did Anthropic
+   release a new minor? Sometimes silent regressions on niche tasks.
+6. If still unclear: file ticket, page secondary on-call. Don&#39;t roll back
+   until cause is identified — random rollbacks make things worse.
+</code></pre>
+<p><strong>Alert: Cost per task &gt; $0.08 (24h rolling)</strong></p>
+<pre><code>1. Check cost breakdown dashboard. Which component spiked?
+2. If LLM cost: check cache hit rate. Has it dropped? (Indicates prompt
+   churn or a new task type missing the cache.)
+3. If tool cost: which tool? Has its provider raised prices, or are agents
+   using it more?
+4. Common cause: new prompt deploy invalidated cache. Wait 4h for re-warm
+   before further action.
+5. If persistent (&gt;12h after deploy): investigate prompt structure for
+   cacheability regression (Lesson 3.1).
+</code></pre>
+<p><strong>Alert: p95 latency &gt; 15s (1h rolling)</strong></p>
+<pre><code>1. Check trace dashboard. Which span is slow?
+2. If LLM call slow: check model provider status page.
+3. If tool call slow: check tool provider; possibly circuit-break this tool.
+4. If overall trace has many steps: agent is wandering. Check for recent
+   prompt changes that loosened constraints.
+5. Action: if widespread, enable degraded mode (Lesson 9.4 §4.2). If single
+   tool: circuit-break it.
+</code></pre>
+<p><strong>Alert: Tool error rate &gt; 1% on any tool</strong></p>
+<pre><code>1. Check tool&#39;s provider status.
+2. Check our caller-side: any recent change to how we invoke it?
+3. Look at error distribution: is it concentrated in time (provider) or
+   random (us)?
+4. Action: if provider-side, circuit-break and enable fallback. If our side,
+   investigate the recent change.
+</code></pre>
+<p><strong>Alert: Calibration ECE &gt; 0.05 (7-day rolling)</strong></p>
+<pre><code>1. Look at confidence histogram. Is the agent over-confident on hard cases,
+   or under-confident on easy cases?
+2. Pull 10 cases where confidence &gt; 0.85 but answer was wrong (over-confidence).
+3. Look for a pattern. Often: a class of inputs that &quot;look easy&quot; but isn&#39;t.
+4. Mitigation: add adversarial examples to regression set; possibly add
+   prompt rule warning the model about this pattern.
+</code></pre>
+<h3>8.5 The &quot;ladder of degradation&quot; — actual config</h3>
+<p>For Sherpa, three operating modes:</p>
+<pre><code class="language-yaml"># operating-modes.yaml
+normal:
+  enabled_features: all
+  cost_cap_per_task: 0.50
+  step_cap: 8
+  max_concurrent_tasks: 50
+
+degraded:
+  enabled_features: [hybrid_agent, basic_memory]
+  disabled_features: [reflection, multi_agent_handoff]
+  cost_cap_per_task: 0.20
+  step_cap: 5
+  max_concurrent_tasks: 100  # higher throughput, lower quality
+
+critical:
+  mode: fallback_to_workflow
+  message: &quot;Agent disabled; routing to manual queue&quot;
+  notify: [&#39;ops-oncall&#39;, &#39;aisha@hsbc&#39;]
+</code></pre>
+<p>Auto-switch triggers:</p>
+<ul>
+<li>Normal → Degraded: latency p95 &gt; 20s OR cost spike &gt; 2× baseline.</li>
+<li>Degraded → Critical: accuracy &lt; 80% OR provider sustained outage.</li>
+<li>Critical → Degraded → Normal: manual approval required (one-step rollback prevents flapping).</li>
+</ul>
+<h3>8.6 Capacity-planning math (concrete)</h3>
+<p>For Sherpa, projecting Q4 traffic:</p>
+<pre><code>Current Q3: 1,400 tasks/night × 6 LLM calls × 8K input tokens = 67.2M input tokens/night
+Q4 forecast (seasonal +30%): 87.4M input tokens/night
+Anthropic Tier 4 limit: 4M tokens/minute = 240M tokens/hour
+
+Peak hour during nightly batch (~3 hours):
+  87.4M / 3 = 29.1M tokens/hour
+  = 12% of rate limit → comfortable headroom
+</code></pre>
+<p>Black-Friday-shape projection (10× normal):</p>
+<pre><code>292M tokens/hour during peak → 122% of rate limit → would exceed
+Mitigations:
+  - Pre-arrange Tier 5 with Anthropic for Nov 1-Dec 31
+  - Provision OpenAI as backup for overflow routing
+  - Implement queueing with prioritised draining
+</code></pre>
+<p>Do this exercise quarterly. Surprises during peak are avoidable.</p>
+<h3>8.7 The &quot;blameless post-mortem&quot; template</h3>
+<p>After any production incident:</p>
+<pre><code>=== Incident Post-Mortem: 2026-05-19 ===
+
+What happened
+  Sherpa accuracy dropped from 91% to 71% between 02:30 and 04:15 UTC.
+  287 tasks classified as &#39;unknown&#39; that should have been classified.
+
+Timeline
+  02:14 — Routine prompt update deployed (added 1,200 tokens of
+          regulatory boilerplate).
+  02:30 — Accuracy alert fires.
+  02:38 — On-call (me) acknowledges. Initial hypothesis: model issue.
+  02:45 — Trace inspection shows agent failing to identify amount_diff
+          cases — was previously &gt;95% on those.
+  03:02 — Correlation with prompt deploy noticed.
+  03:05 — Rolled back. (Config change + redeploy.)
+  03:18 — Accuracy normalising.
+  04:15 — All accuracy metrics back to baseline.
+
+Root cause
+  Attention dilution from larger system prompt. Specifically, the
+  per-amount-class instructions got &quot;lost in the middle&quot; of the new
+  regulatory content.
+
+Why it wasn&#39;t caught
+  Regression eval focused on novel cases; didn&#39;t have stratification
+  by category, so the 5-pp drop on amount_diff was masked in aggregate.
+
+Action items
+  1. Add per-category accuracy to the regression eval gate. (owner: me, due: 2026-05-26)
+  2. Move regulatory content from system prompt to retrieval (Lesson 5.3).
+     (owner: me, due: 2026-06-02)
+  3. Update runbook: prompt-deploy alerts should specifically flag
+     cache-invalidation events.
+     (owner: ops, due: 2026-05-30)
+
+What we did right
+  - Caught within 16 min via alerting.
+  - Rollback procedure worked first try.
+  - No customer-facing impact (Sherpa is decision-support, not autonomous).
+
+What we did wrong
+  - Prompt change went through normal review without specific attention
+    to attention-budget impact.
+  - Regression eval missed this category of failure.
+
+No blame. The system enabled the mistake; the system needs better guards.
+</code></pre>
+<p>This template, used consistently, builds institutional memory of how to avoid past failures.</p>
+<h3>8.8 Final operations checklist</h3>
+<p>Before declaring an agent &quot;in production&quot;:</p>
+<ul>
+<li><input disabled="" type="checkbox"> Eval gate in CI; passes on every PR.</li>
+<li><input disabled="" type="checkbox"> Regression set + adversarial set, both stratified.</li>
+<li><input disabled="" type="checkbox"> Trace logging at OTel-compatible granularity.</li>
+<li><input disabled="" type="checkbox"> Dashboards: 5 core metrics + per-component cost.</li>
+<li><input disabled="" type="checkbox"> Alerts with documented thresholds and runbooks.</li>
+<li><input disabled="" type="checkbox"> Rollback procedure documented and tested.</li>
+<li><input disabled="" type="checkbox"> Degraded mode defined and tested.</li>
+<li><input disabled="" type="checkbox"> Capacity plan for 2× peak.</li>
+<li><input disabled="" type="checkbox"> Post-mortem template ready.</li>
+<li><input disabled="" type="checkbox"> Vendor fallback (secondary LLM provider) configured.</li>
+</ul>
+<p>If any checkbox is unchecked, you&#39;re not in production — you&#39;re in &quot;production-ish&quot; and you will be paged about it.</p>
 
         </div>
       </section>

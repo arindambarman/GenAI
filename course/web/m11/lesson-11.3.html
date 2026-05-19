@@ -393,6 +393,131 @@ Mental models (agency dial, Bayesian priors, EVoI).</p>
 <li>Overestimating the LLM cost compared to labour cost</li>
 <li>Underestimating the change-management work to get humans to trust the agent</li>
 </ul>
+<h3>8.4 The change-management playbook</h3>
+<p>Building the agent is 40% of the work. The other 60% is getting humans to trust and use it.</p>
+<p><strong>Phase 1: Shadow mode (weeks 1-4)</strong></p>
+<ul>
+<li>Agent runs but outputs aren&#39;t shown to users.</li>
+<li>Outputs logged and compared to human decisions.</li>
+<li>Goal: build the team&#39;s confidence; surface integration issues.</li>
+</ul>
+<p><strong>Phase 2: Suggestion mode (weeks 5-12)</strong></p>
+<ul>
+<li>Agent&#39;s outputs shown to users as <em>suggestions</em>.</li>
+<li>Humans accept, modify, or reject. Always commit themselves.</li>
+<li>Track: accept rate, modify rate, reject rate.</li>
+<li>Goal: humans learn what the agent is good at; agent learns from corrections.</li>
+</ul>
+<p><strong>Phase 3: Auto-mode with veto (months 4-12)</strong></p>
+<ul>
+<li>For high-confidence cases (&gt;0.95): agent commits; human notified.</li>
+<li>For mid-confidence (0.7-0.95): agent suggests; human commits.</li>
+<li>For low-confidence (&lt;0.7): escalation; human handles from scratch.</li>
+<li>Track: veto rate; if veto rate &gt; 5%, regress to phase 2.</li>
+</ul>
+<p><strong>Phase 4: Trusted autonomy (year 2+)</strong></p>
+<ul>
+<li>Auto for ≥0.85; human review for sample audit only.</li>
+<li>Periodic re-grounding sessions where humans review traces and provide corrections.</li>
+</ul>
+<p>Going too fast through phases destroys trust. Going too slow loses ROI. Phase advancement requires <em>quantitative gates</em>, not vibes.</p>
+<h3>8.5 Stakeholder mapping for agent deployments</h3>
+<p>Every agent deployment has 5-10 stakeholders. Map them upfront:</p>
+<pre><code class="language-yaml">stakeholders:
+  - role: Domain users (Aisha &amp; team)
+    concern: Will this make my job easier or threaten it?
+    win: Re-deployment to higher-value work; agent assists, doesn&#39;t replace.
+    
+  - role: Domain leadership (Priya)
+    concern: P&amp;L impact; risk of being wrong.
+    win: Defensible ROI; explicit risk modeling.
+    
+  - role: Model risk (Daniel)
+    concern: Regulatory compliance; explainability.
+    win: Full audit trail; documented validation.
+    
+  - role: Engineering leadership
+    concern: Maintenance burden; system reliability.
+    win: Production-grade discipline; runbooks; observability.
+    
+  - role: Security/compliance
+    concern: Data leakage; injection vulnerabilities.
+    win: CaMeL pattern; red-team campaigns; audit logs.
+    
+  - role: Finance
+    concern: Cost predictability.
+    win: Budget gates; cost dashboards; vendor diversification.
+</code></pre>
+<p>Win for each stakeholder. Lose any of them and the deployment stalls.</p>
+<h3>8.6 The &quot;kill criteria&quot; — when to shut it down</h3>
+<p>Define upfront what would cause you to kill the project:</p>
+<ul>
+<li>Accuracy can&#39;t reach 80% after 3 prompt-iteration cycles.</li>
+<li>Cost-per-task can&#39;t be brought under 30% of the labour cost.</li>
+<li>Three or more regulatory blockers identified during validation.</li>
+<li>User-trust metrics (CSAT-equivalent) stay below baseline after 6 months.</li>
+</ul>
+<p>Without kill criteria, sunk-cost fallacy keeps zombie projects alive. With them, you make rational shut-down decisions.</p>
+<h3>8.7 The &quot;what could go wrong&quot; template</h3>
+<p>For each agent deployment, write a 1-page risk register:</p>
+<pre><code>Top risks for Sherpa deployment:
+
+1. Hallucinated counterparty classifications during novel patterns
+   - Probability: medium
+   - Impact: financial + audit
+   - Mitigation: human-in-loop for low-confidence; full trace logged
+   - Owner: Daniel
+   
+2. Prompt-injection via SWIFT messages
+   - Probability: low
+   - Impact: financial + reputational
+   - Mitigation: input quoting; injection detector
+   - Owner: Security team
+   
+3. Vendor outage during nightly batch
+   - Probability: low
+   - Impact: operational delay
+   - Mitigation: graceful degradation to manual queue
+   - Owner: On-call
+   
+4. Regulatory finding during annual audit
+   - Probability: medium
+   - Impact: regulatory + reputational
+   - Mitigation: SR 11-7 dry-run quarterly
+   - Owner: Daniel
+   
+5. Quality regression after model upgrade (Claude Sonnet 4.7)
+   - Probability: high
+   - Impact: accuracy + cost
+   - Mitigation: regression eval blocks upgrade
+   - Owner: Eng team
+</code></pre>
+<p>Review monthly. Update probabilities and mitigations as the system matures.</p>
+<h3>8.8 The success-metric scorecard</h3>
+<p>After 6 months, score the deployment:</p>
+<pre><code class="language-yaml">metrics:
+  business:
+    npv_actual_vs_projected: 100%   # met projection
+    labour_displacement_actual: 23% # vs 21% projected
+    user_csat: 4.3                  # vs 4.2 baseline
+    cost_per_task: $0.025           # vs $0.030 projected
+    
+  technical:
+    accuracy_7d: 89%                # vs 87% target
+    calibration_ece: 0.035          # vs &lt;0.05 target
+    p95_latency: 7.8s               # vs &lt;10s target
+    incidents_in_period: 2          # 1 cost spike, 1 false alarm
+    
+  organisational:
+    user_trust_survey: 4.1          # vs 3.0 at launch
+    audits_passed: 1 / 1
+    headcount_change: +0            # no layoffs; capacity reallocated
+    new_use_cases_enabled: 3        # Aisha&#39;s team identified expansions
+
+overall: SUCCESS
+recommendation: expand to settlement reconciliation (similar pattern)
+</code></pre>
+<p>This scorecard is what justifies the <em>next</em> agent deployment.</p>
 
         </div>
       </section>

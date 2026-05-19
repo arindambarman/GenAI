@@ -405,6 +405,118 @@ kbd {
 <p>Run new versions against production traffic in shadow mode (not user-visible). Compare to live version. Catches issues the regression set misses.</p>
 <h3>8.3 Cost of evals</h3>
 <p>For Sherpa: 200-case eval × $0.05/case = $10/run. Runs ~50× per quarter = $500/quarter. Cheap.</p>
+<h3>8.4 The &quot;eval as CI&quot; implementation</h3>
+<p>A working setup:</p>
+<pre><code class="language-yaml"># .github/workflows/eval.yml
+name: Regression Eval
+on:
+  pull_request:
+    paths:
+      - &#39;agents/**&#39;
+      - &#39;prompts/**&#39;
+      - &#39;tools/**&#39;
+  schedule:
+    - cron: &#39;0 6 * * *&#39;  # daily, 6am UTC
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+      - run: pnpm install
+      - run: pnpm eval:regression --report eval-report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: eval-report.json
+      - run: pnpm eval:gate eval-report.json
+        # exits non-zero if any metric regresses past threshold
+      - if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const report = require(&#39;./eval-report.json&#39;);
+            const comment = formatRegressionReport(report);
+            github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body: comment,
+            });
+</code></pre>
+<p>The comment back to the PR shows the diff. Reviewers see at a glance.</p>
+<h3>8.5 Eval-set rotation policy</h3>
+<p>After 12 months, even &quot;frozen&quot; eval sets become stale (distribution shifts, models trained on similar data, prompt iteration leaks). Rotation policy:</p>
+<ul>
+<li><strong>Quarterly</strong>: replace 20% of the eval set with new cases from production. Retire oldest 20%.</li>
+<li><strong>Annually</strong>: full audit. Are there entire failure modes the set doesn&#39;t cover?</li>
+<li><strong>On distribution shift</strong>: if production traffic shape changes &gt;10%, refresh affected slices immediately.</li>
+</ul>
+<p>Without rotation: eval numbers converge to inflated values that don&#39;t reflect production.</p>
+<h3>8.6 The &quot;release notes&quot; generated from evals</h3>
+<p>Every release should ship with a one-page summary auto-generated from the eval run:</p>
+<pre><code>=== Sherpa v5.3.0 Release Notes ===
+
+Quality (vs v5.2.1):
+  Accuracy:      87.5% (-0.5pp)  ⚠
+  Calibration:   ECE 0.04 (-0.01) ✓
+  Cost/task:     $0.043 (-$0.002) ✓
+  p95 latency:   8.2s (+0.4s)    ✓
+
+Slice changes:
+  stale_static: 82.5% → 77.0% (-5.5pp) — INVESTIGATE
+  All other slices: within ±1pp
+
+Adversarial tests: 30/30 pass (no regressions)
+Citation faithfulness (RAG): 94.5% (+0.5pp) ✓
+
+Changes shipped:
+  - New tool: query_settlement_v2 (improved cross-currency support)
+  - Prompt refresh: clearer instructions for novel counterparties
+  - Bug fix: trace renderer preserved newlines in tool outputs
+
+Rollback procedure: revert to v5.2.1 by editing config.yaml line 12,
+deploy. ETA: 4 min.
+</code></pre>
+<p>This document lives next to the deploy. Anyone debugging an incident has it in hand.</p>
+<h3>8.7 The &quot;evals as documentation&quot; insight</h3>
+<p>A well-maintained eval set IS your specification of correct behaviour. Better than written specs because:</p>
+<ul>
+<li>Specs go stale; eval failures break CI.</li>
+<li>Specs are ambiguous; eval cases are concrete.</li>
+<li>Specs hide assumptions; eval inputs surface them.</li>
+</ul>
+<p>Treat the eval set as canonical. When the spec disagrees with the eval, the eval wins. When you find a behaviour you want, add it as an eval case.</p>
+<h3>8.8 Investment scaling: when to add eval infrastructure</h3>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Eval investment</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>First agent prototype</td>
+<td>Manual review of 10 traces; no infrastructure</td>
+</tr>
+<tr>
+<td>Pre-production</td>
+<td>50-case regression set; CI gate; manual review</td>
+</tr>
+<tr>
+<td>Production launch</td>
+<td>200-case regression + adversarial + LLM-as-judge for open-ended</td>
+</tr>
+<tr>
+<td>Multi-team production</td>
+<td>Shadow eval; per-team regression sets; calibration ensemble</td>
+</tr>
+<tr>
+<td>Regulatory (banking, medical)</td>
+<td>+ Per-deployment audit log; explainability checks; quarterly red-team</td>
+</tr>
+</tbody></table>
+<p>Don&#39;t over-invest before the agent is real. Don&#39;t under-invest after launch.</p>
 
         </div>
       </section>
