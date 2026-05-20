@@ -31,6 +31,55 @@ let state: LearnerState = {
   modulesRead: new Set(),
 };
 
+// ─── Checkpointing (M9.1 Durable Execution applied to the Learner) ─────
+//
+// After every record_* / mark_module_processed call, we write the full
+// state to a recovery file. If the agent crashes mid-run, the partial
+// progress is on disk and can be recovered.
+let checkpointPath: string | null = null;
+
+export function setCheckpointPath(path: string): void {
+  checkpointPath = path;
+}
+
+async function writeCheckpoint(): Promise<void> {
+  if (!checkpointPath) return;
+  try {
+    await mkdir(dirname(checkpointPath), { recursive: true });
+    const payload = {
+      concepts: state.concepts,
+      relationships: state.relationships,
+      optimizations: state.optimizations,
+      modulesRead: [...state.modulesRead],
+      checkpointed_at: new Date().toISOString(),
+    };
+    await writeFile(checkpointPath, JSON.stringify(payload, null, 2), "utf-8");
+  } catch {
+    // Don't crash the agent if checkpoint fails — log only.
+    // (The state is still in memory; this is just persistence.)
+  }
+}
+
+export async function loadCheckpoint(path: string): Promise<boolean> {
+  if (!existsSync(path)) return false;
+  try {
+    const raw = await readFile(path, "utf-8");
+    const data = JSON.parse(raw) as {
+      concepts: Concept[];
+      relationships: Relationship[];
+      optimizations: Optimization[];
+      modulesRead: string[];
+    };
+    state.concepts = data.concepts;
+    state.relationships = data.relationships;
+    state.optimizations = data.optimizations;
+    state.modulesRead = new Set(data.modulesRead);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function resetState(): void {
   state = {
     concepts: [],
@@ -167,6 +216,7 @@ export const recordConceptTool = {
     } else {
       state.concepts.push(args);
     }
+    await writeCheckpoint();
     return { recorded: true, total: state.concepts.length };
   },
 } as const;
@@ -182,6 +232,7 @@ export const recordRelationshipTool = {
       (r) => r.from === args.from && r.to === args.to && r.type === args.type,
     );
     if (!exists) state.relationships.push(args);
+    await writeCheckpoint();
     return { recorded: true, total: state.relationships.length };
   },
 } as const;
@@ -193,6 +244,7 @@ export const recordOptimizationTool = {
   inputSchema: OptimizationSchema,
   handler: async (args: Optimization): Promise<{ recorded: true; total: number }> => {
     state.optimizations.push(args);
+    await writeCheckpoint();
     return { recorded: true, total: state.optimizations.length };
   },
 } as const;
@@ -235,6 +287,7 @@ export const markModuleProcessedTool = {
   handler: async (args: { module_id: string }): Promise<{ marked: true; processed_so_far: string[] }> => {
     const padded = args.module_id.padStart(2, "0");
     state.modulesRead.add(padded);
+    await writeCheckpoint();
     return { marked: true, processed_so_far: [...state.modulesRead] };
   },
 } as const;

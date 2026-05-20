@@ -73,13 +73,25 @@ export async function callLLM(input: CallLLMInput): Promise<LLMResponse> {
   const model = input.model ?? env.model;
   const tools = input.tools ? toAnthropicTools(input.tools) : undefined;
 
-  const response = await c.messages.create({
-    model,
-    max_tokens: input.maxTokens ?? 4096,
-    system: input.system,
-    messages: input.messages as Anthropic.MessageParam[],
-    ...(tools ? { tools: tools as Anthropic.Tool[] } : {}),
-  });
+  const response = await withRetry(
+    () =>
+      c.messages.create({
+        model,
+        max_tokens: input.maxTokens ?? 4096,
+        system: input.system,
+        messages: input.messages as Anthropic.MessageParam[],
+        ...(tools ? { tools: tools as Anthropic.Tool[] } : {}),
+      }),
+    {
+      maxAttempts: 4,
+      baseDelayMs: 1000,
+      onRetry: (attempt, err) => {
+        console.error(
+          `[LLM retry ${attempt}/4 in ${Math.round(1000 * Math.pow(2, attempt - 1))}ms] ${err instanceof Error ? err.message : String(err)}`,
+        );
+      },
+    },
+  );
 
   return {
     content: response.content as LLMContentBlock[],
@@ -90,6 +102,59 @@ export async function callLLM(input: CallLLMInput): Promise<LLMResponse> {
     },
     cost: calcCost(response.usage.input_tokens, response.usage.output_tokens, model),
   };
+}
+
+/**
+ * Retry wrapper for LLM calls. Retries on transient errors (network /
+ * 5xx / 429) with exponential backoff + jitter. Permanent errors
+ * (4xx other than 429) throw immediately.
+ *
+ * This is Lesson 9.2 (Retry & Idempotency) applied to the agent's own
+ * LLM client. Without this, any transient API hiccup kills the whole
+ * agent run mid-loop.
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  opts: { maxAttempts: number; baseDelayMs: number; onRetry?: (attempt: number, err: unknown) => void },
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= opts.maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (!isRetryable(err)) throw err;
+      if (attempt === opts.maxAttempts) break;
+      opts.onRetry?.(attempt, err);
+      const baseDelay = opts.baseDelayMs * Math.pow(2, attempt - 1);
+      const jitter = baseDelay * (Math.random() * 0.5);
+      await new Promise((resolve) => setTimeout(resolve, baseDelay + jitter));
+    }
+  }
+  throw lastErr;
+}
+
+function isRetryable(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message.toLowerCase();
+  // Network errors
+  if (msg.includes("econnreset") || msg.includes("etimedout") || msg.includes("network") || msg.includes("fetch failed") || msg.includes("socket hang up")) {
+    return true;
+  }
+  // Rate limit
+  if (msg.includes("429") || msg.includes("rate limit") || msg.includes("overloaded")) {
+    return true;
+  }
+  // Transient server errors
+  if (msg.includes("502") || msg.includes("503") || msg.includes("504") || msg.includes("gateway")) {
+    return true;
+  }
+  // Anthropic-specific status patterns
+  const anyErr = err as { status?: number };
+  if (anyErr.status && (anyErr.status === 429 || anyErr.status >= 500)) {
+    return true;
+  }
+  return false;
 }
 
 function defaultMockResponse(input: CallLLMInput): Promise<LLMResponse> {

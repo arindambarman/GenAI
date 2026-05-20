@@ -1,7 +1,8 @@
+import { join, resolve } from "node:path";
 import { runAgentLoop } from "../shared/agent-loop.js";
 import type { Trace } from "../shared/trace.js";
 import { SYSTEM_PROMPT } from "./prompts.js";
-import { learnerTools, getState, resetState, writeLearnerOutput } from "./tools.js";
+import { learnerTools, getState, resetState, writeLearnerOutput, setCheckpointPath, loadCheckpoint } from "./tools.js";
 import {
   LearningReportSchema,
   type LearningReport,
@@ -26,7 +27,17 @@ export async function runLearnerAgent(
   input: LearnerInput,
   onProgress?: (trace: Trace) => void,
 ): Promise<LearnerResult> {
-  resetState();
+  // Install a checkpoint file before running. Per-tool-call writes
+  // persist partial progress; on crash, the file is left for recovery.
+  const checkpointPath = resolve(join(input.outputDir, "_recovery.json"));
+  setCheckpointPath(checkpointPath);
+
+  // Try to resume from prior checkpoint if it exists.
+  // Otherwise start fresh.
+  const resumed = await loadCheckpoint(checkpointPath);
+  if (!resumed) {
+    resetState();
+  }
 
   const userMessage = `# Task
 
