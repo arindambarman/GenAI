@@ -14,6 +14,7 @@
     "knowledge": "tsx --env-file=../../.env src/knowledge-agent/run.ts",
     "brainstorm": "tsx --env-file=../../.env src/brainstorm-agent/run.ts",
     "learner": "tsx --env-file=../../.env src/learner-agent/run.ts",
+    "pipeline": "tsx --env-file=../../.env src/pipeline/run.ts",
     "ui": "tsx --env-file=../../.env src/ui/server.ts"
   },
   "dependencies": {

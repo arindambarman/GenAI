@@ -1,0 +1,146 @@
+[
+  {
+    "id": "mdp",
+    "name": "Markov Decision Process (MDP)",
+    "definition": "Tuple ⟨S, A, T, R, γ⟩ — state space, action space, transition function, reward, discount — for modelling sequential decision-making under full observability. The standard formalism for agent decisions; LLM agents approximate optimal MDP policies without solving them explicitly.",
+    "source_lessons": ["2.1"],
+    "category": "foundational",
+    "importance": 9
+  },
+  {
+    "id": "markov-property",
+    "name": "Markov Property",
+    "definition": "Assumption that the next state depends only on the current state and action, not on the history. A modelling choice, not a physical law. For LLM agents holds trivially when the state is defined as the context window.",
+    "source_lessons": ["2.1"],
+    "category": "math",
+    "importance": 7
+  },
+  {
+    "id": "bellman-equation",
+    "name": "Bellman Optimality Equation",
+    "definition": "V*(s) = max_a [R(s,a) + γ Σ_s' T(s'|s,a) V*(s')]. Recursive expression for the optimal value function. Solvable by value iteration; LLM agents approximate V* implicitly via the model's learned heuristics.",
+    "source_lessons": ["2.1"],
+    "category": "math",
+    "importance": 8
+  },
+  {
+    "id": "pomdp",
+    "name": "POMDP (Partially Observable MDP)",
+    "definition": "MDP extended with observation model Ω(o|s',a). Agent never sees state s directly; instead maintains a belief over latent states. The right formalism for LLM agents, where tool outputs are observations and underlying truth is hidden.",
+    "source_lessons": ["2.2"],
+    "category": "foundational",
+    "importance": 10
+  },
+  {
+    "id": "belief-state",
+    "name": "Belief State",
+    "definition": "Probability distribution b ∈ Δ(S) over latent states. The agent's 'knowledge state' — updated via Bayes after every observation. Central to POMDP theory and the conceptual root of how LLM agents implicitly maintain knowledge in context.",
+    "source_lessons": ["2.2"],
+    "category": "foundational",
+    "importance": 10
+  },
+  {
+    "id": "belief-update",
+    "name": "Belief Update (Bayesian)",
+    "definition": "b'(s') = η · Ω(o|s',a) · Σ_s T(s'|s,a) b(s). The central equation of POMDP theory — converts an observation into a refined belief. LLM agents perform this implicitly by conditioning on the trace in context.",
+    "source_lessons": ["2.2"],
+    "category": "math",
+    "importance": 9
+  },
+  {
+    "id": "evoi",
+    "name": "Expected Value of Information (EVoI)",
+    "definition": "EVoI(a) = E_o[V(b'_o)] − V(b) − c(a). How much value an action's information gain produces, minus its cost. Stop and answer when no action's EVoI is positive. Operational basis for agent termination rules.",
+    "source_lessons": ["2.2"],
+    "category": "operational",
+    "importance": 9
+  },
+  {
+    "id": "vopi",
+    "name": "Value of Perfect Information (VoPI)",
+    "definition": "Upper bound on the value of any single observation — the value of being told the true state directly. When VoPI is small, no observation is worth taking; commit on the current belief.",
+    "source_lessons": ["2.2"],
+    "category": "math",
+    "importance": 6
+  },
+  {
+    "id": "implicit-belief",
+    "name": "Implicit Belief (LLM context as belief state)",
+    "definition": "Pattern: LLM agents represent belief as the contents of the context window rather than as an explicit probability distribution. Markov property holds trivially; trade is opacity (no inspectable distribution) and lack of a formal stopping criterion.",
+    "source_lessons": ["2.2"],
+    "category": "architecture",
+    "importance": 9
+  },
+  {
+    "id": "bayes-rule",
+    "name": "Bayes' Rule",
+    "definition": "P(H|E) = P(E|H) · P(H) / P(E). Posterior = (likelihood × prior) / marginal. The mathematical operation behind all belief updates; LLM prompts encode it implicitly via base-rate awareness.",
+    "source_lessons": ["2.3"],
+    "category": "math",
+    "importance": 9
+  },
+  {
+    "id": "prior-encoding",
+    "name": "Prior Encoding in Prompts",
+    "definition": "Pattern: embed Bayesian priors (base rates) directly in the system prompt, tool descriptions, and few-shot examples so the LLM behaves Bayesianly without computing posteriors. The production-ready way to make agents 'Bayesian'.",
+    "source_lessons": ["2.3"],
+    "category": "architecture",
+    "importance": 8
+  },
+  {
+    "id": "log-odds-form",
+    "name": "Log-Odds Form of Bayes",
+    "definition": "log P(H₁|E)/P(H₂|E) = log P(E|H₁)/P(E|H₂) + log P(H₁)/P(H₂). Each evidence contributes additively to log-posterior-odds. Easier to reason with than the multiplicative form, especially with multi-evidence problems.",
+    "source_lessons": ["2.3"],
+    "category": "math",
+    "importance": 6
+  },
+  {
+    "id": "calibration",
+    "name": "Calibration (Confidence Reliability)",
+    "definition": "Property of a well-calibrated agent: when it says 'X% confident', it is right X% of the time. Measured via reliability diagrams / Expected Calibration Error (ECE). LLM agents are typically miscalibrated (over-confident on rare classes); a primary eval metric.",
+    "source_lessons": ["2.3"],
+    "category": "operational",
+    "importance": 8
+  },
+  {
+    "id": "entropy",
+    "name": "Shannon Entropy",
+    "definition": "H(X) = -Σ P(x) log P(x). Quantifies uncertainty about X in bits. Maximum at uniform distribution; zero at point mass. The foundation of all information-theoretic agent metrics.",
+    "source_lessons": ["2.4"],
+    "category": "math",
+    "importance": 8
+  },
+  {
+    "id": "mutual-information",
+    "name": "Mutual Information I(X;Y)",
+    "definition": "I(X;Y) = H(X) − H(X|Y). How much observing Y reduces uncertainty about X, on average. Maximised by tool choices that test between the agent's top hypotheses.",
+    "source_lessons": ["2.4"],
+    "category": "math",
+    "importance": 8
+  },
+  {
+    "id": "expected-information-gain",
+    "name": "Expected Information Gain (EIG) per tool",
+    "definition": "EIG(tool) = H(b) − E_o[H(b'_o)]. Expected reduction in belief entropy from invoking a tool. Combined with cost yields EIG-per-dollar — a principled tool ranking the agent can be prompted to approximate.",
+    "source_lessons": ["2.4"],
+    "category": "operational",
+    "importance": 9
+  },
+  {
+    "id": "information-greedy-prompting",
+    "name": "Information-Greedy Prompt Pattern",
+    "definition": "Prompt rule: 'prefer tools that test between top-2 hypotheses, not those that confirm the leading one.' Encodes EIG-optimal tool choice as a heuristic the LLM can act on without explicit computation.",
+    "source_lessons": ["2.4"],
+    "category": "architecture",
+    "importance": 7
+  },
+  {
+    "id": "kl-divergence",
+    "name": "KL Divergence D_KL(P‖Q)",
+    "definition": "Asymmetric measure of how distribution P differs from Q. Used in RLHF/DPO (constraint to reference policy), posterior comparison (how much did the belief update?), and calibration measurement (how much does elicited posterior differ from true?).",
+    "source_lessons": ["2.4"],
+    "category": "math",
+    "importance": 7
+  }
+]

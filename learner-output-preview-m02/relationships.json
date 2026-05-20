@@ -1,0 +1,107 @@
+[
+  {
+    "from": "pomdp",
+    "to": "mdp",
+    "type": "extends",
+    "reason": "POMDP adds an observation model Ω(o|s',a) and belief-state machinery to the MDP formalism for cases where state is not fully observed.",
+    "source_lesson": "2.2"
+  },
+  {
+    "from": "belief-update",
+    "to": "bayes-rule",
+    "type": "uses",
+    "reason": "The POMDP belief update IS a Bayesian update over latent states — the form b'(s') ∝ Ω(o|s',a)·Σ T(s'|s,a)b(s) is Bayes' rule applied to the belief distribution.",
+    "source_lesson": "2.2"
+  },
+  {
+    "from": "evoi",
+    "to": "belief-update",
+    "type": "uses",
+    "reason": "Computing EVoI requires projecting future beliefs after observations, which uses the belief update equation iteratively.",
+    "source_lesson": "2.2"
+  },
+  {
+    "from": "vopi",
+    "to": "evoi",
+    "type": "specializes",
+    "reason": "VoPI is the upper bound on EVoI — the value if the observation were perfectly informative. Used to bound when no observation can be worth its cost.",
+    "source_lesson": "2.2"
+  },
+  {
+    "from": "implicit-belief",
+    "to": "belief-state",
+    "type": "specializes",
+    "reason": "Implicit belief is the LLM-agent's non-distributional approximation to the formal POMDP belief state — Markov-trivial but opaque.",
+    "source_lesson": "2.2"
+  },
+  {
+    "from": "prior-encoding",
+    "to": "bayes-rule",
+    "type": "uses",
+    "reason": "Prior-encoding is the production pattern that makes Bayes operational in LLM prompts: priors live in the system prompt, likelihoods in tool descriptions.",
+    "source_lesson": "2.3"
+  },
+  {
+    "from": "log-odds-form",
+    "to": "bayes-rule",
+    "type": "alternative_to",
+    "reason": "Log-odds form is an equivalent re-formulation of Bayes that makes multi-evidence combination additive instead of multiplicative.",
+    "source_lesson": "2.3"
+  },
+  {
+    "from": "calibration",
+    "to": "bayes-rule",
+    "type": "uses",
+    "reason": "Calibration measures how Bayesian-coherent the agent's elicited confidences are against actual outcomes.",
+    "source_lesson": "2.3"
+  },
+  {
+    "from": "mutual-information",
+    "to": "entropy",
+    "type": "uses",
+    "reason": "I(X;Y) is defined as the difference H(X) − H(X|Y) of entropies — built on top of the entropy primitive.",
+    "source_lesson": "2.4"
+  },
+  {
+    "from": "expected-information-gain",
+    "to": "mutual-information",
+    "type": "uses",
+    "reason": "EIG of a tool equals the expected mutual information between the latent state and the tool's observation outcome.",
+    "source_lesson": "2.4"
+  },
+  {
+    "from": "information-greedy-prompting",
+    "to": "expected-information-gain",
+    "type": "uses",
+    "reason": "Information-greedy prompting encodes EIG-optimal behaviour as a heuristic rule the LLM can follow without explicit EIG computation.",
+    "source_lesson": "2.4"
+  },
+  {
+    "from": "kl-divergence",
+    "to": "mutual-information",
+    "type": "alternative_to",
+    "reason": "Both quantify 'distance' in distribution space but with different properties: MI is symmetric and additive across independent observations; KL is asymmetric and used for policy regularisation.",
+    "source_lesson": "2.4"
+  },
+  {
+    "from": "evoi",
+    "to": "agency-dial",
+    "type": "uses",
+    "reason": "[CROSS-MODULE → M01] EVoI gives the formal basis for choosing dial settings — agents that don't account for EVoI tend toward dial 3 wandering rather than dial 2 efficiency.",
+    "source_lesson": "2.2"
+  },
+  {
+    "from": "evoi",
+    "to": "react-loop",
+    "type": "precedes",
+    "reason": "[CROSS-MODULE → M01] EVoI is the principled foundation for ReAct loop termination — though the course doesn't introduce ReAct until 1.4, the formal motivation comes from 2.2.",
+    "source_lesson": "2.2"
+  },
+  {
+    "from": "calibration",
+    "to": "implicit-belief",
+    "type": "uses",
+    "reason": "Calibration is meaningful only for agents with elicited confidence — i.e., those maintaining implicit belief that we ask the model to quantify.",
+    "source_lesson": "2.3"
+  }
+]

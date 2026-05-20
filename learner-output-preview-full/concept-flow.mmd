@@ -1,0 +1,166 @@
+flowchart LR
+  %% Numbered concept flow across all 13 modules
+  %% Boxes are numbered for cross-reference with concept-tables.md
+
+  subgraph M1[Module 1 · Foundations]
+    direction TB
+    n1((1)):::found
+    n2((2)):::found
+    n3((3)):::found
+    n4((4)):::found
+    n1 --> n2 --> n3 --> n4
+  end
+
+  subgraph M2[Module 2 · Math]
+    direction TB
+    n5((5)):::math
+    n6((6)):::math
+    n7((7)):::math
+    n8((8)):::math
+    n9((9)):::math
+    n10((10)):::math
+    n5 --> n6 --> n7
+    n6 --> n8
+    n9 --> n10
+  end
+
+  subgraph M3[Module 3 · LLM Internals]
+    direction TB
+    n11((11)):::arch
+    n12((12)):::arch
+    n13((13)):::arch
+    n14((14)):::arch
+    n11 --> n12
+    n13 --> n14
+  end
+
+  subgraph M4[Module 4 · Sherpa]
+    direction TB
+    n15((15)):::arch
+    n16((16)):::arch
+    n17((17)):::arch
+    n18((18)):::arch
+    n19((19)):::arch
+    n20((20)):::ops
+    n15 --> n16 --> n17 --> n18 --> n19 --> n20
+  end
+
+  subgraph M5[Module 5 · Memory & RAG]
+    direction TB
+    n21((21)):::arch
+    n22((22)):::arch
+    n23((23)):::arch
+    n24((24)):::arch
+    n25((25)):::ops
+    n21 --> n22 --> n23
+    n23 --> n24
+    n23 --> n25
+  end
+
+  subgraph M6[Module 6 · Multi-Agent]
+    direction TB
+    n26((26)):::arch
+    n27((27)):::arch
+    n28((28)):::arch
+    n29((29)):::arch
+    n26 --> n27
+    n26 --> n28
+    n26 --> n29
+  end
+
+  subgraph M7[Module 7 · Tools & MCP]
+    direction TB
+    n30((30)):::arch
+    n31((31)):::arch
+    n32((32)):::arch
+    n33((33)):::arch
+    n30 --> n31
+    n32 --> n33
+  end
+
+  subgraph M8[Module 8 · Eval]
+    direction TB
+    n34((34)):::ops
+    n35((35)):::ops
+    n36((36)):::ops
+    n37((37)):::ops
+    n34 --> n37
+    n36 --> n35
+  end
+
+  subgraph M9[Module 9 · Production]
+    direction TB
+    n38((38)):::ops
+    n39((39)):::ops
+    n40((40)):::ops
+    n41((41)):::ops
+    n38 --> n39
+    n40 --> n41
+  end
+
+  subgraph M10[Module 10 · Safety]
+    direction TB
+    n42((42)):::safety
+    n43((43)):::safety
+    n44((44)):::safety
+    n45((45)):::safety
+    n42 --> n43
+    n44 --> n45
+  end
+
+  subgraph M11[Module 11 · Business]
+    direction TB
+    n46((46)):::biz
+    n47((47)):::biz
+    n48((48)):::biz
+    n46 --> n47 --> n48
+  end
+
+  subgraph M12[Module 12 · Advanced]
+    direction TB
+    n49((49)):::frontier
+    n50((50)):::frontier
+    n51((51)):::frontier
+    n49 --> n50
+    n49 --> n51
+  end
+
+  subgraph M13[Module 13 · Frontier]
+    direction TB
+    n52((52)):::frontier
+    n53((53)):::frontier
+    n52 --> n53
+  end
+
+  %% Cross-module spine
+  n1 ==> n15
+  n4 ==> n15
+  n5 ==> n15
+  n6 ==> n16
+  n8 ==> n20
+  n10 ==> n31
+  n11 ==> n15
+  n11 ==> n30
+  n13 ==> n15
+  n19 ==> n23
+  n19 ==> n26
+  n19 ==> n38
+  n19 ==> n34
+  n19 ==> n43
+  n25 ==> n45
+  n35 ==> n6
+  n44 ==> n43
+  n45 ==> n53
+  n46 ==> n19
+  n48 ==> n19
+  n49 ==> n19
+  n52 ==> n19
+
+  %% Color classes
+  classDef found fill:#fee,stroke:#c33,stroke-width:2px,color:#000
+  classDef math fill:#fdf,stroke:#b3b,color:#000
+  classDef arch fill:#def,stroke:#36a,color:#000
+  classDef ops fill:#cfc,stroke:#393,color:#000
+  classDef safety fill:#fcc,stroke:#933,color:#000
+  classDef biz fill:#ffe,stroke:#aa6,color:#000
+  classDef frontier fill:#dff,stroke:#599,color:#000

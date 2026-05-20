@@ -1,0 +1,37 @@
+graph LR
+  %% Module 2 internal structure
+  mdp --> pomdp
+  pomdp --> belief-state
+  belief-state --> belief-update
+  belief-update -.uses.-> bayes-rule
+  belief-state --> evoi
+  evoi -.bounded-by.-> vopi
+  bayes-rule --> log-odds-form
+  bayes-rule --> prior-encoding
+  prior-encoding -.measured-by.-> calibration
+  entropy --> mutual-information
+  mutual-information --> expected-information-gain
+  expected-information-gain --> information-greedy-prompting
+  kl-divergence -.alternative.-> mutual-information
+  pomdp -.precedes.-> implicit-belief
+  calibration -.requires.-> implicit-belief
+
+  %% Cross-module forward references (will become bridges to M3-M8)
+  pomdp -.applied-in.-> sherpa-v1_M4[Sherpa v1 / M4.1]
+  evoi -.derives.-> termination-rule_M4[confidence threshold / M4.1]
+  prior-encoding -.applied-in.-> tool-descriptions_M3[Tool descriptions / M3.2]
+  calibration -.eval-metric.-> ece_M8[ECE eval / M8.1]
+  expected-information-gain -.applied-in.-> retrieval-scoring_M5[Retrieval scoring / M5.1]
+
+  %% Category colouring
+  classDef foundational fill:#fee,stroke:#c33,stroke-width:2px
+  classDef math fill:#fdf,stroke:#b3b
+  classDef architecture fill:#def,stroke:#36a
+  classDef operational fill:#cfc,stroke:#393
+  classDef external fill:#eee,stroke:#999,stroke-dasharray:5
+
+  class mdp,pomdp,belief-state foundational
+  class bayes-rule,entropy,mutual-information,kl-divergence,log-odds-form,belief-update,bellman-equation math
+  class implicit-belief,prior-encoding,information-greedy-prompting architecture
+  class evoi,calibration,expected-information-gain,vopi operational
+  class sherpa-v1_M4,termination-rule_M4,tool-descriptions_M3,ece_M8,retrieval-scoring_M5 external

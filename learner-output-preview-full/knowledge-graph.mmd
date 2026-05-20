@@ -1,0 +1,180 @@
+graph LR
+  %% ─── M1 Foundations ───
+  subgraph M1[M1 · Foundations]
+    agency-dial
+    react-loop
+    paradigms{{ReAct/Reflexion/PaS/CodeAct}}
+    five-questions[5-Q framework]
+  end
+
+  %% ─── M2 Math ───
+  subgraph M2[M2 · Math]
+    pomdp
+    belief-state
+    evoi
+    bayes-rule
+    entropy
+    eig-per-dollar
+  end
+
+  %% ─── M3 LLM Internals ───
+  subgraph M3[M3 · LLM Internals]
+    strict-tool-use
+    constrained-decoding
+    seven-block-prompt[7-block prompt]
+    prompt-cache
+  end
+
+  %% ─── M4 Sherpa evolution ───
+  subgraph M4[M4 · Single-Agent: Sherpa]
+    sherpa-v1[Sherpa v1 ReAct]
+    sherpa-v2[v2 Memory]
+    sherpa-v3[v3 Reflection]
+    sherpa-v4[v4 Plan-and-Solve]
+    sherpa-v5[v5 Production]
+    eval-gate
+  end
+
+  %% ─── M5 RAG ───
+  subgraph M5[M5 · Memory & RAG]
+    vector-store
+    hybrid-retrieval
+    agentic-rag
+    memory-compaction
+    citation-faithfulness
+  end
+
+  %% ─── M6 Multi-Agent ───
+  subgraph M6[M6 · Multi-Agent]
+    orchestrator-worker
+    specialist-supervisor
+    handoff-schema
+    debate
+  end
+
+  %% ─── M7 Tools/MCP ───
+  subgraph M7[M7 · Tools & MCP]
+    mcp-server
+    tool-registry
+    sandbox
+    capability-token
+  end
+
+  %% ─── M8 Eval ───
+  subgraph M8[M8 · Eval]
+    regression-eval
+    calibration-ece
+    llm-judge
+    observability-spans
+  end
+
+  %% ─── M9 Production ───
+  subgraph M9[M9 · Production]
+    durable-execution
+    retry-idempotency
+    prompt-cache-prod[cache & tiering]
+    runbooks
+  end
+
+  %% ─── M10 Safety ───
+  subgraph M10[M10 · Safety]
+    prompt-injection
+    camel[CaMeL pattern]
+    red-team
+    audit-trail
+  end
+
+  %% ─── M11 Business ───
+  subgraph M11[M11 · Business]
+    roi-model
+    build-vs-buy
+    change-mgmt[change management]
+  end
+
+  %% ─── M12 Advanced ───
+  subgraph M12[M12 · Advanced]
+    self-improvement
+    dpo-rollouts[DPO on rollouts]
+    lora-adapters
+  end
+
+  %% ─── M13 Frontier ───
+  subgraph M13[M13 · Frontier]
+    capability-frontier
+    governance
+  end
+
+  %% ─── Intra-module edges (most important only) ───
+  agency-dial --> paradigms
+  paradigms --> react-loop
+  five-questions --> agency-dial
+  pomdp --> belief-state
+  belief-state --> evoi
+  belief-state -.uses.-> bayes-rule
+  entropy --> eig-per-dollar
+  strict-tool-use --> constrained-decoding
+  sherpa-v1 --> sherpa-v2
+  sherpa-v2 --> sherpa-v3
+  sherpa-v3 --> sherpa-v4
+  sherpa-v4 --> sherpa-v5
+  sherpa-v5 --> eval-gate
+  vector-store --> hybrid-retrieval
+  hybrid-retrieval --> agentic-rag
+  agentic-rag --> citation-faithfulness
+  agentic-rag --> memory-compaction
+  orchestrator-worker --> handoff-schema
+  orchestrator-worker --> debate
+  mcp-server --> tool-registry
+  sandbox --> capability-token
+  regression-eval --> observability-spans
+  llm-judge --> calibration-ece
+  durable-execution --> retry-idempotency
+  prompt-cache-prod --> runbooks
+  prompt-injection --> camel
+  red-team --> audit-trail
+  roi-model --> build-vs-buy
+  build-vs-buy --> change-mgmt
+  self-improvement --> dpo-rollouts
+  self-improvement --> lora-adapters
+
+  %% ─── CROSS-MODULE BRIDGES (the spine of the course) ───
+  agency-dial ===|frames every architecture decision| sherpa-v1
+  pomdp ===|formal model of| sherpa-v1
+  evoi ===|derives| eval-gate
+  bayes-rule ===|encoded via| seven-block-prompt
+  eig-per-dollar ===|ranks| tool-registry
+  belief-state ===|approximated by| memory-compaction
+  prompt-cache ===|operationalised in| prompt-cache-prod
+  strict-tool-use ===|used by all agents| sherpa-v1
+  strict-tool-use ===|used by| mcp-server
+  sherpa-v5 ===|extends with| memory-compaction
+  sherpa-v5 ===|extends with| agentic-rag
+  sherpa-v5 ===|composes into| orchestrator-worker
+  sherpa-v5 ===|hardened by| durable-execution
+  sherpa-v5 ===|evaluated by| regression-eval
+  sherpa-v5 ===|secured by| camel
+  citation-faithfulness ===|feeds| audit-trail
+  calibration-ece ===|reflects| belief-state
+  red-team ===|tests| camel
+  audit-trail ===|required by| governance
+  roi-model ===|justifies| sherpa-v5
+  change-mgmt ===|operationalises| sherpa-v5
+  self-improvement ===|targets| sherpa-v5
+  capability-frontier ===|shapes plan for| sherpa-v5
+
+  %% ─── Styling by category ───
+  classDef foundational fill:#fee,stroke:#c33,stroke-width:2px,color:#000
+  classDef math fill:#fdf,stroke:#b3b,color:#000
+  classDef architecture fill:#def,stroke:#36a,color:#000
+  classDef operational fill:#cfc,stroke:#393,color:#000
+  classDef safety fill:#fcc,stroke:#933,color:#000
+  classDef business fill:#ffe,stroke:#aa6,color:#000
+  classDef frontier fill:#dff,stroke:#599,color:#000
+
+  class agency-dial,paradigms,five-questions,react-loop foundational
+  class pomdp,belief-state,evoi,bayes-rule,entropy,eig-per-dollar math
+  class strict-tool-use,constrained-decoding,seven-block-prompt,prompt-cache,sherpa-v1,sherpa-v2,sherpa-v3,sherpa-v4,sherpa-v5,vector-store,hybrid-retrieval,agentic-rag,memory-compaction,orchestrator-worker,specialist-supervisor,handoff-schema,debate,mcp-server,tool-registry,sandbox,capability-token architecture
+  class eval-gate,citation-faithfulness,regression-eval,calibration-ece,llm-judge,observability-spans,durable-execution,retry-idempotency,prompt-cache-prod,runbooks operational
+  class prompt-injection,camel,red-team,audit-trail safety
+  class roi-model,build-vs-buy,change-mgmt business
+  class self-improvement,dpo-rollouts,lora-adapters,capability-frontier,governance frontier
