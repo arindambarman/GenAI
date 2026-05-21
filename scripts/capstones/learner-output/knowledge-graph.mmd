@@ -1,0 +1,69 @@
+graph LR
+    agent-definition["Agent Definition<br/>(Modern LLM)"]
+    agency-dial["Agency Dial<br/>(0-4 Scale)"]
+    cost-of-agency["Cost of Agency"]
+    
+    symbolic-agents["Symbolic Agents<br/>(1956-1990)"]
+    rl-agents["RL Agents<br/>(1990-2017)"]
+    llm-agents["LLM Agents<br/>(2022+)"]
+    
+    react["ReAct<br/>Paradigm"]
+    reflexion["Reflexion<br/>Paradigm"]
+    plan-and-solve["Plan-and-Solve<br/>Paradigm"]
+    codeact["CodeAct<br/>Paradigm"]
+    
+    failure-modes["Paradigm<br/>Failure Modes"]
+    
+    framework["Agent vs Workflow<br/>vs Pipeline Framework"]
+    
+    workflow["Workflow<br/>(Dial 1-2)"]
+    pipeline["Pipeline<br/>(Dial 0)"]
+    
+    perceive-reason-act["Perceive-Reason-Act<br/>Loop"]
+    
+    world-bible["World Bible:<br/>Business Scenarios"]
+    
+    cite-faithfulness["Cite-Faithfulness<br/>Requirement"]
+    hitl["Human-in-the-Loop<br/>(HITL)"]
+    
+    %% Core definition relationships
+    agent-definition -->|operationalized by| agency-dial
+    agent-definition -->|uses| perceive-reason-act
+    agent-definition -->|specializes| llm-agents
+    
+    %% Historical lineage
+    symbolic-agents -->|extends to| rl-agents
+    rl-agents -->|extends to| llm-agents
+    
+    %% Paradigm relationships
+    react -->|specializes| agent-definition
+    reflexion -->|extends| react
+    plan-and-solve -->|contrasts with| react
+    codeact -->|alternative to| react
+    
+    %% Failure modes
+    failure-modes -->|applies to| react
+    failure-modes -->|applies to| reflexion
+    failure-modes -->|applies to| plan-and-solve
+    failure-modes -->|applies to| codeact
+    
+    %% Decision framework
+    framework -->|uses| agency-dial
+    framework -->|composes| pipeline
+    framework -->|composes| workflow
+    framework -->|uses| cost-of-agency
+    
+    %% World scenarios
+    world-bible -->|requires| cite-faithfulness
+    world-bible -->|may require| hitl
+    
+    %% Styling
+    classDef foundational fill:#fee,stroke:#a60,stroke-width:2px
+    classDef paradigm fill:#def,stroke:#36a,stroke-width:2px
+    classDef framework fill:#efe,stroke:#6a0,stroke-width:2px
+    classDef operational fill:#fef,stroke:#a6a,stroke-width:2px
+    
+    class agent-definition,agency-dial,cost-of-agency,symbolic-agents,rl-agents,llm-agents,perceive-reason-act foundational
+    class react,reflexion,plan-and-solve,codeact,failure-modes paradigm
+    class framework,pipeline,workflow framework
+    class cite-faithfulness,hitl operational

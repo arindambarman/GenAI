@@ -1,0 +1,324 @@
+[
+  {
+    "id": "agency-dial",
+    "name": "Agency Dial (0–4)",
+    "definition": "A continuous 0–4 scale measuring the degree of autonomous decision-making in a system: 0 = no autonomy (pure pipeline), 1 = single LLM call, 2 = LLM with tools (fixed flow), 3 = LLM chooses tool sequence, 4 = LLM sets own goals and spins up sub-agents. Replaces the binary \"is it an agent?\" question with an operational, measurable spectrum.",
+    "source_lessons": [
+      "1.1"
+    ],
+    "category": "foundational",
+    "importance": 10,
+    "notes": "Central framing concept for the entire course. Enables the decision framework in lesson 1.3 — \"what dial setting do I need?\""
+  },
+  {
+    "id": "agent-definition",
+    "name": "Agent Definition (Russell-Norvig + Modern LLM)",
+    "definition": "An agent is anything that perceives its environment through sensors and acts upon it via actuators (Russell-Norvig). The modern LLM-agent extension adds four properties: (1) LLM as reasoning engine, (2) tool use to affect the world, (3) memory across steps, (4) goal-directed multi-step behavior. The key distinguishing feature vs. a chatbot is persistent action in the world beyond a single response.",
+    "source_lessons": [
+      "1.1"
+    ],
+    "category": "foundational",
+    "importance": 10,
+    "notes": "Grounds the course in classical AI theory while bridging to modern LLM practice. Four properties explicitly called out."
+  },
+  {
+    "id": "four-agent-properties",
+    "name": "Four Properties of an LLM Agent",
+    "definition": "The four defining properties that distinguish an LLM agent from a plain chatbot or pipeline: (1) LLM as the core reasoning/planning engine, (2) tool use — ability to call external functions and APIs to affect the world, (3) memory — state that persists beyond a single LLM call, (4) goal-directedness — pursuing multi-step objectives rather than responding to one prompt.",
+    "source_lessons": [
+      "1.1"
+    ],
+    "category": "foundational",
+    "importance": 9,
+    "notes": "Acts as the specification checklist for classifying any system on the agency dial."
+  },
+  {
+    "id": "cost-of-agency",
+    "name": "Cost of Agency",
+    "definition": "The set of drawbacks that increase with the agency dial: latency (more steps = more time), cost (more LLM calls = more tokens = higher spend), unpredictability (harder to test, audit, and guarantee behavior), and error compounding (mistakes cascade across multi-step chains). Justifies the heuristic \"use the lowest dial setting that solves the problem.\"",
+    "source_lessons": [
+      "1.1",
+      "1.3"
+    ],
+    "category": "foundational",
+    "importance": 9,
+    "notes": "Directly motivates the decision framework in 1.3. Also connects to Module 9 (cost optimization) and Module 8 (eval)."
+  },
+  {
+    "id": "symbolic-agents",
+    "name": "Symbolic Agents (1956–1990)",
+    "definition": "Early AI agents based on explicit symbolic logic, rule engines, and knowledge bases (e.g., STRIPS planner, MYCIN expert system). They encode world knowledge as hand-crafted rules and search over symbol structures. Key limitation: brittleness — they fail outside the narrow domain of their rules, and knowledge engineering is expensive. Key survival: the idea of explicit planning and structured state representation.",
+    "source_lessons": [
+      "1.2"
+    ],
+    "category": "foundational",
+    "importance": 7,
+    "notes": "Historical context; explicit planning survives in Plan-and-Solve paradigm (lesson 1.4)."
+  },
+  {
+    "id": "rl-agents",
+    "name": "Reinforcement Learning Agents (1990–2017)",
+    "definition": "Agents that learn policies by maximizing cumulative reward through interaction with an environment (e.g., TD-Gammon, AlphaGo, Atari DQN). Formally modeled as MDPs. Key contribution: the concepts of state, action, reward, and policy — which persist into modern LLM agent design. Key limitation: require massive interaction data and do not transfer well across domains.",
+    "source_lessons": [
+      "1.2"
+    ],
+    "category": "foundational",
+    "importance": 6,
+    "notes": "MDP formalism carried forward into Module 2 (Mathematical Foundations). Provides the vocabulary of state/action/reward used throughout."
+  },
+  {
+    "id": "llm-agents-era",
+    "name": "LLM Agent Era (2022+)",
+    "definition": "The current generation of agents that use large language models as the reasoning engine, inheriting zero-shot/few-shot generalization from pre-training. Key enablers: instruction-following capability, in-context learning, tool-use via function calling (2023+), and long-context windows. LLMs allow agents to be built without reward engineering or domain-specific training, dramatically lowering the cost of agent construction.",
+    "source_lessons": [
+      "1.2"
+    ],
+    "category": "foundational",
+    "importance": 8,
+    "notes": "Explains why this course exists now. Key insight: LLMs absorb the \"world knowledge\" that symbolic agents needed to hard-code."
+  },
+  {
+    "id": "what-survived",
+    "name": "Ideas That Survived the AI Paradigm Shifts",
+    "definition": "Concepts that proved durable across symbolic → RL → LLM agent eras: (1) explicit state representation (now: context window + memory), (2) planning (now: Plan-and-Solve, CoT), (3) tool use / actuation, (4) evaluation against ground truth, (5) the perceive-reason-act loop. Understanding what survived helps practitioners avoid re-inventing solved problems and correctly apply historical lessons.",
+    "source_lessons": [
+      "1.2"
+    ],
+    "category": "foundational",
+    "importance": 7,
+    "notes": "The \"what survived\" framing prevents cargo-culting. Shows intellectual lineage for ReAct, Plan-and-Solve, etc."
+  },
+  {
+    "id": "agent-vs-workflow-vs-pipeline",
+    "name": "Agent vs. Workflow vs. Pipeline Decision Framework",
+    "definition": "A five-question framework to determine the right dial setting for a given problem: (1) Is the task decomposable into deterministic steps? → pipeline. (2) Are steps known in advance? → workflow. (3) Does the system need to choose its own tool sequence? → agent (dial 3). (4) Does it need sub-goals and spawned agents? → agent (dial 4). (5) What is the cost of error? — higher cost pushes toward lower dial settings with human oversight. The framework prevents over-engineering.",
+    "source_lessons": [
+      "1.3"
+    ],
+    "category": "foundational",
+    "importance": 10,
+    "notes": "The most practically actionable concept in Module 1. Directly addresses the \"most common mistake\" called out in the module objectives."
+  },
+  {
+    "id": "pipeline",
+    "name": "Pipeline (Dial 0)",
+    "definition": "A data-processing chain with no LLM calls or with LLM calls at fixed, predetermined positions in a static DAG. Inputs flow through a fixed sequence of transformations; no branching or decision-making by an LLM. Highest predictability, lowest cost, easiest to test and audit. Appropriate when all steps are known, deterministic, and the problem is fully specified.",
+    "source_lessons": [
+      "1.3"
+    ],
+    "category": "foundational",
+    "importance": 7,
+    "notes": "Baseline against which agents are contrasted. Many \"agent\" use cases are better served by pipelines."
+  },
+  {
+    "id": "workflow",
+    "name": "Workflow (Dial 1–2)",
+    "definition": "A process where an LLM is called at one or more steps but the overall control flow is predetermined by the engineer. The LLM may select among a fixed set of branches (dial 2), but it does not dynamically compose tool chains or spawn sub-agents. More testable than full agents; appropriate when the space of decisions is bounded and enumerable.",
+    "source_lessons": [
+      "1.3"
+    ],
+    "category": "foundational",
+    "importance": 7,
+    "notes": "The \"sweet spot\" for many enterprise use cases that don't need full autonomy."
+  },
+  {
+    "id": "react-paradigm",
+    "name": "ReAct Paradigm",
+    "definition": "Reasoning + Acting interleaved loop: the LLM alternates between (1) Thought — explicit natural-language reasoning about what to do next, (2) Action — emitting a tool call or output, and (3) Observation — receiving the tool result back into context. This loop repeats until a terminal condition. Published by Yao et al. (2022). Core insight: making the reasoning trace explicit improves decision quality and debuggability compared to silent chain-of-thought.",
+    "source_lessons": [
+      "1.4"
+    ],
+    "category": "foundational",
+    "importance": 10,
+    "notes": "The most widely-deployed agent paradigm. Foundation for Module 4 (Sherpa v1). Three-component loop (Thought/Action/Observation) is the teachable unit."
+  },
+  {
+    "id": "reflexion-paradigm",
+    "name": "Reflexion Paradigm",
+    "definition": "An extension of ReAct that adds a self-critique loop: after a trajectory fails (or after each episode), the agent generates verbal self-reflection on what went wrong and stores this reflection in memory for the next attempt. The agent then retries with its own critique as additional context. Shinn et al. (2023). Key advantage over plain ReAct: systematic error correction without gradient updates. Key failure mode: the agent's critique can be wrong or self-serving.",
+    "source_lessons": [
+      "1.4"
+    ],
+    "category": "foundational",
+    "importance": 8,
+    "notes": "Extends ReAct with memory-backed self-correction. Used in Module 4 lesson 4.3 (Sherpa self-critique)."
+  },
+  {
+    "id": "plan-and-solve-paradigm",
+    "name": "Plan-and-Solve Paradigm",
+    "definition": "A two-phase agent paradigm: (1) Planning phase — the LLM generates an explicit, structured multi-step plan before taking any actions, (2) Solve phase — the LLM executes each plan step, potentially using ReAct sub-loops per step. Wang et al. (2023). Key advantage: exposes the plan for human review and allows early abort. Key failure mode: the plan can be wrong and the agent may rigidly follow it even when observations contradict it (plan fixation).",
+    "source_lessons": [
+      "1.4"
+    ],
+    "category": "foundational",
+    "importance": 8,
+    "notes": "Connects to Module 4 lesson 4.4 (Sherpa planning). \"Plan fixation\" is the named failure mode to watch for."
+  },
+  {
+    "id": "codeact-paradigm",
+    "name": "CodeAct Paradigm",
+    "definition": "An agent paradigm where the LLM expresses its actions as executable code (typically Python) rather than as structured tool-call JSON. The code is executed in a sandbox, and stdout/stderr is fed back as the observation. Wang et al. (2024). Key advantages: composability (a single code block can call multiple tools, apply logic, and process results), expressiveness (loops, conditionals, data transforms). Key failure modes: code execution errors are harder to recover from; security requires robust sandboxing.",
+    "source_lessons": [
+      "1.4"
+    ],
+    "category": "foundational",
+    "importance": 8,
+    "notes": "Connects to Module 7.3 (sandboxing). The most expressive paradigm but with highest security surface area."
+  },
+  {
+    "id": "paradigm-comparison-matrix",
+    "name": "Paradigm Comparison Matrix",
+    "definition": "A structured comparison of ReAct, Reflexion, Plan-and-Solve, and CodeAct across dimensions: reasoning style, memory requirements, failure modes, best-fit tasks, and latency/cost profile. Used as a decision tool for selecting the right paradigm for a given use case. E.g., ReAct for interleaved tool use; Reflexion for trial-and-error tasks with feedback; Plan-and-Solve for long-horizon structured tasks; CodeAct for data manipulation tasks.",
+    "source_lessons": [
+      "1.4"
+    ],
+    "category": "foundational",
+    "importance": 7,
+    "notes": "Practical synthesis tool. Should include explicit failure modes per paradigm to help students avoid known pitfalls."
+  },
+  {
+    "id": "world-bible",
+    "name": "World Bible (Recurring Business Scenarios)",
+    "definition": "Three fictional but realistic organizations used as running case studies throughout the course: (1) HSBC Mid-Office Reconciliation — banking, regulated, high-stakes; (2) Helix Research — biomedical startup, cite-faithfulness critical; (3) Acme E-commerce — (truncated in module text). These scenarios provide concrete grounding for abstract concepts and force students to reason about evaluation, compliance, latency, and cost in realistic contexts.",
+    "source_lessons": [
+      "1.1"
+    ],
+    "category": "foundational",
+    "importance": 6,
+    "notes": "Pedagogical scaffold; understanding these scenarios is required to get full value from business-scenario sections in later modules."
+  },
+  {
+    "id": "perceive-reason-act-loop",
+    "name": "Perceive-Reason-Act Loop",
+    "definition": "The fundamental cognitive cycle of any agent: (1) Perceive — receive inputs from the environment (sensor readings, API responses, user messages), (2) Reason — process inputs to form a plan or decision (LLM inference in modern agents), (3) Act — execute an action that changes the environment (tool call, response, file write). This loop repeats indefinitely or until a goal is reached. The loop is the atomic unit of agent behavior across all paradigms.",
+    "source_lessons": [
+      "1.1",
+      "1.2"
+    ],
+    "category": "foundational",
+    "importance": 9,
+    "notes": "Bridges classical AI (Russell-Norvig) to modern ReAct. Every paradigm in 1.4 is a specific instantiation of this loop."
+  },
+  {
+    "id": "cite-faithfulness",
+    "name": "Cite-Faithfulness",
+    "definition": "The requirement that every factual claim made by an agent must trace to a specific, verifiable source (paper, document, page). Critical in high-stakes domains like biomedical research (Helix scenario) where hallucinated citations can derail expensive experiments. Distinguished from general accuracy: a claim can be true but still fail cite-faithfulness if its source is not explicitly traceable. Represents a hard constraint on agent output quality, not a soft preference.",
+    "source_lessons": [
+      "1.1"
+    ],
+    "category": "operational",
+    "importance": 7,
+    "notes": "Introduced in the Helix scenario. Connects to Module 5 (RAG, agentic RAG) and Module 8 (evaluation). Motivates the distinction between retrieval grounding and generation."
+  },
+  {
+    "id": "human-in-the-loop",
+    "name": "Human-in-the-Loop (HITL)",
+    "definition": "A design pattern where certain agent actions or decisions require explicit human approval before execution. In the HSBC scenario: no automated resolution of breaks without human sign-off. Represents a hard constraint at the system boundary, not merely a preference. HITL is a dial position — the agent can do investigation/recommendation (dial 3) while resolution remains human (dial 0). Reduces risk of compounding errors and maintains regulatory compliance.",
+    "source_lessons": [
+      "1.1",
+      "1.3"
+    ],
+    "category": "operational",
+    "importance": 8,
+    "notes": "First introduced in HSBC scenario. Connects to Module 10 (safety/audit) and Module 11 (business cases). Important that HITL can be selectively applied to the highest-risk actions."
+  },
+  {
+    "id": "failure-modes-per-paradigm",
+    "name": "Paradigm Failure Modes",
+    "definition": "Named failure modes for each major paradigm: ReAct — \"rabbit hole\" (agent loops on one tool repeatedly, never reaching terminal state); Reflexion — \"self-serving critique\" (agent convinces itself its wrong approach was fine); Plan-and-Solve — \"plan fixation\" (agent follows outdated plan despite contradicting observations); CodeAct — \"execution error cascade\" (one code error corrupts subsequent steps). Knowing failure modes allows engineers to add targeted mitigations (timeouts, step limits, plan re-evaluation triggers).",
+    "source_lessons": [
+      "1.4"
+    ],
+    "category": "operational",
+    "importance": 8,
+    "notes": "Highly practical. Each failure mode maps to a specific mitigation pattern introduced in later modules (e.g., retry logic in 9.2, reflection in 4.3)."
+  },
+  {
+    "id": "agent-vs-workflow-decision",
+    "name": "Agent vs Workflow vs Pipeline Decision Framework",
+    "definition": "A five-question framework for determining whether to build an agent (high autonomy required), a workflow (orchestrated steps with conditional branching but fixed control flow), or a pipeline (deterministic sequence of steps) based on autonomy requirements, exception handling complexity, and cost tolerance.",
+    "source_lessons": [
+      "1.3"
+    ],
+    "category": "foundational",
+    "importance": 9,
+    "notes": "Critical anti-pattern: using agents when workflows suffice. Module objective 3. Emphasizes cost of agency; forward reference to Module 11 (business cases)."
+  },
+  {
+    "id": "symbolic-agents-lineage",
+    "name": "Symbolic Agents (1956-1990 Lineage)",
+    "definition": "The historical era (Newell & Shaw, McCarthy) of agents built on explicit logical rules, planning algorithms (STRIPS, GraphPlan), and knowledge representation in closed domains; foundational but replaced by RL and later LLM approaches for open-world problems.",
+    "source_lessons": [
+      "1.2"
+    ],
+    "category": "foundational",
+    "importance": 7,
+    "notes": "Historical context; explains why classical planning is less relevant for LLM agents. Module objective 2."
+  },
+  {
+    "id": "rl-agents-lineage",
+    "name": "RL Agents (1990-2017 Lineage)",
+    "definition": "The historical era of agents built on reinforcement learning (Q-learning, policy gradients, actor-critic) that learn by trial-and-error in simulatable environments; influential for multi-step reasoning but limited by sample efficiency and environment simulability constraints.",
+    "source_lessons": [
+      "1.2"
+    ],
+    "category": "foundational",
+    "importance": 8,
+    "notes": "Explains concepts like MDPs, value functions, that resurface in reasoning. Forward references to Module 2 (MDP/POMDP). Module objective 2."
+  },
+  {
+    "id": "llm-agents-lineage",
+    "name": "LLM Agents Era (2022+ Lineage)",
+    "definition": "The current era of agents powered by large language models (Transformers) that leverage pre-trained reasoning and language understanding to operate in open-world problems without explicit training, using in-context learning and tool interfaces instead of learned policies.",
+    "source_lessons": [
+      "1.2"
+    ],
+    "category": "foundational",
+    "importance": 9,
+    "notes": "Modern paradigm; borrows MDP/POMDP concepts but applies them via prompting not learning. Module objective 2."
+  },
+  {
+    "id": "reinforcement-learning-agents",
+    "name": "Reinforcement Learning Agents (1990-2017)",
+    "definition": "Agent systems trained via interaction with environments, using reward signals to learn value functions and policies. Formalized via MDPs/POMDPs; enabled breakthrough achievements like game-playing (Go, Chess) but struggled with sparse rewards and real-world complexity.",
+    "source_lessons": [
+      "1.2"
+    ],
+    "category": "foundational",
+    "importance": 8,
+    "notes": "Bridges symbolic agents to modern LLM agents. Introduces MDP formalism (forward-referenced to Module 2) and reward-based learning. Most progress in game domains; poor on open-ended tasks."
+  },
+  {
+    "id": "llm-agents",
+    "name": "LLM Agents (2022+)",
+    "definition": "Agents that leverage pre-trained large language models as reasoning cores, circumventing reward training by using in-context learning, prompting, and tool use. Replace explicit policies with learned representations in transformers, enabling broad generalization across tasks.",
+    "source_lessons": [
+      "1.2"
+    ],
+    "category": "foundational",
+    "importance": 10,
+    "notes": "Modern paradigm; combines symbolic planning structure (from agents of 1950s-1990s) with RL intuitions (exploration, reward signals via prompting) and transformer generalization. Central to the entire course."
+  },
+  {
+    "id": "workflow-vs-agent",
+    "name": "Workflow vs Agent Decision Framework",
+    "definition": "A five-question decision heuristic for choosing between predefined workflows (fixed step sequences, no loops), pipelines (linear data transformation), and agents (adaptive, feedback-loop-driven architectures). Emphasizes cost of agentification and when NOT to use agents.",
+    "source_lessons": [
+      "1.3"
+    ],
+    "category": "foundational",
+    "importance": 9,
+    "notes": "Critical decision framework for practitioners. Prevents over-engineering simple problems. Mentions 'cost of agency' and vendor choices. Forward-referenced to Module 11 (business cases)."
+  },
+  {
+    "id": "paradigm-failure-modes",
+    "name": "Paradigm Failure Modes",
+    "definition": "Each major paradigm (ReAct, Reflexion, Plan-and-Solve, CodeAct) has characteristic failure modes: ReAct may loop endlessly; Reflexion may not learn from poor feedback; Plan-and-Solve may create brittle, non-adaptive plans; CodeAct may execute unsafe or inefficient code.",
+    "source_lessons": [
+      "1.4"
+    ],
+    "category": "foundational",
+    "importance": 7,
+    "notes": "Important for engineering resilience. Learning objective explicitly mentions recognizing and avoiding these modes. Supports decision-making on paradigm selection."
+  }
+]

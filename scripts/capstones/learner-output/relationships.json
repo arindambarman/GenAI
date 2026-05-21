@@ -1,0 +1,121 @@
+[
+  {
+    "from": "agency-dial",
+    "to": "agent-definition",
+    "type": "extends",
+    "reason": "The agency dial operationalizes the agent definition into a continuous spectrum, replacing the binary \"is it an agent?\" question with a measurable 0–4 scale.",
+    "source_lesson": "1.1"
+  },
+  {
+    "from": "react-paradigm",
+    "to": "agent-definition",
+    "type": "specializes",
+    "reason": "ReAct is a specific instantiation of the modern LLM agent definition, implementing the reasoning-action loop concretely.",
+    "source_lesson": "1.4"
+  },
+  {
+    "from": "reflexion-paradigm",
+    "to": "react-paradigm",
+    "type": "extends",
+    "reason": "Reflexion extends ReAct by adding episodic memory for learning from failures, creating a stateful learning mechanism rather than stateless loops.",
+    "source_lesson": "1.4"
+  },
+  {
+    "from": "plan-and-solve-paradigm",
+    "to": "react-paradigm",
+    "type": "specializes",
+    "reason": "Plan-and-Solve is a variant of ReAct that adds hierarchical structure: explicit planning phase before action loops, improving decomposition.",
+    "source_lesson": "1.4"
+  },
+  {
+    "from": "codeact-paradigm",
+    "to": "react-paradigm",
+    "type": "alternative_to",
+    "reason": "CodeAct unifies reasoning and action into code representation instead of separate thought-action alternation, trading structure for expressiveness in tool composition.",
+    "source_lesson": "1.4"
+  },
+  {
+    "from": "agency-dial",
+    "to": "agent-vs-workflow-decision",
+    "type": "uses",
+    "reason": "The agency dial is the measurement used in the decision framework to determine where a system falls on the spectrum, guiding the agent-vs-workflow choice.",
+    "source_lesson": "1.3"
+  },
+  {
+    "from": "cost-of-agency",
+    "to": "agent-vs-workflow-decision",
+    "type": "uses",
+    "reason": "Cost-of-agency calculation is a key criterion in the decision framework for determining when autonomy is financially justified.",
+    "source_lesson": "1.3"
+  },
+  {
+    "from": "llm-agents-lineage",
+    "to": "rl-agents-lineage",
+    "type": "extends",
+    "reason": "LLM agents inherit conceptual frameworks from RL agents (MDPs, multi-step reasoning) but substitute learned policies with in-context prompting and pre-trained knowledge.",
+    "source_lesson": "1.2"
+  },
+  {
+    "from": "rl-agents-lineage",
+    "to": "symbolic-agents-lineage",
+    "type": "extends",
+    "reason": "RL agents extended symbolic agents by replacing fixed logical rules with learned policies trained on reward signals from experience.",
+    "source_lesson": "1.2"
+  },
+  {
+    "from": "agent-definition",
+    "to": "agency-dial",
+    "type": "uses",
+    "reason": "The agency dial provides the operational measure by which agents are defined and distinguished from workflows. It operationalizes the abstract definition.",
+    "source_lesson": "1.1"
+  },
+  {
+    "from": "llm-agents",
+    "to": "symbolic-agents",
+    "type": "extends",
+    "reason": "Modern LLM agents inherit the planning and reflection concepts from symbolic agents (1950s-1990s), but replace hand-coded logic with learned representations.",
+    "source_lesson": "1.2"
+  },
+  {
+    "from": "llm-agents",
+    "to": "reinforcement-learning-agents",
+    "type": "extends",
+    "reason": "LLM agents leverage RL intuitions (MDPs, reward signals via prompting, exploration) while replacing explicit policy learning with in-context learning from large pre-trained models.",
+    "source_lesson": "1.2"
+  },
+  {
+    "from": "plan-and-solve-paradigm",
+    "to": "react-paradigm",
+    "type": "contrasts",
+    "reason": "Plan-and-Solve commits to a plan upfront before execution, contrasting with ReAct's online, step-by-step reasoning. Plan-and-Solve often uses ReAct sub-loops for individual subgoals.",
+    "source_lesson": "1.4"
+  },
+  {
+    "from": "workflow-vs-agent",
+    "to": "agency-dial",
+    "type": "uses",
+    "reason": "The decision framework uses the agency dial (and cost considerations) to guide practitioners on whether to invest in agent-level autonomy or stick with workflows.",
+    "source_lesson": "1.3"
+  },
+  {
+    "from": "paradigm-failure-modes",
+    "to": "react-paradigm",
+    "type": "specializes",
+    "reason": "Each paradigm's failure modes are characteristics of that implementation; ReAct's loop risks exemplify the general concept.",
+    "source_lesson": "1.4"
+  },
+  {
+    "from": "paradigm-failure-modes",
+    "to": "reflexion-paradigm",
+    "type": "specializes",
+    "reason": "Reflexion's failure mode (poor learning from weak feedback) is tied to its core mechanic of learning from past attempts.",
+    "source_lesson": "1.4"
+  },
+  {
+    "from": "llm-agents",
+    "to": "agent-definition",
+    "type": "specializes",
+    "reason": "LLM agents are a modern specialization of the classical agent definition (Russell-Norvig), using transformers as the reasoning core instead of explicit rule systems or learned policies.",
+    "source_lesson": "1.1"
+  }
+]
