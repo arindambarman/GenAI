@@ -28,6 +28,7 @@ const MODULE_FILES = [
   "module-11-business-cases.md",
   "module-12-advanced-designs.md",
   "module-13-future.md",
+  "module-14-claude-architect.md",
 ];
 
 export async function buildIndices(input: BuildIndicesInput): Promise<void> {
@@ -163,7 +164,7 @@ function renderRootIndex(modules: ModuleInfo[]): string {
     <header class="hero">
       <h1>Agentic Systems</h1>
       <p>An advanced course on designing, building, and deploying LLM agents in production.</p>
-      <p class="meta">13 modules · 50 lessons · 3 capstones · ~120 hours</p>
+      <p class="meta">14 modules · 55 lessons · 3 capstones · ~130 hours</p>
     </header>
 
     <h2 class="section">Modules</h2>

@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson 14.3 · Extended Thinking and Model Tier Selection · AdaptLearn</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-light.css" />
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+  --max-content: 760px;
+  --sidebar-w: 280px;
+  --header-h: 120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: 8px 12px; z-index: 100;
+}
+.skip:focus { left: 12px; top: 12px; }
+
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.92);
+}
+.page-header-inner {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto; padding: 14px 32px;
+}
+.breadcrumb {
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.page-meta { font-size: 13px; color: var(--text-muted); }
+.page-meta .dot { margin: 0 8px; opacity: 0.5; }
+
+.progress-bar { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+.layout {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 40px;
+  padding: 32px;
+}
+
+.sidebar { position: sticky; top: calc(var(--header-h) + 16px); align-self: start; max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; }
+.toc h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; border-radius: 6px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { background: var(--accent-soft); color: var(--text); }
+.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.toc-num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.toc a.active .toc-num { color: var(--accent); }
+
+.content { min-width: 0; max-width: var(--max-content); }
+
+.intro, .lesson-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: var(--header-h);
+}
+.lesson-section[data-theme="scenario"]    { border-left: 4px solid #ef4444; }
+.lesson-section[data-theme="bridge"]      { border-left: 4px solid #94a3b8; }
+.lesson-section[data-theme="mindmap"]     { border-left: 4px solid #8b5cf6; }
+.lesson-section[data-theme="elaboration"] { border-left: 4px solid #2563eb; }
+.lesson-section[data-theme="problem"]     { border-left: 4px solid #f59e0b; }
+.lesson-section[data-theme="solution"]    { border-left: 4px solid #10b981; }
+.lesson-section[data-theme="math"]        { border-left: 4px solid #6366f1; }
+.lesson-section[data-theme="tech"]        { border-left: 4px solid #64748b; }
+.lesson-section[data-theme="unlocks"]     { border-left: 4px solid #ec4899; }
+.lesson-section[data-theme="orient"]      { border-left: 4px solid #0ea5e9; }
+.intro { border-left: 4px solid #0ea5e9; }
+
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon { font-size: 22px; }
+.section-badge {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.section-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.section-body h3 { margin-top: 32px; font-size: 18px; font-weight: 700; }
+.section-body h4 { margin-top: 24px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.section-body p { margin: 12px 0; }
+.section-body ul, .section-body ol { margin: 12px 0; padding-left: 24px; }
+.section-body li { margin: 4px 0; }
+
+.section-body a { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(37,99,235,0.3); text-underline-offset: 2px; }
+.section-body a:hover { text-decoration-color: var(--accent); }
+
+.section-body strong { font-weight: 700; }
+.section-body em { font-style: italic; }
+
+.section-body blockquote {
+  margin: 16px 0; padding: 12px 20px;
+  background: #f5f6f8; border-left: 3px solid var(--text-muted);
+  border-radius: 4px; color: var(--text); font-size: 0.95em;
+}
+.section-body blockquote p:first-child { margin-top: 0; }
+.section-body blockquote p:last-child { margin-bottom: 0; }
+
+.section-body img {
+  display: block; max-width: 100%; height: auto;
+  margin: 20px auto; padding: 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+}
+
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 0.9em;
+}
+.section-body th, .section-body td {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-body th { background: #f5f6f8; font-weight: 600; }
+
+.section-body code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: #f1f3f5; padding: 1px 6px; border-radius: 3px;
+}
+.section-body pre {
+  background: #f6f8fa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font-size: 13px;
+  margin: 16px 0;
+}
+.section-body pre code { background: transparent; padding: 0; }
+
+.section-body details {
+  margin: 16px 0; padding: 10px 14px;
+  background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px;
+}
+.section-body details summary {
+  cursor: pointer; font-weight: 600; font-size: 13px;
+  color: var(--text-muted);
+}
+.section-body details[open] summary { margin-bottom: 8px; }
+
+.section-body hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+
+.section-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+
+.lesson-footer {
+  text-align: center; padding: 32px;
+  color: var(--text-muted); font-size: 14px;
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+.lesson-footer .muted { font-size: 12px; opacity: 0.7; }
+kbd {
+  background: var(--surface); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+  .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toc li { flex: 0 0 auto; }
+  .toc a { padding: 4px 8px; font-size: 12px; }
+  .intro, .lesson-section { padding: 20px; }
+  .page-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="../../index.html">AdaptLearn</a>
+        <span class="sep">›</span>
+        <a href="../index.html">Module 14</a>
+        <span class="sep">›</span>
+        <span class="current">Lesson 14.3</span>
+      </nav>
+      <h1 class="page-title">Extended Thinking and Model Tier Selection</h1>
+      <div class="page-meta">
+        <span>Lesson 14.3</span>
+        <span class="dot">·</span>
+        <span>9 sections</span>
+        <span class="dot">·</span>
+        <span>~25 min read</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc" aria-label="Lesson sections">
+        <h3>Sections</h3>
+        <ol>
+      <li><a href="#section-1" data-section="1"><span class="toc-num">§1</span><span class="toc-title">Business Scenario</span></a></li>
+      <li><a href="#section-2" data-section="2"><span class="toc-num">§2</span><span class="toc-title">Bridge to Topic</span></a></li>
+      <li><a href="#section-3" data-section="3"><span class="toc-num">§3</span><span class="toc-title">Mind Map</span></a></li>
+      <li><a href="#section-4" data-section="4"><span class="toc-num">§4</span><span class="toc-title">Elaboration</span></a></li>
+      <li><a href="#section-5" data-section="5"><span class="toc-num">§5</span><span class="toc-title">Problem Statement</span></a></li>
+      <li><a href="#section-6" data-section="6"><span class="toc-num">§6</span><span class="toc-title">Solution Walkthrough</span></a></li>
+      <li><a href="#section-7" data-section="7"><span class="toc-num">§7</span><span class="toc-title">Mathematical Foundation</span></a></li>
+      <li><a href="#section-8" data-section="8"><span class="toc-num">§8</span><span class="toc-title">Technical Deep-Dive</span></a></li>
+      <li><a href="#section-9" data-section="9"><span class="toc-num">§9</span><span class="toc-title">What This Unlocks</span></a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main id="main" class="content">
+      <section class="intro" id="section-intro">
+        <header class="section-header">
+          <span class="section-icon">📍</span>
+          <h2>How to use this lesson</h2>
+        </header>
+        <div class="section-body">
+<blockquote>
+<p><strong>§0 · From last time.</strong> Lessons 14.1 and 14.2 covered the API surface and prompt caching. Now we tackle two of the highest-leverage architect decisions: when to use extended thinking, and how to pick between Opus 4.x, Sonnet 4.x, and Haiku 4.x.</p>
+</blockquote>
+
+        </div>
+      </section>
+      <section id="section-1" class="lesson-section" data-theme="scenario" data-section="1">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🏢</span>
+          <span class="section-badge">§1</span>
+          <h2>Business Scenario</h2>
+        </header>
+        <div class="section-body">
+<p><em>HSBC, Friday afternoon.</em></p>
+<p>Daniel is reviewing the latest Sherpa eval. Accuracy is stuck at 89%. On the hardest cases (multi-counterparty, novel break shapes), Sherpa drops to 73%. The Anthropic field engineer suggests: <em>&quot;Try extended thinking on the long-tail breaks. Claude can spend tokens on internal reasoning before answering. Don&#39;t use it on everything — it&#39;s expensive — but for the 11% that need it, it could push accuracy meaningfully higher.&quot;</em></p>
+<p>Separately, Daniel notices the cost-per-task is rising because Sherpa uses Sonnet for <em>everything</em>, including dead-simple Sigma Capital fee-deduction cases that Haiku could handle for 4× less. He asks: <em>&quot;What&#39;s the principled way to choose model tier per case?&quot;</em></p>
+
+        </div>
+      </section>
+
+      <section id="section-2" class="lesson-section" data-theme="bridge" data-section="2">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🔗</span>
+          <span class="section-badge">§2</span>
+          <h2>Bridge to Topic</h2>
+        </header>
+        <div class="section-body">
+<p>Extended thinking and tier selection together are the <strong>per-task cost-vs-accuracy</strong> lever. Use them well and you get 2-3× cost reduction with equal-or-better accuracy. Use them blindly and you either burn money on Opus for trivial cases or use Haiku on cases that need depth.</p>
+
+        </div>
+      </section>
+
+      <section id="section-3" class="lesson-section" data-theme="mindmap" data-section="3">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🗺️</span>
+          <span class="section-badge">§3</span>
+          <h2>Mind Map</h2>
+        </header>
+        <div class="section-body">
+<p><img src="../../diagrams/m14/05-thinking-and-tiers.svg" alt="Mind map"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">mindmap
+  root((Thinking + Tier Selection))
+    Extended Thinking
+      thinking parameter
+      budget_tokens
+      preserve thinking + signature
+      cost implication
+      when it helps
+      when it hurts
+    Opus 4.x
+      most capable
+      most expensive 15x Haiku
+      best for novel hard cases
+      slowest
+    Sonnet 4.x
+      balanced default
+      production workhorse
+      tier 1 routing
+    Haiku 4.x
+      cheapest 4-5x cheaper
+      fast
+      great for triage
+      weak on novel cases
+    Routing Patterns
+      triage and route
+      escalation cascade
+      ensemble
+</code></pre>
+</details>
+        </div>
+      </section>
+
+      <section id="section-4" class="lesson-section" data-theme="elaboration" data-section="4">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">📖</span>
+          <span class="section-badge">§4</span>
+          <h2>Elaboration</h2>
+        </header>
+        <div class="section-body">
+<h3>4.1 Extended thinking — what it is</h3>
+<p>Extended thinking lets Claude allocate a budget of &quot;thinking tokens&quot; — internal reasoning the model does <em>before</em> emitting the user-facing response. These tokens are billed but never shown to the user; they&#39;re stored in <code>thinking</code> content blocks for protocol reasons.</p>
+<pre><code class="language-typescript">await client.messages.create({
+  model: &quot;claude-sonnet-4-6&quot;,
+  max_tokens: 16000,
+  thinking: {
+    type: &quot;enabled&quot;,
+    budget_tokens: 10000,   // max tokens to spend on thinking
+  },
+  messages: [...],
+});
+</code></pre>
+<p>The response will contain <code>thinking</code> blocks (with <code>signature</code> — preserve these per Lesson 14.1&#39;s §8.2) followed by the user-facing text or tool-use blocks.</p>
+<h3>4.2 When thinking helps</h3>
+<p>Empirically, extended thinking improves accuracy on:</p>
+<ul>
+<li><strong>Multi-step problems</strong> that require working through subproblems</li>
+<li><strong>Math / code / formal reasoning</strong> where intermediate steps matter</li>
+<li><strong>Ambiguous classification</strong> where weighing evidence matters</li>
+<li><strong>Tasks requiring explicit consideration of edge cases</strong></li>
+</ul>
+<p>It does NOT meaningfully help on:</p>
+<ul>
+<li><strong>Routine, well-patterned tasks</strong> (refund classification with clear rules)</li>
+<li><strong>Pure retrieval</strong> (the answer comes from tool outputs, not reasoning)</li>
+<li><strong>Conversational chit-chat</strong></li>
+</ul>
+<p>For Sherpa&#39;s 11% long-tail cases: yes, thinking probably helps. For the 89% routine cases: no, it&#39;s wasted spend.</p>
+<h3>4.3 When thinking hurts</h3>
+<ul>
+<li><strong>Cost</strong> — thinking tokens are billed at the output-token rate (because the model generates them). 10K thinking tokens on Sonnet = $0.15. Multiply by your task volume.</li>
+<li><strong>Latency</strong> — first token arrives later (you wait for thinking before any user-facing output).</li>
+<li><strong>Streaming UX</strong> — you can&#39;t show partial reasoning to the user; it&#39;s hidden.</li>
+</ul>
+<h3>4.4 Model tier characteristics (4.x family)</h3>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Model ID</th>
+<th>Strengths</th>
+<th>Cost (in/out per MTok)</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Opus 4.x</strong></td>
+<td>claude-opus-4-7</td>
+<td>Deepest reasoning, longest context utilisation, best at multi-step</td>
+<td>$15 / $75</td>
+<td>High-stakes novel reasoning (M&amp;A research, complex synthesis)</td>
+</tr>
+<tr>
+<td><strong>Sonnet 4.x</strong></td>
+<td>claude-sonnet-4-6</td>
+<td>Production workhorse; matches Opus on most tasks at 1/5 the cost</td>
+<td>$3 / $15</td>
+<td>Default for agents (Sherpa, capstones)</td>
+</tr>
+<tr>
+<td><strong>Haiku 4.x</strong></td>
+<td>claude-haiku-4-5-20251001</td>
+<td>Fast, cheap; excellent for triage, classification, extraction</td>
+<td>$0.80 / $4</td>
+<td>Triage, routine classification, latency-sensitive UX</td>
+</tr>
+</tbody></table>
+<p>Cost ratios (output tokens, where most cost lives):</p>
+<ul>
+<li>Opus ÷ Sonnet ≈ <strong>5×</strong></li>
+<li>Sonnet ÷ Haiku ≈ <strong>3.75×</strong></li>
+<li>Opus ÷ Haiku ≈ <strong>18.75×</strong></li>
+</ul>
+<h3>4.5 Routing patterns</h3>
+<p><strong>Pattern 1 — Triage-and-route (Lesson 9.3)</strong>:</p>
+<ol>
+<li>Call Haiku with a triage prompt: &quot;Is this case routine or novel?&quot;</li>
+<li>Route routine → Haiku (or workflow)</li>
+<li>Route novel → Sonnet (or Opus with thinking)</li>
+</ol>
+<p><strong>Pattern 2 — Escalation cascade</strong>:</p>
+<ol>
+<li>Try Haiku first</li>
+<li>If confidence &lt; threshold OR Haiku returns &quot;uncertain&quot; → escalate to Sonnet</li>
+<li>If Sonnet still uncertain → escalate to Opus + thinking</li>
+</ol>
+<p><strong>Pattern 3 — Ensemble</strong> (Module 6 debate):</p>
+<ol>
+<li>Run Sonnet and Opus in parallel on high-stakes cases</li>
+<li>If agree → commit</li>
+<li>If disagree → escalate to human</li>
+</ol>
+<p>For Sherpa: Pattern 2 (escalation cascade) is ideal — most cases never reach Opus, but the long tail gets the depth it needs.</p>
+
+        </div>
+      </section>
+
+      <section id="section-5" class="lesson-section" data-theme="problem" data-section="5">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">❓</span>
+          <span class="section-badge">§5</span>
+          <h2>Problem Statement</h2>
+        </header>
+        <div class="section-body">
+<p>For Sherpa, design:</p>
+<ol>
+<li>The triage rule for routing to Haiku vs Sonnet vs Opus+thinking</li>
+<li>The estimated cost per case under the routing</li>
+<li>The estimated accuracy lift vs current &quot;Sonnet for everything&quot;</li>
+</ol>
+<p>Assume: current distribution = 60% routine / 29% standard / 11% long-tail. Current cost = $0.026/case at Sonnet. Current accuracy = 89% (95% routine, 88% standard, 73% long-tail).</p>
+
+        </div>
+      </section>
+
+      <section id="section-6" class="lesson-section" data-theme="solution" data-section="6">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🛠️</span>
+          <span class="section-badge">§6</span>
+          <h2>Solution Walkthrough</h2>
+        </header>
+        <div class="section-body">
+<h3>Routing design</h3>
+<pre><code class="language-typescript">async function classifyBreak(breakId: string): Promise&lt;Classification&gt; {
+  // Stage 1: Haiku triage (always)
+  const triage = await haiku.call({
+    system: TRIAGE_PROMPT,
+    messages: [{ role: &quot;user&quot;, content: featureSummary(breakId) }],
+  });
+
+  if (triage.routing === &quot;routine&quot; &amp;&amp; triage.confidence &gt; 0.9) {
+    // 60% of cases → Haiku full classification
+    return await haiku.classify(breakId);
+  }
+
+  if (triage.routing === &quot;novel&quot;) {
+    // 11% of cases → Opus + extended thinking
+    return await opus.classifyWithThinking(breakId, { budget_tokens: 10000 });
+  }
+
+  // 29% of cases → Sonnet (default)
+  return await sonnet.classify(breakId);
+}
+</code></pre>
+<h3>Cost calculation</h3>
+<p>Per case (averaged):</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Volume</th>
+<th>Avg cost</th>
+<th>Weighted</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Haiku (routine)</td>
+<td>60%</td>
+<td>$0.008 (triage + classification)</td>
+<td>$0.005</td>
+</tr>
+<tr>
+<td>Sonnet (standard)</td>
+<td>29%</td>
+<td>$0.026 (current)</td>
+<td>$0.0075</td>
+</tr>
+<tr>
+<td>Opus+thinking (long-tail)</td>
+<td>11%</td>
+<td>$0.150 (10K thinking + reasoning)</td>
+<td>$0.017</td>
+</tr>
+<tr>
+<td><strong>Weighted avg</strong></td>
+<td>100%</td>
+<td>—</td>
+<td><strong>$0.030</strong></td>
+</tr>
+</tbody></table>
+<p>Slightly higher cost per case than current $0.026 — but offset by significantly better accuracy on the long tail.</p>
+<h3>Accuracy estimate</h3>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Volume</th>
+<th>Per-tier accuracy</th>
+<th>Weighted</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Haiku (routine)</td>
+<td>60%</td>
+<td>92% (slightly below Sonnet&#39;s 95% on routine, but routine is easy)</td>
+<td>55.2%</td>
+</tr>
+<tr>
+<td>Sonnet (standard)</td>
+<td>29%</td>
+<td>88% (unchanged)</td>
+<td>25.5%</td>
+</tr>
+<tr>
+<td>Opus+thinking (long-tail)</td>
+<td>11%</td>
+<td>85% (vs 73% with Sonnet)</td>
+<td>9.4%</td>
+</tr>
+<tr>
+<td><strong>Weighted overall</strong></td>
+<td>100%</td>
+<td>—</td>
+<td><strong>90.1%</strong></td>
+</tr>
+</tbody></table>
+<p><strong>+1.1pp accuracy at +15% cost.</strong> Whether worth it depends on Daniel&#39;s cost-per-wrong calculus (Lesson 2.1&#39;s math). At $200/wrong, $42/right: 1.1pp accuracy gain on 1,400 cases/night × $42 saved = $647/night of saved analyst time, vs $0.004 extra per case × 1,400 = $5.60/night extra LLM cost. <strong>Strongly net positive.</strong></p>
+
+        </div>
+      </section>
+
+      <section id="section-7" class="lesson-section" data-theme="math" data-section="7">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">∑</span>
+          <span class="section-badge">§7</span>
+          <h2>Mathematical Foundation</h2>
+        </header>
+        <div class="section-body">
+<h3>7.1 Cost-per-case under routing</h3>
+<pre><code>weighted_cost = sum over tiers of:
+  P(case ∈ tier) × cost_per_case(tier)
+</code></pre>
+<p>Where <code>P</code> comes from your triage distribution. For Sherpa, 60/29/11.</p>
+<h3>7.2 Break-even for adding Opus+thinking</h3>
+<p>You&#39;ll add Opus to a tier of the workload. Worth it when:</p>
+<pre><code>(accuracy_with_opus - accuracy_baseline) × value_of_correct_answer
+  &gt; (cost_opus_per_case - cost_baseline_per_case)
+</code></pre>
+<p>For Sherpa long-tail: (0.85 - 0.73) × $42 = $5.04 of value vs $0.124 cost difference per case. <strong>40× margin</strong>. Easy decision.</p>
+<h3>7.3 Triage cost amortisation</h3>
+<p>Triage adds a small fixed cost per case. Worth it when:</p>
+<pre><code>fraction_routed_to_cheaper_tier × (cost_baseline - cost_cheaper) &gt; triage_cost
+</code></pre>
+<p>For Sherpa: 60% × ($0.026 - $0.008) = $0.0108 saved per case vs ~$0.002 triage cost. Net: ~$0.009 saved per case × 1,400/night = $12.60/night. Worth it.</p>
+
+        </div>
+      </section>
+
+      <section id="section-8" class="lesson-section" data-theme="tech" data-section="8">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">⚙️</span>
+          <span class="section-badge">§8</span>
+          <h2>Technical Deep-Dive</h2>
+        </header>
+        <div class="section-body">
+<h3>8.1 Extended thinking + tools (the interaction)</h3>
+<p>When thinking + tool use both happen in one turn:</p>
+<ol>
+<li>Model thinks (you get <code>thinking</code> blocks)</li>
+<li>Model decides to use tools (you get <code>tool_use</code> blocks)</li>
+<li>You execute tools and reply with <code>tool_result</code> blocks</li>
+<li><strong>You must preserve all original blocks</strong> in the assistant message (Lesson 14.1 §8.2) including thinking + signature</li>
+<li>Model may think again before final response</li>
+</ol>
+<p>The <code>signature</code> on thinking blocks is critical — it&#39;s a cryptographic proof the API uses to verify the thinking wasn&#39;t tampered with. Strip it and the next call returns 400.</p>
+<h3>8.2 Choosing <code>budget_tokens</code></h3>
+<ul>
+<li><strong>Too low</strong> (&lt; 1024) — thinking is functionally disabled</li>
+<li><strong>Sweet spot</strong> for most agent tasks: 4,000-10,000 tokens</li>
+<li><strong>Maximum</strong>: ~32K depending on model. Anything beyond ~16K rarely improves answers and balloons cost.</li>
+</ul>
+<h3>8.3 Migration between Claude versions</h3>
+<p>When a new Claude minor/major version ships:</p>
+<ol>
+<li><strong>Pin</strong> your current model in production config</li>
+<li><strong>Shadow test</strong> the new version against your regression eval (M8.4)</li>
+<li><strong>A/B test</strong> in canary at 5%</li>
+<li><strong>Migrate</strong> when the gate passes; rollback button must work</li>
+</ol>
+<p>Architect-level question: a new Sonnet ships claiming &quot;20% better on math benchmarks.&quot; Do you upgrade?</p>
+<p>Answer: shadow-test first. Benchmark improvements don&#39;t always transfer to your domain. Sometimes a new model is <em>worse</em> on niche tasks. The regression eval is the source of truth.</p>
+<h3>8.4 Cross-model behaviour drift</h3>
+<p>Models in the 4.x family share family characteristics but Haiku ≠ Sonnet ≠ Opus in subtle ways:</p>
+<ul>
+<li>Haiku may be more literal; Sonnet more inferential; Opus most flexible</li>
+<li>Refusal patterns differ slightly per tier</li>
+<li>Tool-selection accuracy decreases as you move down the tier (more &quot;wrong tool&quot; errors)</li>
+</ul>
+<p>When designing routing, <strong>don&#39;t assume the prompt that works on Sonnet works identically on Haiku.</strong> Test each tier separately on your eval set.</p>
+<h3>8.5 Thinking in batch jobs</h3>
+<p>Extended thinking works with the Batch API (Lesson 14.5) but the thinking tokens are billed at the batch rate (50% off output cost). So a 10K thinking budget that would cost $0.15 in real-time costs $0.075 in batch. Cheap enough that batch + thinking is often the right pattern for non-latency-sensitive evals.</p>
+
+        </div>
+      </section>
+
+      <section id="section-9" class="lesson-section" data-theme="unlocks" data-section="9">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🚀</span>
+          <span class="section-badge">§9</span>
+          <h2>What This Unlocks</h2>
+        </header>
+        <div class="section-body">
+<ul>
+<li><strong>Lesson 14.4</strong> covers multi-modal — vision and PDF inputs work with all tier choices</li>
+<li><strong>Lesson 14.5</strong> uses tier-based pricing tables for capacity planning</li>
+<li><strong>Module 9 cost optimisation</strong> now has explicit tier-routing patterns</li>
+</ul>
+<hr>
+
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <p>End of Lesson 14.3</p>
+        <p class="muted">Press <kbd>↑</kbd> / <kbd>↓</kbd> to jump between sections.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script>
+(function () {
+  var sections = document.querySelectorAll(".lesson-section, .intro");
+  var tocLinks = document.querySelectorAll(".toc a");
+  var progress = document.getElementById("progress");
+  var byId = {};
+  tocLinks.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    byId[id] = a;
+  });
+
+  function update() {
+    var scrolled = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (progress) progress.style.width = max > 0 ? (scrolled / max * 100) + "%" : "0%";
+
+    var current = null;
+    sections.forEach(function (s) {
+      var top = s.getBoundingClientRect().top;
+      if (top < 140) current = s.id;
+    });
+    tocLinks.forEach(function (a) { a.classList.remove("active"); });
+    if (current && byId[current]) byId[current].classList.add("active");
+  }
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    var ids = Array.prototype.map.call(sections, function (s) { return s.id; });
+    var currentIdx = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top < 140) currentIdx = i;
+    }
+    if (e.key === "ArrowDown" && e.shiftKey) {
+      e.preventDefault();
+      var next = Math.min(ids.length - 1, currentIdx + 1);
+      document.getElementById(ids[next]).scrollIntoView({ behavior: "smooth" });
+    }
+    if (e.key === "ArrowUp" && e.shiftKey) {
+      e.preventDefault();
+      var prev = Math.max(0, currentIdx - 1);
+      document.getElementById(ids[prev]).scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
+</script>
+</body>
+</html>

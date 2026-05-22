@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson 14.4 · Multi-Modal: Vision, PDF, Citations, Computer Use · AdaptLearn</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-light.css" />
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+  --max-content: 760px;
+  --sidebar-w: 280px;
+  --header-h: 120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: 8px 12px; z-index: 100;
+}
+.skip:focus { left: 12px; top: 12px; }
+
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.92);
+}
+.page-header-inner {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto; padding: 14px 32px;
+}
+.breadcrumb {
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.page-meta { font-size: 13px; color: var(--text-muted); }
+.page-meta .dot { margin: 0 8px; opacity: 0.5; }
+
+.progress-bar { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+.layout {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 40px;
+  padding: 32px;
+}
+
+.sidebar { position: sticky; top: calc(var(--header-h) + 16px); align-self: start; max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; }
+.toc h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; border-radius: 6px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { background: var(--accent-soft); color: var(--text); }
+.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.toc-num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.toc a.active .toc-num { color: var(--accent); }
+
+.content { min-width: 0; max-width: var(--max-content); }
+
+.intro, .lesson-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: var(--header-h);
+}
+.lesson-section[data-theme="scenario"]    { border-left: 4px solid #ef4444; }
+.lesson-section[data-theme="bridge"]      { border-left: 4px solid #94a3b8; }
+.lesson-section[data-theme="mindmap"]     { border-left: 4px solid #8b5cf6; }
+.lesson-section[data-theme="elaboration"] { border-left: 4px solid #2563eb; }
+.lesson-section[data-theme="problem"]     { border-left: 4px solid #f59e0b; }
+.lesson-section[data-theme="solution"]    { border-left: 4px solid #10b981; }
+.lesson-section[data-theme="math"]        { border-left: 4px solid #6366f1; }
+.lesson-section[data-theme="tech"]        { border-left: 4px solid #64748b; }
+.lesson-section[data-theme="unlocks"]     { border-left: 4px solid #ec4899; }
+.lesson-section[data-theme="orient"]      { border-left: 4px solid #0ea5e9; }
+.intro { border-left: 4px solid #0ea5e9; }
+
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon { font-size: 22px; }
+.section-badge {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.section-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.section-body h3 { margin-top: 32px; font-size: 18px; font-weight: 700; }
+.section-body h4 { margin-top: 24px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.section-body p { margin: 12px 0; }
+.section-body ul, .section-body ol { margin: 12px 0; padding-left: 24px; }
+.section-body li { margin: 4px 0; }
+
+.section-body a { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(37,99,235,0.3); text-underline-offset: 2px; }
+.section-body a:hover { text-decoration-color: var(--accent); }
+
+.section-body strong { font-weight: 700; }
+.section-body em { font-style: italic; }
+
+.section-body blockquote {
+  margin: 16px 0; padding: 12px 20px;
+  background: #f5f6f8; border-left: 3px solid var(--text-muted);
+  border-radius: 4px; color: var(--text); font-size: 0.95em;
+}
+.section-body blockquote p:first-child { margin-top: 0; }
+.section-body blockquote p:last-child { margin-bottom: 0; }
+
+.section-body img {
+  display: block; max-width: 100%; height: auto;
+  margin: 20px auto; padding: 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+}
+
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 0.9em;
+}
+.section-body th, .section-body td {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-body th { background: #f5f6f8; font-weight: 600; }
+
+.section-body code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: #f1f3f5; padding: 1px 6px; border-radius: 3px;
+}
+.section-body pre {
+  background: #f6f8fa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font-size: 13px;
+  margin: 16px 0;
+}
+.section-body pre code { background: transparent; padding: 0; }
+
+.section-body details {
+  margin: 16px 0; padding: 10px 14px;
+  background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px;
+}
+.section-body details summary {
+  cursor: pointer; font-weight: 600; font-size: 13px;
+  color: var(--text-muted);
+}
+.section-body details[open] summary { margin-bottom: 8px; }
+
+.section-body hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+
+.section-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+
+.lesson-footer {
+  text-align: center; padding: 32px;
+  color: var(--text-muted); font-size: 14px;
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+.lesson-footer .muted { font-size: 12px; opacity: 0.7; }
+kbd {
+  background: var(--surface); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+  .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toc li { flex: 0 0 auto; }
+  .toc a { padding: 4px 8px; font-size: 12px; }
+  .intro, .lesson-section { padding: 20px; }
+  .page-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="../../index.html">AdaptLearn</a>
+        <span class="sep">›</span>
+        <a href="../index.html">Module 14</a>
+        <span class="sep">›</span>
+        <span class="current">Lesson 14.4</span>
+      </nav>
+      <h1 class="page-title">Multi-Modal: Vision, PDF, Citations, Computer Use</h1>
+      <div class="page-meta">
+        <span>Lesson 14.4</span>
+        <span class="dot">·</span>
+        <span>9 sections</span>
+        <span class="dot">·</span>
+        <span>~25 min read</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc" aria-label="Lesson sections">
+        <h3>Sections</h3>
+        <ol>
+      <li><a href="#section-1" data-section="1"><span class="toc-num">§1</span><span class="toc-title">Business Scenario</span></a></li>
+      <li><a href="#section-2" data-section="2"><span class="toc-num">§2</span><span class="toc-title">Bridge to Topic</span></a></li>
+      <li><a href="#section-3" data-section="3"><span class="toc-num">§3</span><span class="toc-title">Mind Map</span></a></li>
+      <li><a href="#section-4" data-section="4"><span class="toc-num">§4</span><span class="toc-title">Elaboration</span></a></li>
+      <li><a href="#section-5" data-section="5"><span class="toc-num">§5</span><span class="toc-title">Problem Statement</span></a></li>
+      <li><a href="#section-6" data-section="6"><span class="toc-num">§6</span><span class="toc-title">Solution Walkthrough</span></a></li>
+      <li><a href="#section-7" data-section="7"><span class="toc-num">§7</span><span class="toc-title">Mathematical Foundation</span></a></li>
+      <li><a href="#section-8" data-section="8"><span class="toc-num">§8</span><span class="toc-title">Technical Deep-Dive</span></a></li>
+      <li><a href="#section-9" data-section="9"><span class="toc-num">§9</span><span class="toc-title">What This Unlocks</span></a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main id="main" class="content">
+      <section class="intro" id="section-intro">
+        <header class="section-header">
+          <span class="section-icon">📍</span>
+          <h2>How to use this lesson</h2>
+        </header>
+        <div class="section-body">
+<blockquote>
+<p><strong>§0 · From last time.</strong> Lessons 14.1-14.3 covered text-based decisions. Real agents increasingly handle images, PDFs, and screens. Claude&#39;s multi-modal features replace bespoke extraction layers — knowing which to use is core architect skill.</p>
+</blockquote>
+
+        </div>
+      </section>
+      <section id="section-1" class="lesson-section" data-theme="scenario" data-section="1">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🏢</span>
+          <span class="section-badge">§1</span>
+          <h2>Business Scenario</h2>
+        </header>
+        <div class="section-body">
+<p><em>Acme E-commerce, Tuesday.</em></p>
+<p>Ronnie Park has three new use cases:</p>
+<ol>
+<li><strong>Return photos</strong> — customers submit photos of damaged products. Today, human agents review every photo. Volume: ~3K/day. Estimated 60% can be auto-classified (&quot;clearly damaged in transit&quot; vs &quot;user damage&quot; vs &quot;unclear&quot;).</li>
+<li><strong>Vendor PDF invoices</strong> — accounting team manually extracts line items from 500 PDF invoices/week. Each PDF is 5-15 pages, often scanned.</li>
+<li><strong>Internal IT support agent</strong> — wants to navigate the IT ticketing system on behalf of users to fix common issues.</li>
+</ol>
+<p>Lin Chen asks: &quot;Do we build extraction pipelines for each, or use Claude&#39;s built-in multi-modal features?&quot;</p>
+
+        </div>
+      </section>
+
+      <section id="section-2" class="lesson-section" data-theme="bridge" data-section="2">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🔗</span>
+          <span class="section-badge">§2</span>
+          <h2>Bridge to Topic</h2>
+        </header>
+        <div class="section-body">
+<p>Claude has native support for images, PDFs, citations, and (in beta) computer use. Choosing native features over extraction layers usually wins on cost, accuracy, and engineering time — but only if you know what&#39;s available and what the trade-offs are.</p>
+
+        </div>
+      </section>
+
+      <section id="section-3" class="lesson-section" data-theme="mindmap" data-section="3">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🗺️</span>
+          <span class="section-badge">§3</span>
+          <h2>Mind Map</h2>
+        </header>
+        <div class="section-body">
+<p><img src="../../diagrams/m14/06-multimodal.svg" alt="Mind map"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">mindmap
+  root((Multi-Modal))
+    Vision
+      base64 vs URL
+      supported formats
+      multi-image per turn
+      max image size
+      use cases
+    PDF Native
+      base64 or url
+      vision-based processing
+      up to 100 pages
+      no extraction layer needed
+    Citations API
+      document blocks
+      citations.enabled true
+      structured citations in output
+      use for compliance
+    Computer Use Beta
+      tool spec
+      screenshot input
+      action output
+      sandbox required
+      latency
+    Files API
+      upload once
+      reuse across calls
+      reduces retransmission cost
+</code></pre>
+</details>
+        </div>
+      </section>
+
+      <section id="section-4" class="lesson-section" data-theme="elaboration" data-section="4">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">📖</span>
+          <span class="section-badge">§4</span>
+          <h2>Elaboration</h2>
+        </header>
+        <div class="section-body">
+<h3>4.1 Vision (image inputs)</h3>
+<pre><code class="language-typescript">await client.messages.create({
+  model: &quot;claude-sonnet-4-6&quot;,
+  max_tokens: 1024,
+  messages: [{
+    role: &quot;user&quot;,
+    content: [
+      { type: &quot;image&quot;, source: { type: &quot;base64&quot;, media_type: &quot;image/jpeg&quot;, data: base64String } },
+      { type: &quot;text&quot;, text: &quot;Is this product damaged in transit, by the user, or unclear? Explain.&quot; },
+    ],
+  }],
+});
+</code></pre>
+<p>Two source forms:</p>
+<ul>
+<li><code>base64</code> — embed the image directly. Best for one-off; counts toward your request size.</li>
+<li><code>url</code> — Claude fetches the image. Best for re-use; image must be publicly accessible.</li>
+</ul>
+<p>Supported formats: JPEG, PNG, GIF, WebP. Maximum 5MB per image (base64) or no size limit (URL fetch). Up to ~20 images per message.</p>
+<p>For Acme&#39;s return photos: vision-classify with Sonnet, ~$0.005 per image. Eliminates ~60% of human review = ~1,800 photos/day saved = ~30 hours/day of agent time = ~$1,500/day labour. Vision API cost: ~$15/day. Massive ROI.</p>
+<h3>4.2 PDF native processing</h3>
+<p>PDFs are sent as <code>document</code> content blocks:</p>
+<pre><code class="language-typescript">messages: [{
+  role: &quot;user&quot;,
+  content: [
+    { type: &quot;document&quot;, source: { type: &quot;base64&quot;, media_type: &quot;application/pdf&quot;, data: pdfBase64 } },
+    { type: &quot;text&quot;, text: &quot;Extract line items as JSON: { sku, description, qty, unit_price, total }&quot; },
+  ],
+}]
+</code></pre>
+<p>PDFs are processed using vision under the hood (each page is rendered + analysed). This means:</p>
+<ul>
+<li>Scanned PDFs work (no OCR layer needed)</li>
+<li>Tables and forms are extracted accurately</li>
+<li>Up to 100 pages per PDF</li>
+<li>Cost: priced per visual page (~equivalent to a Sonnet vision call per page)</li>
+</ul>
+<p>For Acme&#39;s invoices: average 8 pages × ~$0.005/page = $0.04 per PDF. At 500/week = $20/week. Replaces a manual extraction pipeline that probably costs &gt;$2K/week in labour. Order-of-magnitude win.</p>
+<h3>4.3 Citations API</h3>
+<p>When extracting facts from documents (regulatory text, research papers, legal contracts), you want Claude to <em>cite</em> which passage supports each claim. Set <code>citations.enabled: true</code> on the document block:</p>
+<pre><code class="language-typescript">messages: [{
+  role: &quot;user&quot;,
+  content: [
+    {
+      type: &quot;document&quot;,
+      source: { type: &quot;base64&quot;, media_type: &quot;application/pdf&quot;, data: regulationPDF },
+      title: &quot;EU AI Act, Chapter III&quot;,
+      citations: { enabled: true },
+    },
+    { type: &quot;text&quot;, text: &quot;What are the obligations for high-risk AI systems?&quot; },
+  ],
+}]
+</code></pre>
+<p>Response includes citation metadata:</p>
+<pre><code class="language-typescript">response.content = [
+  { type: &quot;text&quot;, text: &quot;High-risk AI systems must implement risk management.&quot;,
+    citations: [{ type: &quot;page_location&quot;, document_index: 0,
+                  document_title: &quot;EU AI Act, Chapter III&quot;,
+                  start_page_number: 14, end_page_number: 14,
+                  cited_text: &quot;Article 9: Risk management system shall be established...&quot; }] },
+]
+</code></pre>
+<p>This is <strong>native citation faithfulness</strong> (Module 5.3) — no need to build the verification layer yourself. For HSBC compliance and Helix research, this is the right primitive.</p>
+<h3>4.4 Computer Use (beta)</h3>
+<p>Claude can be given screen control — it sees screenshots and emits actions:</p>
+<pre><code class="language-typescript">await client.messages.create({
+  model: &quot;claude-sonnet-4-6&quot;,
+  max_tokens: 2048,
+  tools: [
+    { type: &quot;computer_20250124&quot;, name: &quot;computer&quot;, display_width_px: 1024, display_height_px: 768 },
+    { type: &quot;text_editor_20250124&quot;, name: &quot;str_replace_editor&quot; },
+    { type: &quot;bash_20250124&quot;, name: &quot;bash&quot; },
+  ],
+  messages: [{ role: &quot;user&quot;, content: &quot;Open the IT ticketing system, find ticket #12345, mark it resolved.&quot; }],
+});
+</code></pre>
+<p>The model responds with <code>tool_use</code> blocks for computer actions: <code>key</code>, <code>type</code>, <code>mouse_move</code>, <code>left_click</code>, <code>screenshot</code>, etc. Your client executes them and returns screenshots as <code>tool_result</code>.</p>
+<p>Critical: <strong>computer use REQUIRES a sandboxed environment.</strong> Running it on your own desktop is a security nightmare. Use a VM, a container with VNC, or Anthropic&#39;s hosted sandbox.</p>
+<p>For Acme&#39;s IT support agent: viable in 2026 but expensive (each iteration sends a screenshot ≈ 1500 tokens of vision + emits tool actions). Real-time use cases are challenging on cost; async / batch use cases are fine.</p>
+<h3>4.5 Files API</h3>
+<p>When you&#39;d otherwise re-send the same PDF/image across many calls, use the Files API:</p>
+<pre><code class="language-typescript">// Upload once
+const file = await client.beta.files.upload({
+  file: pdfStream,
+  filename: &quot;annual-report.pdf&quot;,
+});
+
+// Reference in messages
+messages: [{
+  role: &quot;user&quot;,
+  content: [
+    { type: &quot;document&quot;, source: { type: &quot;file&quot;, file_id: file.id } },
+    { type: &quot;text&quot;, text: &quot;Summarise the strategy section.&quot; },
+  ],
+}]
+</code></pre>
+<p>The file lives at Anthropic; calls referencing it don&#39;t re-transmit. Useful for batch jobs that process the same document multiple times, or for shared documents across team agents.</p>
+
+        </div>
+      </section>
+
+      <section id="section-5" class="lesson-section" data-theme="problem" data-section="5">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">❓</span>
+          <span class="section-badge">§5</span>
+          <h2>Problem Statement</h2>
+        </header>
+        <div class="section-body">
+<p>For Acme&#39;s three use cases, design the right Claude features + costs + when to switch to native vs custom.</p>
+
+        </div>
+      </section>
+
+      <section id="section-6" class="lesson-section" data-theme="solution" data-section="6">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🛠️</span>
+          <span class="section-badge">§6</span>
+          <h2>Solution Walkthrough</h2>
+        </header>
+        <div class="section-body">
+<h3>1. Return photos (3K/day)</h3>
+<pre><code>Architecture:
+  - Vision via Sonnet, single API call per photo
+  - Output schema (strict tool use): { classification, confidence, evidence_described }
+  - Confidence &gt; 0.85: auto-classify, file routing decision
+  - Confidence ≤ 0.85: route to human
+
+Cost: 3000 × $0.005 = $15/day
+Labour saved: ~1800 photos auto-handled × ~1 min = 30 hours/day
+Net: massive positive ROI
+</code></pre>
+<h3>2. PDF invoices (500/week)</h3>
+<pre><code>Architecture:
+  - PDF as document block, Sonnet, citations enabled
+  - Output schema: array of line items + invoice metadata
+  - Files API for shared vendor templates (reuse same context across invoices from same vendor)
+
+Cost: 500 × ~8 pages × $0.005 = ~$20/week
+Labour saved: vs ~$2-3K/week manual extraction → ~100× ROI
+</code></pre>
+<h3>3. IT support agent (computer use)</h3>
+<pre><code>Architecture:
+  - Sandboxed VM with the IT ticketing system loaded
+  - Computer use tool + bash tool + text_editor tool
+  - Run in background (not real-time UX — user submits ticket, agent processes in &lt;5min)
+  - Strict allowed-actions list (cannot delete users, cannot escalate permissions, etc.)
+  - Human review for any action affecting &gt;1 user
+
+Cost: ~$0.50-1.50 per ticket (computer use is expensive)
+Labour saved: ~5-15 min per ticket of L1 support time
+Risk: highest of the three — sandbox + permission scoping critical
+
+Verdict: pilot in shadow mode for 1 month, evaluate cost-vs-quality
+   before going live.
+</code></pre>
+
+        </div>
+      </section>
+
+      <section id="section-7" class="lesson-section" data-theme="math" data-section="7">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">∑</span>
+          <span class="section-badge">§7</span>
+          <h2>Mathematical Foundation</h2>
+        </header>
+        <div class="section-body">
+<h3>7.1 Image cost calculation</h3>
+<p>Image tokens are calculated by <code>(width × height) / 750</code> ≈ ~1,150 tokens per typical 1024×768 image. Then:</p>
+<pre><code>image_cost = image_tokens × Pin
+</code></pre>
+<p>For a Sonnet call with one 1024×768 image:</p>
+<ul>
+<li>Image: ~1,150 tokens × $3/M = $0.003</li>
+<li>Text prompt: ~200 tokens × $3/M = $0.0006</li>
+<li>Output: ~200 tokens × $15/M = $0.003</li>
+<li>Total: ~$0.006</li>
+</ul>
+<h3>7.2 PDF cost = sum of page costs</h3>
+<p>Each page of a PDF is processed as an image. So an 8-page PDF costs ~8 × (one image call).</p>
+<h3>7.3 Computer use loop cost</h3>
+<p>Each loop iteration: screenshot (~1500 tokens vision) + reasoning + 1-3 actions. At Sonnet pricing, ~$0.02-0.05 per iteration. Tasks needing 30-50 iterations = ~$1-2.50.</p>
+
+        </div>
+      </section>
+
+      <section id="section-8" class="lesson-section" data-theme="tech" data-section="8">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">⚙️</span>
+          <span class="section-badge">§8</span>
+          <h2>Technical Deep-Dive</h2>
+        </header>
+        <div class="section-body">
+<h3>8.1 When to use base64 vs URL</h3>
+<table>
+<thead>
+<tr>
+<th>Use case</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>One-off image, varies per call</td>
+<td>base64</td>
+</tr>
+<tr>
+<td>Same image used many times</td>
+<td>upload via Files API</td>
+</tr>
+<tr>
+<td>Image already at a stable public URL</td>
+<td>URL</td>
+</tr>
+<tr>
+<td>Image is private but you can pre-sign URLs</td>
+<td>pre-signed URL</td>
+</tr>
+</tbody></table>
+<p>URLs save your client&#39;s bandwidth (Anthropic fetches). base64 is simpler but inflates request payload.</p>
+<h3>8.2 PDF preprocessing — when worth it</h3>
+<p>Native PDF works for most cases. Preprocessing (extract text first, send text only) wins when:</p>
+<ul>
+<li>The PDF is text-native and small</li>
+<li>You have <em>thousands</em> of pages — text extraction is cheaper than vision-per-page</li>
+<li>You need exact text (vision may slightly paraphrase formatting)</li>
+</ul>
+<p>For invoices, contracts, research papers: native PDF is the right call. For data-warehouse-style &quot;we have 1M pages and need each line&quot;: preprocess.</p>
+<h3>8.3 Citation faithfulness vs the M5.3 pattern</h3>
+<p>Module 5.3 builds citation faithfulness as a post-processing audit step. With the Citations API:</p>
+<ul>
+<li>Citations are <em>generated structurally</em> — no extraction step</li>
+<li>Each citation includes page location, document title, and exact <code>cited_text</code></li>
+<li>Your audit code just checks the citation exists in the source — much simpler</li>
+</ul>
+<p>For new builds: prefer Citations API. For retrofitting existing RAG: M5.3&#39;s pattern still works.</p>
+<h3>8.4 Computer use sandbox options</h3>
+<table>
+<thead>
+<tr>
+<th>Sandbox</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Anthropic-hosted (recommended for prototype)</td>
+<td>Easiest; ~$0.10/min compute on top of API cost</td>
+</tr>
+<tr>
+<td>Docker + VNC</td>
+<td>Self-hosted; gives you control</td>
+</tr>
+<tr>
+<td>Firecracker microVM</td>
+<td>Best isolation; complex ops</td>
+</tr>
+<tr>
+<td>Cloud VM with display server</td>
+<td>Flexible but expensive at scale</td>
+</tr>
+</tbody></table>
+<p>Never run computer use against your real production systems without a sandbox. The model occasionally clicks wrong things.</p>
+<h3>8.5 The &quot;vision is also reasoning&quot; insight</h3>
+<p>When you pass an image to Claude, it sees + reasons about the image in the same model call. You don&#39;t need a separate &quot;describe the image&quot; step before reasoning. This is different from older multi-modal architectures.</p>
+<p>For Acme&#39;s return photos: don&#39;t extract &quot;tear visible in upper left&quot; first then reason. Just ask &quot;is this transit damage or user damage?&quot; — Claude handles both perception and reasoning.</p>
+
+        </div>
+      </section>
+
+      <section id="section-9" class="lesson-section" data-theme="unlocks" data-section="9">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🚀</span>
+          <span class="section-badge">§9</span>
+          <h2>What This Unlocks</h2>
+        </header>
+        <div class="section-body">
+<ul>
+<li><strong>Lesson 14.5</strong> covers Batch API which supports all these multi-modal features</li>
+<li><strong>Module 5 RAG</strong> can be substantially simplified using the Citations API</li>
+<li><strong>Module 10 Audit</strong> uses Citations API output as native compliance evidence</li>
+</ul>
+<hr>
+
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <p>End of Lesson 14.4</p>
+        <p class="muted">Press <kbd>↑</kbd> / <kbd>↓</kbd> to jump between sections.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script>
+(function () {
+  var sections = document.querySelectorAll(".lesson-section, .intro");
+  var tocLinks = document.querySelectorAll(".toc a");
+  var progress = document.getElementById("progress");
+  var byId = {};
+  tocLinks.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    byId[id] = a;
+  });
+
+  function update() {
+    var scrolled = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (progress) progress.style.width = max > 0 ? (scrolled / max * 100) + "%" : "0%";
+
+    var current = null;
+    sections.forEach(function (s) {
+      var top = s.getBoundingClientRect().top;
+      if (top < 140) current = s.id;
+    });
+    tocLinks.forEach(function (a) { a.classList.remove("active"); });
+    if (current && byId[current]) byId[current].classList.add("active");
+  }
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    var ids = Array.prototype.map.call(sections, function (s) { return s.id; });
+    var currentIdx = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top < 140) currentIdx = i;
+    }
+    if (e.key === "ArrowDown" && e.shiftKey) {
+      e.preventDefault();
+      var next = Math.min(ids.length - 1, currentIdx + 1);
+      document.getElementById(ids[next]).scrollIntoView({ behavior: "smooth" });
+    }
+    if (e.key === "ArrowUp" && e.shiftKey) {
+      e.preventDefault();
+      var prev = Math.max(0, currentIdx - 1);
+      document.getElementById(ids[prev]).scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
+</script>
+</body>
+</html>

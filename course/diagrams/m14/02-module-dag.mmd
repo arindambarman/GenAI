@@ -1,0 +1,16 @@
+graph LR
+  L141[14.1 SDK & Messages API]:::current --> L142[14.2 Prompt Caching]
+  L141 --> L143[14.3 Extended Thinking + Tier Selection]
+  L142 --> L143
+  L143 --> L144[14.4 Multi-Modal Features]
+  L143 --> L145[14.5 Cost & Scale]
+  L144 --> L145
+  L141 -.uses.-> M3[Module 3: LLM internals]
+  L142 -.extends.-> M9[Module 9: Cost optimisation]
+  L143 -.extends.-> M4[Module 4: Sherpa]
+  L145 -.extends.-> M11[Module 11: Business cases]
+  classDef current fill:#fc6,stroke:#a60,stroke-width:3px
+  style M3 fill:#def,stroke:#36a
+  style M9 fill:#def,stroke:#36a
+  style M4 fill:#def,stroke:#36a
+  style M11 fill:#def,stroke:#36a

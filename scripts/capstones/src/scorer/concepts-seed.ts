@@ -1,7 +1,7 @@
 import type { ConceptScore } from "./schema.js";
 
 /**
- * The 53 course concepts (from the knowledge graph) as seed data.
+ * The course concepts (from the knowledge graph) as seed data — 53 from M1-M13 + 10 Claude-specific from M14.
  * Used by `scorer init` to bootstrap a fresh progress.json.
  *
  * Each concept starts at depth=0, confidence=0 — "unstarted" status.
@@ -86,4 +86,16 @@ export const SEED_CONCEPTS: Array<Omit<ConceptScore, "review_history" | "evidenc
   // ─── M13 Frontier ────────────────────────────────────────────────
   { concept_id: "capability-frontier", name: "Capability Frontier (3-year horizon)", module: "M13", category: "frontier", importance: 6, depth: 0, confidence: 0, last_reviewed: null },
   { concept_id: "governance", name: "Governance Frameworks (SR 11-7 / EU AI Act / NIST)", module: "M13", category: "frontier", importance: 7, depth: 0, confidence: 0, last_reviewed: null },
+
+  // ─── M14 Claude-Specific Architect ───────────────────────────────
+  { concept_id: "messages-api", name: "Messages API + Content Blocks + Streaming", module: "M14", category: "architecture", importance: 10, depth: 0, confidence: 0, last_reviewed: null },
+  { concept_id: "tool-use-claude", name: "Claude Tool Use (input_schema, tool_choice, parallel)", module: "M14", category: "architecture", importance: 10, depth: 0, confidence: 0, last_reviewed: null },
+  { concept_id: "cache-control", name: "Prompt Caching (cache_control breakpoints, 4-block hierarchy, TTL)", module: "M14", category: "operational", importance: 10, depth: 0, confidence: 0, last_reviewed: null },
+  { concept_id: "extended-thinking", name: "Extended Thinking (budget_tokens, redacted blocks)", module: "M14", category: "architecture", importance: 9, depth: 0, confidence: 0, last_reviewed: null },
+  { concept_id: "model-tier-routing", name: "Model Tier Selection (Opus/Sonnet/Haiku routing)", module: "M14", category: "operational", importance: 10, depth: 0, confidence: 0, last_reviewed: null },
+  { concept_id: "vision-pdf-native", name: "Vision + Native PDF (image/document blocks)", module: "M14", category: "architecture", importance: 7, depth: 0, confidence: 0, last_reviewed: null },
+  { concept_id: "citations-api", name: "Citations API (grounded output)", module: "M14", category: "architecture", importance: 7, depth: 0, confidence: 0, last_reviewed: null },
+  { concept_id: "computer-use", name: "Computer Use (screenshot/click/type)", module: "M14", category: "frontier", importance: 6, depth: 0, confidence: 0, last_reviewed: null },
+  { concept_id: "batch-api", name: "Batch API (50% discount, 24h SLA)", module: "M14", category: "operational", importance: 9, depth: 0, confidence: 0, last_reviewed: null },
+  { concept_id: "rate-limit-tiers", name: "Rate Limit Tiers (ITPM/OTPM/RPM, headroom planning)", module: "M14", category: "operational", importance: 9, depth: 0, confidence: 0, last_reviewed: null },
 ];

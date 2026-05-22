@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson 14.1 · Anthropic SDK &amp; Messages API Internals · AdaptLearn</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-light.css" />
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+  --max-content: 760px;
+  --sidebar-w: 280px;
+  --header-h: 120px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: 8px 12px; z-index: 100;
+}
+.skip:focus { left: 12px; top: 12px; }
+
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.92);
+}
+.page-header-inner {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto; padding: 14px 32px;
+}
+.breadcrumb {
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+.page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.page-meta { font-size: 13px; color: var(--text-muted); }
+.page-meta .dot { margin: 0 8px; opacity: 0.5; }
+
+.progress-bar { height: 3px; background: var(--border); }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+.layout {
+  max-width: calc(var(--max-content) + var(--sidebar-w) + 80px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  gap: 40px;
+  padding: 32px;
+}
+
+.sidebar { position: sticky; top: calc(var(--header-h) + 16px); align-self: start; max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; }
+.toc h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 10px; border-radius: 6px;
+  color: var(--text-muted); text-decoration: none; font-size: 14px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { background: var(--accent-soft); color: var(--text); }
+.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+.toc-num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; color: var(--text-muted); }
+.toc a.active .toc-num { color: var(--accent); }
+
+.content { min-width: 0; max-width: var(--max-content); }
+
+.intro, .lesson-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: var(--header-h);
+}
+.lesson-section[data-theme="scenario"]    { border-left: 4px solid #ef4444; }
+.lesson-section[data-theme="bridge"]      { border-left: 4px solid #94a3b8; }
+.lesson-section[data-theme="mindmap"]     { border-left: 4px solid #8b5cf6; }
+.lesson-section[data-theme="elaboration"] { border-left: 4px solid #2563eb; }
+.lesson-section[data-theme="problem"]     { border-left: 4px solid #f59e0b; }
+.lesson-section[data-theme="solution"]    { border-left: 4px solid #10b981; }
+.lesson-section[data-theme="math"]        { border-left: 4px solid #6366f1; }
+.lesson-section[data-theme="tech"]        { border-left: 4px solid #64748b; }
+.lesson-section[data-theme="unlocks"]     { border-left: 4px solid #ec4899; }
+.lesson-section[data-theme="orient"]      { border-left: 4px solid #0ea5e9; }
+.intro { border-left: 4px solid #0ea5e9; }
+
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon { font-size: 22px; }
+.section-badge {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.section-header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+.section-body h3 { margin-top: 32px; font-size: 18px; font-weight: 700; }
+.section-body h4 { margin-top: 24px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.section-body p { margin: 12px 0; }
+.section-body ul, .section-body ol { margin: 12px 0; padding-left: 24px; }
+.section-body li { margin: 4px 0; }
+
+.section-body a { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(37,99,235,0.3); text-underline-offset: 2px; }
+.section-body a:hover { text-decoration-color: var(--accent); }
+
+.section-body strong { font-weight: 700; }
+.section-body em { font-style: italic; }
+
+.section-body blockquote {
+  margin: 16px 0; padding: 12px 20px;
+  background: #f5f6f8; border-left: 3px solid var(--text-muted);
+  border-radius: 4px; color: var(--text); font-size: 0.95em;
+}
+.section-body blockquote p:first-child { margin-top: 0; }
+.section-body blockquote p:last-child { margin-bottom: 0; }
+
+.section-body img {
+  display: block; max-width: 100%; height: auto;
+  margin: 20px auto; padding: 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+}
+
+.section-body table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+  font-size: 0.9em;
+}
+.section-body th, .section-body td {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-body th { background: #f5f6f8; font-weight: 600; }
+
+.section-body code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: #f1f3f5; padding: 1px 6px; border-radius: 3px;
+}
+.section-body pre {
+  background: #f6f8fa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  overflow-x: auto; font-size: 13px;
+  margin: 16px 0;
+}
+.section-body pre code { background: transparent; padding: 0; }
+
+.section-body details {
+  margin: 16px 0; padding: 10px 14px;
+  background: #f8f9fb; border: 1px solid var(--border); border-radius: 6px;
+}
+.section-body details summary {
+  cursor: pointer; font-weight: 600; font-size: 13px;
+  color: var(--text-muted);
+}
+.section-body details[open] summary { margin-bottom: 8px; }
+
+.section-body hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+
+.section-body .katex-display { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+
+.lesson-footer {
+  text-align: center; padding: 32px;
+  color: var(--text-muted); font-size: 14px;
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+.lesson-footer .muted { font-size: 12px; opacity: 0.7; }
+kbd {
+  background: var(--surface); border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+  .toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toc li { flex: 0 0 auto; }
+  .toc a { padding: 4px 8px; font-size: 12px; }
+  .intro, .lesson-section { padding: 20px; }
+  .page-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="../../index.html">AdaptLearn</a>
+        <span class="sep">›</span>
+        <a href="../index.html">Module 14</a>
+        <span class="sep">›</span>
+        <span class="current">Lesson 14.1</span>
+      </nav>
+      <h1 class="page-title">Anthropic SDK &amp; Messages API Internals</h1>
+      <div class="page-meta">
+        <span>Lesson 14.1</span>
+        <span class="dot">·</span>
+        <span>9 sections</span>
+        <span class="dot">·</span>
+        <span>~25 min read</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc" aria-label="Lesson sections">
+        <h3>Sections</h3>
+        <ol>
+      <li><a href="#section-1" data-section="1"><span class="toc-num">§1</span><span class="toc-title">Business Scenario</span></a></li>
+      <li><a href="#section-2" data-section="2"><span class="toc-num">§2</span><span class="toc-title">Bridge to Topic</span></a></li>
+      <li><a href="#section-3" data-section="3"><span class="toc-num">§3</span><span class="toc-title">Mind Map</span></a></li>
+      <li><a href="#section-4" data-section="4"><span class="toc-num">§4</span><span class="toc-title">Elaboration</span></a></li>
+      <li><a href="#section-5" data-section="5"><span class="toc-num">§5</span><span class="toc-title">Problem Statement</span></a></li>
+      <li><a href="#section-6" data-section="6"><span class="toc-num">§6</span><span class="toc-title">Solution Walkthrough</span></a></li>
+      <li><a href="#section-7" data-section="7"><span class="toc-num">§7</span><span class="toc-title">Mathematical Foundation</span></a></li>
+      <li><a href="#section-8" data-section="8"><span class="toc-num">§8</span><span class="toc-title">Technical Deep-Dive</span></a></li>
+      <li><a href="#section-9" data-section="9"><span class="toc-num">§9</span><span class="toc-title">What This Unlocks</span></a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main id="main" class="content">
+      <section class="intro" id="section-intro">
+        <header class="section-header">
+          <span class="section-icon">📍</span>
+          <h2>How to use this lesson</h2>
+        </header>
+        <div class="section-body">
+<blockquote>
+<p><strong>§0 · From last time.</strong> Module 3 covered LLM-internals generically (attention, tool use, constrained decoding). Module 4 used the Anthropic SDK to build Sherpa. This lesson opens the SDK&#39;s hood — what&#39;s actually in a Messages API call, how streaming works, how tool use blocks compose, what errors mean, and how to count tokens before sending.</p>
+</blockquote>
+
+        </div>
+      </section>
+      <section id="section-1" class="lesson-section" data-theme="scenario" data-section="1">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🏢</span>
+          <span class="section-badge">§1</span>
+          <h2>Business Scenario</h2>
+        </header>
+        <div class="section-body">
+<p><em>HSBC pre-launch review, Friday afternoon.</em></p>
+<p>Daniel Cho is reviewing Sherpa v5 with the Anthropic field engineer assigned to the bank&#39;s account. Two issues:</p>
+<ol>
+<li><strong>Streaming with tool use</strong> — Aisha&#39;s UI shows the agent&#39;s classification appearing all at once after a 6-second wait, instead of streaming. The engineer says &quot;you can stream tool-use responses, but you have to handle <code>content_block_*</code> events correctly.&quot;</li>
+<li><strong>Mysterious 529 errors</strong> — at 2 AM during the nightly batch, ~0.3% of calls return HTTP 529. Sherpa&#39;s retry middleware retries them blindly and they succeed. Daniel asks: <em>&quot;what is 529, and is blind retry the right answer?&quot;</em></li>
+</ol>
+<p>Both questions reveal that the team has been using the SDK at surface level — <code>messages.create({...}).then(r =&gt; r.content)</code> — without understanding the underlying protocol.</p>
+
+        </div>
+      </section>
+
+      <section id="section-2" class="lesson-section" data-theme="bridge" data-section="2">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🔗</span>
+          <span class="section-badge">§2</span>
+          <h2>Bridge to Topic</h2>
+        </header>
+        <div class="section-body">
+<p>To pass the architect exam (or to debug production), you need to know the SDK at the level where you can read a Messages API call and predict its cost, latency, failure modes, and feature usage at a glance. Streaming, content blocks, tool use, and error types are the load-bearing pieces.</p>
+
+        </div>
+      </section>
+
+      <section id="section-3" class="lesson-section" data-theme="mindmap" data-section="3">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🗺️</span>
+          <span class="section-badge">§3</span>
+          <h2>Mind Map</h2>
+        </header>
+        <div class="section-body">
+<p><img src="../../diagrams/m14/03-messages-api.svg" alt="Mind map"></p>
+<details><summary>Mermaid source</summary>
+
+<pre><code class="language-mermaid">mindmap
+  root((Messages API))
+    Content Blocks
+      text
+      tool_use
+      tool_result
+      thinking
+      image
+      document
+    Streaming
+      message_start
+      content_block_start
+      content_block_delta
+      content_block_stop
+      message_delta
+      message_stop
+    Tool Use
+      tool_choice auto/any/specific
+      parallel_tool_use
+      tool_result blocks
+      cache_control on tools
+    Errors
+      400 invalid_request
+      401 auth
+      429 rate_limit
+      500 internal
+      529 overloaded
+      timeout / network
+    Token Counting
+      messages.count_tokens
+      cache hits don&#39;t count as input
+      pre-flight budgets
+</code></pre>
+</details>
+        </div>
+      </section>
+
+      <section id="section-4" class="lesson-section" data-theme="elaboration" data-section="4">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">📖</span>
+          <span class="section-badge">§4</span>
+          <h2>Elaboration</h2>
+        </header>
+        <div class="section-body">
+<h3>4.1 Content blocks — the atomic unit of a message</h3>
+<p>Every Messages API response (and tool-result input) is composed of typed content blocks. Six matter for an architect:</p>
+<pre><code class="language-typescript">type ContentBlock =
+  | { type: &quot;text&quot;; text: string }
+  | { type: &quot;thinking&quot;; thinking: string; signature: string }
+  | { type: &quot;tool_use&quot;; id: string; name: string; input: Record&lt;string, unknown&gt; }
+  | { type: &quot;tool_result&quot;; tool_use_id: string; content: string | ContentBlock[]; is_error?: boolean }
+  | { type: &quot;image&quot;; source: { type: &quot;base64&quot; | &quot;url&quot;; media_type: string; data?: string; url?: string } }
+  | { type: &quot;document&quot;; source: { type: &quot;base64&quot; | &quot;url&quot;; media_type: &quot;application/pdf&quot;; data?: string; url?: string }; title?: string; citations?: { enabled: boolean } };
+</code></pre>
+<p>Key facts an architect must know:</p>
+<ul>
+<li>A single assistant turn can contain <em>multiple</em> blocks (e.g., text + thinking + multiple <code>tool_use</code> blocks in parallel).</li>
+<li><code>tool_result</code> blocks go in the <em>user</em> role, not the assistant role.</li>
+<li><code>thinking</code> blocks must be passed back verbatim (with their <code>signature</code>) when continuing a conversation that used extended thinking.</li>
+<li><code>document</code> with <code>citations.enabled = true</code> is how you get the Citations API — Lesson 14.4.</li>
+</ul>
+<h3>4.2 Streaming — the event protocol</h3>
+<p>When <code>stream: true</code>, the SDK returns an async iterator emitting Server-Sent Events. The event sequence:</p>
+<pre><code>message_start            { message: { id, model, role, ... } }
+  content_block_start     { index: 0, content_block: { type: &quot;text&quot;, text: &quot;&quot; } }
+  content_block_delta     { index: 0, delta: { type: &quot;text_delta&quot;, text: &quot;Hello&quot; } }
+  content_block_delta     { index: 0, delta: { type: &quot;text_delta&quot;, text: &quot; world&quot; } }
+  content_block_stop      { index: 0 }
+  content_block_start     { index: 1, content_block: { type: &quot;tool_use&quot;, id: &quot;...&quot;, name: &quot;...&quot; } }
+  content_block_delta     { index: 1, delta: { type: &quot;input_json_delta&quot;, partial_json: &quot;{\&quot;q\&quot;:&quot; } }
+  content_block_delta     { index: 1, delta: { type: &quot;input_json_delta&quot;, partial_json: &quot; \&quot;BRCA2\&quot;}&quot; } }
+  content_block_stop      { index: 1 }
+message_delta            { delta: { stop_reason: &quot;tool_use&quot; }, usage: { output_tokens: 42 } }
+message_stop
+</code></pre>
+<p>Two implications for Sherpa&#39;s UI bug:</p>
+<ol>
+<li><strong>You must accumulate <code>input_json_delta</code> chunks</strong> into a string and <code>JSON.parse</code> only after <code>content_block_stop</code>. Mid-stream JSON is not valid.</li>
+<li><strong>Show the user partial text as it streams</strong> — that&#39;s the whole point. The bug was the UI waited for <code>message_stop</code> before rendering anything.</li>
+</ol>
+<h3>4.3 Tool use specification</h3>
+<p>Three control knobs for tool use:</p>
+<pre><code class="language-typescript">{
+  tools: [...],
+  tool_choice: { type: &quot;auto&quot; }           // model decides whether to use a tool (default)
+              | { type: &quot;any&quot; }            // model MUST use SOME tool
+              | { type: &quot;tool&quot;, name: &quot;search_pubmed&quot; }  // must use THIS tool
+              | { type: &quot;none&quot; },          // disable tool use for this turn
+
+  // Parallel tool use (enabled by default)
+  // The model can emit multiple tool_use blocks in one turn; you execute
+  // them all and return ALL tool_result blocks in a single user message.
+}
+</code></pre>
+<p>Three failure modes the architect must know:</p>
+<ul>
+<li><strong><code>tool_use</code> with truncated input</strong> — if <code>max_tokens</code> is hit mid-tool-call, the JSON is incomplete and unparseable. Increase <code>max_tokens</code> or instruct shorter args.</li>
+<li><strong>Mismatched <code>tool_use_id</code></strong> — every <code>tool_use_id</code> must be answered by exactly one <code>tool_result</code> with the same id. Missing one causes 400.</li>
+<li><strong><code>is_error: true</code> propagation</strong> — set this on <code>tool_result</code> for failures; the model treats it differently than success.</li>
+</ul>
+<h3>4.4 Error taxonomy</h3>
+<pre><code>400 invalid_request_error    — bad params, schema violations, mismatched tool_use_ids
+401 authentication_error      — bad/missing API key
+403 permission_error          — beta feature without access, etc.
+404 not_found_error           — bad model name
+413 request_too_large         — request exceeds size limit
+429 rate_limit_error          — your tier&#39;s RPM/ITPM/OTPM exceeded
+500 internal_server_error     — Anthropic&#39;s problem
+529 overloaded_error          — Anthropic is overloaded; retry with backoff
+</code></pre>
+<p>The 529 from Sherpa is <em>transient overload</em>. Blind retry with backoff is the right answer — it&#39;s not a bug in your code. But you should:</p>
+<ol>
+<li><strong>Retry with exponential backoff + jitter</strong> (1s, 2s, 4s, 8s — already in Sherpa&#39;s middleware after Module 9 hardening).</li>
+<li><strong>Surface the retry count</strong> in observability so you can spot patterns (e.g., 529s spike at 2 AM UTC = global batch hour pressure).</li>
+<li><strong>Don&#39;t retry forever</strong> — cap at 4 attempts. If all fail, surface to the agent as a failure observation.</li>
+</ol>
+<h3>4.5 Token counting before send</h3>
+<pre><code class="language-typescript">const count = await client.messages.countTokens({
+  model: &quot;claude-sonnet-4-6&quot;,
+  system: SYSTEM_PROMPT,
+  messages: [{ role: &quot;user&quot;, content: userInput }],
+  tools: toolSchemas,
+});
+// → { input_tokens: 4327 }
+</code></pre>
+<p>Use this when:</p>
+<ul>
+<li>You need to ensure you stay under a per-call cost budget</li>
+<li>You want to dynamically choose model tier based on input size</li>
+<li>You&#39;re batching messages and need to plan token spend per batch</li>
+</ul>
+<p>Cache hits do NOT count toward <code>input_tokens</code> returned here — you&#39;ll see the full theoretical count. Actual billed input depends on cache state at request time.</p>
+
+        </div>
+      </section>
+
+      <section id="section-5" class="lesson-section" data-theme="problem" data-section="5">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">❓</span>
+          <span class="section-badge">§5</span>
+          <h2>Problem Statement</h2>
+        </header>
+        <div class="section-body">
+<p>Daniel asks you three questions. Answer each with specific reference to the Messages API:</p>
+<ol>
+<li><em>&quot;Why is Sherpa&#39;s streaming UI broken? What event sequence should the UI consume?&quot;</em></li>
+<li><em>&quot;What is HTTP 529? Should Sherpa&#39;s retry middleware treat it differently from 500?&quot;</em></li>
+<li><em>&quot;Show me how to count tokens before sending so we can route to Haiku when input is small, Sonnet when it&#39;s big.&quot;</em></li>
+</ol>
+
+        </div>
+      </section>
+
+      <section id="section-6" class="lesson-section" data-theme="solution" data-section="6">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🛠️</span>
+          <span class="section-badge">§6</span>
+          <h2>Solution Walkthrough</h2>
+        </header>
+        <div class="section-body">
+<h3>1. Streaming UI fix</h3>
+<pre><code class="language-typescript">const stream = await client.messages.stream({
+  model: &quot;claude-sonnet-4-6&quot;,
+  max_tokens: 4096,
+  system: SYSTEM_PROMPT,
+  messages,
+  tools,
+});
+
+for await (const event of stream) {
+  switch (event.type) {
+    case &quot;content_block_start&quot;:
+      if (event.content_block.type === &quot;text&quot;) {
+        ui.appendText(&quot;&quot;);  // start new text block
+      } else if (event.content_block.type === &quot;tool_use&quot;) {
+        ui.startToolCall(event.content_block.id, event.content_block.name);
+      }
+      break;
+    case &quot;content_block_delta&quot;:
+      if (event.delta.type === &quot;text_delta&quot;) {
+        ui.appendText(event.delta.text);  // STREAM CHUNK BY CHUNK
+      } else if (event.delta.type === &quot;input_json_delta&quot;) {
+        ui.appendToolJSON(event.index, event.delta.partial_json);
+      }
+      break;
+    case &quot;content_block_stop&quot;:
+      // Optional: render completed block in final form
+      break;
+    case &quot;message_delta&quot;:
+      if (event.delta.stop_reason) ui.markFinished(event.delta.stop_reason);
+      break;
+  }
+}
+</code></pre>
+<p>Aisha&#39;s UI now shows text appearing character-by-character. Tool-use JSON streams as it generates (you can show &quot;searching...&quot; in a spinner until <code>content_block_stop</code>).</p>
+<h3>2. 529 handling</h3>
+<pre><code class="language-typescript">function isTransient(err: AnthropicError): boolean {
+  return (
+    err.status === 429 ||   // rate limit — backoff respects retry-after if present
+    err.status === 500 ||   // internal — usually fast retry succeeds
+    err.status === 529 ||   // overloaded — needs longer backoff
+    err.status &gt;= 502 &amp;&amp; err.status &lt;= 504  // gateway errors
+  );
+}
+
+const RETRYABLE_BACKOFF: Record&lt;number, number&gt; = {
+  429: 5000,  // start at 5s for rate limits (respect retry-after if present)
+  500: 1000,
+  529: 3000,  // give overloaded service room to recover
+};
+</code></pre>
+<p>529 is meaningfully different from 500: 500 = problem with your specific request, 529 = Anthropic is shedding load globally. The right backoff is <em>longer</em> and you should <em>cap retries lower</em> than for 500. Surface the count in your metrics — a 529 spike across multiple agents indicates an Anthropic-side incident worth your team knowing about.</p>
+<h3>3. Token-counted routing</h3>
+<pre><code class="language-typescript">async function chooseModel(system: string, messages: Message[], tools: Tool[]) {
+  const { input_tokens } = await client.messages.countTokens({
+    model: &quot;claude-haiku-4-5-20251001&quot;,
+    system,
+    messages,
+    tools,
+  });
+  
+  if (input_tokens &lt; 4000) return &quot;claude-haiku-4-5-20251001&quot;;
+  if (input_tokens &lt; 20000) return &quot;claude-sonnet-4-6&quot;;
+  return &quot;claude-opus-4-7&quot;;  // very long input — pay for deeper reasoning
+}
+</code></pre>
+<p>The count itself is a billable call (a fraction of a cent) but saves you ~3-4× on the actual completion. Worth it for any non-trivial workload.</p>
+
+        </div>
+      </section>
+
+      <section id="section-7" class="lesson-section" data-theme="math" data-section="7">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">∑</span>
+          <span class="section-badge">§7</span>
+          <h2>Mathematical Foundation</h2>
+        </header>
+        <div class="section-body">
+<h3>7.1 Cost of one Messages API call</h3>
+<pre><code>input_cost  = (uncached_input_tokens × Pin + cached_input_tokens × Pcache) / 1_000_000
+output_cost = output_tokens × Pout / 1_000_000
+total       = input_cost + output_cost
+</code></pre>
+<p>Where Pin, Pcache, Pout vary by model (see Lesson 14.5 for tables). Cache hits replace <code>Pin</code> with <code>Pcache</code> for those tokens — typically 10× cheaper.</p>
+<h3>7.2 Streaming has no cost difference</h3>
+<p>Streaming changes <em>latency</em> (first token arrives faster) and <em>UX</em> (progressive rendering), not cost. Total input + output tokens are identical to non-streaming.</p>
+<h3>7.3 Token-counting endpoint is free-ish</h3>
+<p><code>messages.count_tokens</code> is billed at a tiny fraction of an actual call — count it as effectively free for routing decisions.</p>
+
+        </div>
+      </section>
+
+      <section id="section-8" class="lesson-section" data-theme="tech" data-section="8">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">⚙️</span>
+          <span class="section-badge">§8</span>
+          <h2>Technical Deep-Dive</h2>
+        </header>
+        <div class="section-body">
+<h3>8.1 The four content-block-delta types</h3>
+<p>When streaming, deltas come in different flavours depending on the parent block:</p>
+<table>
+<thead>
+<tr>
+<th>Block type</th>
+<th>Delta type</th>
+<th>What it carries</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>text</code></td>
+<td><code>text_delta</code></td>
+<td><code>{ type: &quot;text_delta&quot;, text: string }</code></td>
+</tr>
+<tr>
+<td><code>thinking</code></td>
+<td><code>thinking_delta</code></td>
+<td><code>{ type: &quot;thinking_delta&quot;, thinking: string }</code></td>
+</tr>
+<tr>
+<td><code>tool_use</code></td>
+<td><code>input_json_delta</code></td>
+<td><code>{ type: &quot;input_json_delta&quot;, partial_json: string }</code></td>
+</tr>
+<tr>
+<td><code>tool_use</code></td>
+<td><code>signature_delta</code></td>
+<td><code>{ type: &quot;signature_delta&quot;, signature: string }</code> (for thinking blocks)</td>
+</tr>
+</tbody></table>
+<p>Never assume the delta type from the parent — always switch on <code>event.delta.type</code>.</p>
+<h3>8.2 The &quot;preserve thinking&quot; rule</h3>
+<p>If you use extended thinking (Lesson 14.3) and follow up with a tool result, you MUST pass back the original <code>thinking</code> content blocks verbatim, including their <code>signature</code>. Strip them and the next turn will fail with a 400.</p>
+<pre><code class="language-typescript">// CORRECT: preserve thinking + signature when continuing
+messages.push({
+  role: &quot;assistant&quot;,
+  content: response.content,  // includes thinking + tool_use blocks
+});
+messages.push({
+  role: &quot;user&quot;,
+  content: [{ type: &quot;tool_result&quot;, tool_use_id: ..., content: ... }],
+});
+
+// WRONG: stripping thinking blocks
+const onlyToolUse = response.content.filter(b =&gt; b.type !== &quot;thinking&quot;);
+messages.push({ role: &quot;assistant&quot;, content: onlyToolUse });  // → 400 on next call
+</code></pre>
+<h3>8.3 <code>stop_reason</code> taxonomy</h3>
+<pre><code>&quot;end_turn&quot;          model finished naturally
+&quot;max_tokens&quot;        you hit max_tokens — increase or summarise
+&quot;stop_sequence&quot;     custom stop_sequences fired
+&quot;tool_use&quot;          model wants a tool — execute and continue
+&quot;pause_turn&quot;        long-running extended thinking paused — resume
+&quot;refusal&quot;           model refused (safety) — propagate to user
+</code></pre>
+<p>Architect-level question: <em>&quot;What&#39;s the production response for <code>stop_reason: refusal</code>?&quot;</em> — log it, count it as a metric, surface to user with a graceful message, <em>don&#39;t</em> retry hoping the model changes its mind.</p>
+<h3>8.4 SDK auto-retry quirks</h3>
+<p>The official SDK retries automatically on 429 and 5xx by default. You may want to:</p>
+<ul>
+<li><strong>Disable</strong> with <code>maxRetries: 0</code> in the client constructor if you have your own middleware (Sherpa does)</li>
+<li><strong>Use the default</strong> if you don&#39;t have middleware and want sane behaviour for free</li>
+</ul>
+<pre><code class="language-typescript">const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  maxRetries: 0,  // we handle retries in our middleware
+  timeout: 60_000,
+});
+</code></pre>
+<h3>8.5 Idempotency</h3>
+<p>The Messages API doesn&#39;t support idempotency keys natively. If you want idempotent semantics, build at your layer: hash <code>(model, system, messages, tools, temperature)</code> → use as cache key → return cached response on duplicate request. Useful for retry safety.</p>
+
+        </div>
+      </section>
+
+      <section id="section-9" class="lesson-section" data-theme="unlocks" data-section="9">
+        <header class="section-header">
+          <span class="section-icon" aria-hidden="true">🚀</span>
+          <span class="section-badge">§9</span>
+          <h2>What This Unlocks</h2>
+        </header>
+        <div class="section-body">
+<ul>
+<li><strong>Lesson 14.2</strong> uses content-block structure when discussing where to place <code>cache_control</code> breakpoints.</li>
+<li><strong>Lesson 14.3</strong> uses the &quot;preserve thinking&quot; rule for extended-thinking + tool-use flows.</li>
+<li><strong>Lesson 14.4</strong> uses <code>image</code> and <code>document</code> content blocks for multi-modal workloads.</li>
+<li><strong>Lesson 14.5</strong> uses streaming + token counting for capacity planning at scale.</li>
+</ul>
+<hr>
+
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <p>End of Lesson 14.1</p>
+        <p class="muted">Press <kbd>↑</kbd> / <kbd>↓</kbd> to jump between sections.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});"></script>
+  <script>
+(function () {
+  var sections = document.querySelectorAll(".lesson-section, .intro");
+  var tocLinks = document.querySelectorAll(".toc a");
+  var progress = document.getElementById("progress");
+  var byId = {};
+  tocLinks.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    byId[id] = a;
+  });
+
+  function update() {
+    var scrolled = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (progress) progress.style.width = max > 0 ? (scrolled / max * 100) + "%" : "0%";
+
+    var current = null;
+    sections.forEach(function (s) {
+      var top = s.getBoundingClientRect().top;
+      if (top < 140) current = s.id;
+    });
+    tocLinks.forEach(function (a) { a.classList.remove("active"); });
+    if (current && byId[current]) byId[current].classList.add("active");
+  }
+  document.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    var ids = Array.prototype.map.call(sections, function (s) { return s.id; });
+    var currentIdx = -1;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top < 140) currentIdx = i;
+    }
+    if (e.key === "ArrowDown" && e.shiftKey) {
+      e.preventDefault();
+      var next = Math.min(ids.length - 1, currentIdx + 1);
+      document.getElementById(ids[next]).scrollIntoView({ behavior: "smooth" });
+    }
+    if (e.key === "ArrowUp" && e.shiftKey) {
+      e.preventDefault();
+      var prev = Math.max(0, currentIdx - 1);
+      document.getElementById(ids[prev]).scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
+</script>
+</body>
+</html>
