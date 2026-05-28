@@ -164,8 +164,14 @@ function renderRootIndex(modules: ModuleInfo[]): string {
     <header class="hero">
       <h1>Agentic Systems</h1>
       <p>An advanced course on designing, building, and deploying LLM agents in production.</p>
-      <p class="meta">14 modules · 55 lessons · 3 capstones · ~130 hours</p>
+      <p class="meta">14 modules · 55 lessons · 63 concepts · 3 capstones · ~130 hours</p>
     </header>
+
+    <a class="module-card" href="book.html" style="background: linear-gradient(135deg, #fef3c7 0%, #fff 100%); border-left: 4px solid #f59e0b;">
+      <span class="module-num" style="background: #fef3c7; color: #b45309;">BOOK</span>
+      <span class="module-title">📖 Open as a book — modules, concepts, curriculum, capstones</span>
+      <p class="module-subtitle">Reference-style entry point with concept index, curriculum tracks, and cross-linked pages.</p>
+    </a>
 
     <h2 class="section">Modules</h2>
 ${moduleHtml}

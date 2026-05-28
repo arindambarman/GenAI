@@ -3,19 +3,24 @@ import { runWebStage } from "./stages/web.js";
 import { runContentStage } from "./stages/content.js";
 import { runDiagramsStage } from "./stages/diagrams.js";
 import { buildIndices } from "./stages/indices.js";
+import { runConceptsStage, runBookCoverStage } from "./stages/concepts.js";
 import type { StageResult } from "./schema.js";
 
 const HELP = `course-agent — AdaptLearn course-authoring pipeline
 
 Usage:
   course-agent web      <markdown-path> --lesson <id> [--out <out-path>]
-  course-agent diagrams <markdown-path>                      [stub]
+  course-agent diagrams <markdown-path>
+  course-agent indices  [--course-dir <dir>] [--web-dir <dir>]
+  course-agent concepts [--course-dir <dir>] [--web-dir <dir>]
+  course-agent book     [--course-dir <dir>] [--web-dir <dir>]
   course-agent content  <lesson-spec.yaml>                   [stub]
   course-agent help
 
 Examples:
   course-agent web course/module-01-foundations.md --lesson 1.1
-  course-agent web course/module-01-foundations.md --lesson 1.1 --out course/web/m01/lesson-1.1.html
+  course-agent concepts            # generate per-concept reference pages
+  course-agent book                # generate book cover/TOC page
 `;
 
 interface ParsedArgs {
@@ -110,6 +115,20 @@ async function main(): Promise<number> {
       await buildIndices({ courseDir, webDir });
       console.log(`[OK ] indices -> ${webDir}/index.html + per-module + capstones`);
       return 0;
+    }
+    case "concepts": {
+      const courseDir = flags["course-dir"] ?? "course";
+      const webDir = flags["web-dir"] ?? "course/web";
+      const result = await runConceptsStage({ courseDir, webDir });
+      reportStage(result);
+      return result.ok ? 0 : 1;
+    }
+    case "book": {
+      const courseDir = flags["course-dir"] ?? "course";
+      const webDir = flags["web-dir"] ?? "course/web";
+      const result = await runBookCoverStage({ courseDir, webDir });
+      reportStage(result);
+      return result.ok ? 0 : 1;
     }
     case "help":
     case "--help":

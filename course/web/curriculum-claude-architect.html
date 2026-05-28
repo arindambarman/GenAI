@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Certified Architect — Foundations Curriculum · AdaptLearn</title>
+  <style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --text-muted: #5b6473;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --m14: #fef3c7;
+  --m14-border: #b45309;
+  --m3: #dbeafe;
+  --m5: #dcfce7;
+  --m7: #e0e7ff;
+  --m8: #fce7f3;
+  --m9: #ffedd5;
+  --m10: #fee2e2;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+.container { max-width: 980px; margin: 0 auto; padding: 32px; }
+
+.breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+
+.hero {
+  padding: 48px 32px;
+  background: linear-gradient(135deg, #1c2230 0%, #2d3a55 100%);
+  color: #fff;
+  border-radius: 16px;
+  margin-bottom: 32px;
+}
+.hero h1 { margin: 0 0 8px; font-size: 32px; font-weight: 800; letter-spacing: -0.02em; }
+.hero p { margin: 0; opacity: 0.9; font-size: 17px; }
+.hero .meta { font-size: 13px; opacity: 0.75; margin-top: 12px; }
+.hero .pill {
+  display: inline-block;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+h2.section {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin: 36px 0 14px;
+}
+
+/* Overview table */
+.overview {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.overview table { width: 100%; border-collapse: collapse; }
+.overview th, .overview td { text-align: left; padding: 12px 16px; font-size: 14px; }
+.overview th {
+  background: #f3f4f6;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.overview tr { border-top: 1px solid var(--border); }
+.overview tr:first-child { border-top: none; }
+.overview .unit-num {
+  display: inline-block;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+.overview .hours { font-variant-numeric: tabular-nums; color: var(--text-muted); }
+
+/* Unit cards */
+.unit {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 10px;
+  padding: 24px 28px;
+  margin-bottom: 16px;
+}
+.unit.area-api    { border-left-color: #b45309; }
+.unit.area-cost   { border-left-color: #c2410c; }
+.unit.area-adv    { border-left-color: #b45309; }
+.unit.area-agent  { border-left-color: #4f46e5; }
+.unit.area-prod   { border-left-color: #be185d; }
+.unit.area-cap    { border-left-color: #16a34a; }
+.unit.area-intro  { border-left-color: #6b7280; }
+
+.unit-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.unit-header .num {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+.unit-header h3 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.unit-header .duration { color: var(--text-muted); font-size: 13px; }
+
+.unit .blurb {
+  color: var(--text-muted);
+  font-size: 15px;
+  font-style: italic;
+  margin: 6px 0 16px;
+}
+
+.unit dl { margin: 0; display: grid; grid-template-columns: 110px 1fr; gap: 6px 16px; }
+.unit dt { font-weight: 600; font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; padding-top: 4px; }
+.unit dd { margin: 0; font-size: 15px; }
+
+.concepts { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--m14);
+  border: 1px solid var(--m14-border);
+  color: #78350f;
+}
+.chip.m3  { background: var(--m3);  border-color: #2563eb; color: #1e3a8a; }
+.chip.m5  { background: var(--m5);  border-color: #16a34a; color: #14532d; }
+.chip.m7  { background: var(--m7);  border-color: #4f46e5; color: #312e81; }
+.chip.m8  { background: var(--m8);  border-color: #be185d; color: #831843; }
+.chip.m9  { background: var(--m9);  border-color: #c2410c; color: #7c2d12; }
+.chip.m10 { background: var(--m10); border-color: #b91c1c; color: #7f1d1d; }
+
+.gate {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.lesson-refs { color: var(--text-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.lesson-refs code {
+  background: #f3f4f6;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* Pacing knobs */
+.pacing { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.pacing .knob {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+.pacing .knob h4 { margin: 0 0 4px; font-size: 15px; font-weight: 700; }
+.pacing .knob .duration { color: var(--accent); font-size: 13px; font-weight: 600; }
+.pacing .knob p { margin: 8px 0 0; font-size: 14px; color: var(--text-muted); }
+
+/* Legend */
+.legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.legend .chip { font-size: 12px; }
+
+/* Diagram */
+.diagram-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+.diagram-wrap img { max-width: 100%; height: auto; }
+.diagram-wrap .caption { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+
+footer {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .unit dl { grid-template-columns: 1fr; }
+  .unit dt { padding-top: 12px; }
+}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="breadcrumb">
+      <a href="index.html">AdaptLearn</a>
+      <span class="sep">›</span>
+      <span>Curriculum: Claude Architect Foundations</span>
+    </nav>
+
+    <header class="hero">
+      <h1>Claude Certified Architect — Foundations</h1>
+      <p>A 6-week structured prep plan derived from the exam-scope diagram.</p>
+      <p class="meta">6 weeks · ~7 hours/week · 42 hours total · 22 concepts · 5 exam areas</p>
+      <span class="pill">EXAM PREP</span>
+    </header>
+
+    <h2 class="section">Source diagram</h2>
+    <div class="diagram-wrap">
+      <img src="../diagrams/shared/claude-architect-exam-scope.svg" alt="Claude Architect exam-scope concept map" />
+      <div class="caption">All concepts grouped by area. Amber = Claude-specific (M14); other colors = prereqs from earlier modules.</div>
+    </div>
+
+    <h2 class="section">Module legend (chip colors below)</h2>
+    <div class="legend">
+      <span class="chip">M14 Claude-specific</span>
+      <span class="chip m3">M3 LLM Internals</span>
+      <span class="chip m5">M5 Memory &amp; RAG</span>
+      <span class="chip m7">M7 Tools &amp; MCP</span>
+      <span class="chip m8">M8 Eval</span>
+      <span class="chip m9">M9 Production</span>
+      <span class="chip m10">M10 Safety</span>
+    </div>
+
+    <h2 class="section">Overview</h2>
+    <div class="overview">
+      <table>
+        <thead>
+          <tr>
+            <th>Unit</th>
+            <th>Title</th>
+            <th>Hours</th>
+            <th>Maps to</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="unit-num">U0</span></td><td>Onboarding &amp; Diagnostic</td><td class="hours">2</td><td>full diagram</td></tr>
+          <tr><td><span class="unit-num">U1</span></td><td>API Surface</td><td class="hours">8</td><td>API Surface box</td></tr>
+          <tr><td><span class="unit-num">U2</span></td><td>Cost &amp; Latency Optimization</td><td class="hours">8</td><td>Cost &amp; Latency box</td></tr>
+          <tr><td><span class="unit-num">U3</span></td><td>Advanced Capabilities</td><td class="hours">7</td><td>Advanced Capabilities box</td></tr>
+          <tr><td><span class="unit-num">U4</span></td><td>Agent Building Blocks</td><td class="hours">7</td><td>Agent Building Blocks box</td></tr>
+          <tr><td><span class="unit-num">U5</span></td><td>Production Discipline</td><td class="hours">8</td><td>Production Discipline box</td></tr>
+          <tr><td><span class="unit-num">U6</span></td><td>Capstone + Mock Exam</td><td class="hours">2</td><td>integrates all five</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="section">Units</h2>
+
+    <section class="unit area-intro">
+      <div class="unit-header">
+        <span class="num">U0</span>
+        <h3>Onboarding &amp; Diagnostic</h3>
+        <span class="duration">· Week 0 · 2h</span>
+      </div>
+      <p class="blurb">Baseline your knowledge so you know what to skip.</p>
+      <dl>
+        <dt>Outcomes</dt><dd>Baseline concept scores; identify weak areas.</dd>
+        <dt>Activities</dt><dd>Run <code>scorer init</code>; self-rate all 22 concepts depth 0–5; read Module 14 mind map.</dd>
+        <dt>Gate</dt><dd><span class="gate">progress.json committed with baseline.</span></dd>
+      </dl>
+    </section>
+
+    <section class="unit area-api">
+      <div class="unit-header">
+        <span class="num">U1</span>
+        <h3>API Surface</h3>
+        <span class="duration">· Week 1 · 8h</span>
+      </div>
+      <p class="blurb">Foundation everyone else builds on. The exam treats wrong content-block usage as disqualifying.</p>
+      <dl>
+        <dt>Concepts</dt><dd>
+          <div class="concepts">
+            <span class="chip">Messages API + content blocks + streaming</span>
+            <span class="chip">Tool Use (input_schema, tool_choice, parallel)</span>
+            <span class="chip m3">7-Block Prompt</span>
+            <span class="chip m3">Strict Tool Use</span>
+          </div>
+        </dd>
+        <dt>Lessons</dt><dd class="lesson-refs"><code>14.1</code> · <code>3.3</code> · <code>3.4</code></dd>
+        <dt>Lab</dt><dd>Build a 3-tool agent (search, calc, format) with parallel tool calls and streaming.</dd>
+        <dt>Gate</dt><dd><span class="gate">Typecheck passes; manual eval on 5 prompts; rate each concept ≥ depth 3.</span></dd>
+      </dl>
+    </section>
+
+    <section class="unit area-cost">
+      <div class="unit-header">
+        <span class="num">U2</span>
+        <h3>Cost &amp; Latency Optimization</h3>
+        <span class="duration">· Week 2 · 8h</span>
+      </div>
+      <p class="blurb">Pre-req: Unit 1 — you cache <em>content blocks</em>, not strings.</p>
+      <dl>
+        <dt>Concepts</dt><dd>
+          <div class="concepts">
+            <span class="chip">Prompt Caching (cache_control, 4-block hierarchy, TTL)</span>
+            <span class="chip">Batch API</span>
+            <span class="chip">Model Tier Routing</span>
+            <span class="chip">Rate Limit Tiers</span>
+          </div>
+        </dd>
+        <dt>Lessons</dt><dd class="lesson-refs"><code>14.2</code> · <code>14.3</code> (tier half) · <code>14.5</code></dd>
+        <dt>Lab</dt><dd>Take the U1 agent → add <code>cache_control</code> breakpoints → benchmark cost &amp; latency on 50 prompts → route 80% of traffic to Haiku, 20% to Sonnet.</dd>
+        <dt>Gate</dt><dd><span class="gate">≥ 70% cost reduction documented; rate-limit headroom calc submitted.</span></dd>
+      </dl>
+    </section>
+
+    <section class="unit area-adv">
+      <div class="unit-header">
+        <span class="num">U3</span>
+        <h3>Advanced Capabilities</h3>
+        <span class="duration">· Week 3 · 7h</span>
+      </div>
+      <p class="blurb">The capabilities most people skip — and most cert questions probe.</p>
+      <dl>
+        <dt>Concepts</dt><dd>
+          <div class="concepts">
+            <span class="chip">Extended Thinking (budget_tokens, redacted blocks)</span>
+            <span class="chip">Vision + Native PDF</span>
+            <span class="chip">Citations API</span>
+            <span class="chip">Computer Use</span>
+          </div>
+        </dd>
+        <dt>Lessons</dt><dd class="lesson-refs"><code>14.3</code> (thinking half) · <code>14.4</code></dd>
+        <dt>Lab</dt><dd>Build a <em>PDF Q&amp;A agent</em> using native PDF blocks + Citations API; add an Extended-Thinking branch for hard questions.</dd>
+        <dt>Gate</dt><dd><span class="gate">Citation faithfulness ≥ 80% on a 20-question eval set.</span></dd>
+      </dl>
+    </section>
+
+    <section class="unit area-agent">
+      <div class="unit-header">
+        <span class="num">U4</span>
+        <h3>Agent Building Blocks</h3>
+        <span class="duration">· Week 4 · 7h</span>
+      </div>
+      <p class="blurb">Pre-req: Unit 1 Tool Use. Adds retrieval and external tool servers.</p>
+      <dl>
+        <dt>Concepts</dt><dd>
+          <div class="concepts">
+            <span class="chip m5">Agentic RAG (hybrid retrieval + rerank)</span>
+            <span class="chip m7">MCP Server (tool registry, transport)</span>
+            <span class="chip m7">Capability Tokens</span>
+          </div>
+        </dd>
+        <dt>Lessons</dt><dd class="lesson-refs"><code>5.2</code> · <code>5.4</code> · <code>7.1</code> · <code>7.4</code></dd>
+        <dt>Lab</dt><dd>Wrap your retriever as an MCP server; gate each tool with a capability token.</dd>
+        <dt>Gate</dt><dd><span class="gate">MCP server passes connection test; token misuse rejected in unit tests.</span></dd>
+      </dl>
+    </section>
+
+    <section class="unit area-prod">
+      <div class="unit-header">
+        <span class="num">U5</span>
+        <h3>Production Discipline</h3>
+        <span class="duration">· Week 5 · 8h</span>
+      </div>
+      <p class="blurb">Pre-req: a working agent from any earlier unit.</p>
+      <dl>
+        <dt>Concepts</dt><dd>
+          <div class="concepts">
+            <span class="chip m8">Regression Eval + LLM Judge</span>
+            <span class="chip m9">Durable Execution (retry, idempotency, checkpointing)</span>
+            <span class="chip m10">Prompt-Injection Defenses (CaMeL)</span>
+            <span class="chip m10">Audit Trail (SR 11-7 / EU AI Act)</span>
+          </div>
+        </dd>
+        <dt>Lessons</dt><dd class="lesson-refs"><code>8.1</code> · <code>8.3</code> · <code>9.1</code> · <code>9.2</code> · <code>10.2</code> · <code>10.4</code></dd>
+        <dt>Lab</dt><dd>Add a 30-case regression eval (<code>pnpm test:eval</code>); wrap the agent loop with retry + checkpoint; pass 10 red-team injection prompts; emit audit-log entries.</dd>
+        <dt>Gate</dt><dd><span class="gate">CI eval gate green; injection eval ≥ 9/10 caught; audit log replay-able.</span></dd>
+      </dl>
+    </section>
+
+    <section class="unit area-cap">
+      <div class="unit-header">
+        <span class="num">U6</span>
+        <h3>Capstone + Mock Exam</h3>
+        <span class="duration">· Week 6 · 2h</span>
+      </div>
+      <p class="blurb">Prove integration across all 5 areas in one agent.</p>
+      <dl>
+        <dt>Capstone</dt><dd>Ship one integrated agent that exercises ≥ 1 concept from each of the 5 boxes (e.g., a <em>claims-review agent</em> using cached system prompt + parallel tools + PDF/Citations + MCP retriever + retry + audit log).</dd>
+        <dt>Mock exam</dt><dd>40 questions drawn proportionally from the diagram (10 API · 8 Cost · 6 Advanced · 6 Agent Blocks · 10 Production).</dd>
+        <dt>Pass bar</dt><dd><span class="gate">≥ 75% on mock; every concept rated ≥ depth 3, confidence ≥ 3.</span></dd>
+      </dl>
+    </section>
+
+    <h2 class="section">Pacing knobs</h2>
+    <div class="pacing">
+      <div class="knob">
+        <h4>Fast track</h4>
+        <div class="duration">3 weeks</div>
+        <p>Double up Units 1+2 and 4+5; skip Unit 6 capstone, do mock only.</p>
+      </div>
+      <div class="knob">
+        <h4>Deep track</h4>
+        <div class="duration">10 weeks</div>
+        <p>Add a second lab per unit; rate every concept to depth 4+.</p>
+      </div>
+      <div class="knob">
+        <h4>Just the Claude bits</h4>
+        <div class="duration">2 weeks</div>
+        <p>Units 1, 2, 3 only — skip Units 4 &amp; 5 if you already know agent infra from Modules 5–10.</p>
+      </div>
+    </div>
+
+    <h2 class="section">Tracking progress</h2>
+    <p>Each unit has a <code>scorer</code> rate-up target. Run <code>scorer report --module M14</code> after every unit to see decay-adjusted scores. If any concept drops below depth 3 before the mock exam, re-do that unit's lab.</p>
+
+    <footer>
+      Generated from the exam-scope diagram at <code>course/diagrams/shared/claude-architect-exam-scope.svg</code>.
+      Concepts seeded in <code>scripts/capstones/src/scorer/concepts-seed.ts</code> (M1–M14).
+    </footer>
+  </div>
+</body>
+</html>

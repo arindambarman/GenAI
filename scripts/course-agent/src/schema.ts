@@ -28,7 +28,7 @@ export const ParsedLessonSchema = z.object({
 export type ParsedLesson = z.infer<typeof ParsedLessonSchema>;
 
 export const StageResultSchema = z.object({
-  stage: z.enum(["content", "diagrams", "web"]),
+  stage: z.enum(["content", "diagrams", "web", "concepts", "book"]),
   ok: z.boolean(),
   outputs: z.array(z.string()).default([]),
   warnings: z.array(z.string()).default([]),

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Concept Reference · AdaptLearn</title>
+  <style>
+:root {
+  --bg: #fafafa; --surface: #ffffff;
+  --text: #1c2230; --text-muted: #5b6473;
+  --border: #e5e7eb; --accent: #2563eb; --accent-soft: #eff6ff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-size: 17px; line-height: 1.65; color: var(--text); background: var(--bg); }
+.container { max-width: 880px; margin: 0 auto; padding: 32px; }
+.breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.hero { padding: 36px 32px; background: linear-gradient(135deg, #1c2230 0%, #2d3a55 100%);
+  color: #fff; border-radius: 14px; margin-bottom: 28px; }
+.hero h1 { margin: 0 0 8px; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.hero p { margin: 0; opacity: 0.85; font-size: 16px; }
+.hero .meta { font-size: 13px; opacity: 0.75; margin-top: 10px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted); margin: 28px 0 10px; font-weight: 700; }
+.card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px 22px; margin-bottom: 12px;
+  display: block; text-decoration: none; color: inherit; transition: border-color 0.15s; }
+.card:hover { border-color: var(--accent); }
+.card-title { font-weight: 700; font-size: 16px; margin: 0 0 4px; }
+.card-sub { color: var(--text-muted); font-size: 13px; margin: 0; }
+.def { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 22px 26px; margin-bottom: 24px; font-size: 17px; line-height: 1.7; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.chip { display: inline-block; padding: 4px 10px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent); font-size: 13px;
+  text-decoration: none; border: 1px solid transparent; }
+.chip:hover { border-color: var(--accent); }
+.chip.muted { background: #f3f4f6; color: var(--text-muted); }
+.module-pill { display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; background: #e5e7eb; color: #374151;
+  margin-right: 8px; font-variant-numeric: tabular-nums; }
+.import-bar { display: inline-flex; gap: 2px; vertical-align: middle; margin-left: 8px; }
+.import-bar span { width: 6px; height: 12px; background: #e5e7eb; border-radius: 2px; }
+.import-bar span.on { background: #f59e0b; }
+.group-header { display: flex; align-items: baseline; gap: 12px; margin: 28px 0 12px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.group-header h3 { margin: 0; font-size: 18px; font-weight: 700; }
+.group-header .count { color: var(--text-muted); font-size: 13px; }
+.lesson-link { display: inline-block; margin-right: 8px; padding: 3px 9px;
+  background: var(--accent-soft); color: var(--accent); border-radius: 6px;
+  font-size: 13px; text-decoration: none; font-variant-numeric: tabular-nums; }
+.lesson-link:hover { background: var(--accent); color: #fff; }
+.toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <nav class="breadcrumb">
+      <a href="../book.html">Book</a>
+      <span class="sep">›</span>
+      <span>Concepts</span>
+    </nav>
+    <header class="hero">
+      <h1>Concept Reference</h1>
+      <p>All 63 concepts from the course, grouped by module. Each links to its lessons, prerequisites, and related concepts.</p>
+      <p class="meta">63 concepts · 14 modules</p>
+    </header>
+
+    <div class="group-header">
+      <h3><a href="../m01/index.html" style="color:inherit;text-decoration:none;">M1 — Foundations</a></h3>
+      <span class="count">4 concepts</span>
+    </div>
+      <a class="card" href="agency-dial.html">
+        <span class="module-pill">M1</span>
+        <span class="card-title">Agency Dial (0-4)</span>
+        <span class="import-bar" title="Importance 10/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></span>
+        <p class="card-sub">A 5-level scale (0–4) from 'no agency' (pure chatbot) to 'fully autonomous' (self-directed goal pursuit). Used to right-size system complexi…</p>
+      </a>
+      <a class="card" href="five-question-framework.html">
+        <span class="module-pill">M1</span>
+        <span class="card-title">5-Question Framework</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">A pre-design checklist: (1) What's the input? (2) What's the success measure? (3) What tools? (4) What's the failure mode? (5) Who owns the …</p>
+      </a>
+      <a class="card" href="react-loop.html">
+        <span class="module-pill">M1</span>
+        <span class="card-title">ReAct Loop (TAO)</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">Thought → Action → Observation → Thought... The atomic loop of every modern agent. The model emits a thought (chain-of-reasoning), picks an …</p>
+      </a>
+      <a class="card" href="paradigms.html">
+        <span class="module-pill">M1</span>
+        <span class="card-title">ReAct / Reflexion / PaS / CodeAct</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">The four canonical agent loop shapes — ReAct (think→act→observe), Reflexion (self-critique), Plan-and-Solve (decompose first, execute second…</p>
+      </a>
+    <div class="group-header">
+      <h3><a href="../m02/index.html" style="color:inherit;text-decoration:none;">M2 — Math &amp; Decision Theory</a></h3>
+      <span class="count">6 concepts</span>
+    </div>
+      <a class="card" href="pomdp.html">
+        <span class="module-pill">M2</span>
+        <span class="card-title">POMDP</span>
+        <span class="import-bar" title="Importance 10/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></span>
+        <p class="card-sub">Partially Observable Markov Decision Process — the formal model for agents that don't fully see the world. Defined by states, actions, obser…</p>
+      </a>
+      <a class="card" href="belief-state.html">
+        <span class="module-pill">M2</span>
+        <span class="card-title">Belief State</span>
+        <span class="import-bar" title="Importance 10/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></span>
+        <p class="card-sub">A probability distribution over hidden world states, updated each turn by Bayes Rule. The agent acts on its belief, not the (unknown) ground…</p>
+      </a>
+      <a class="card" href="evoi.html">
+        <span class="module-pill">M2</span>
+        <span class="card-title">Expected Value of Information</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">Expected Value of Information — the dollar value of asking a question or making a tool call, computed as the expected improvement in decisio…</p>
+      </a>
+      <a class="card" href="bayes-rule.html">
+        <span class="module-pill">M2</span>
+        <span class="card-title">Bayes Rule / Prior Encoding</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">P(state|obs) ∝ P(obs|state) · P(state). The single equation that updates belief from evidence. In agent design, the 'prior' is your system p…</p>
+      </a>
+      <a class="card" href="eig-per-dollar.html">
+        <span class="module-pill">M2</span>
+        <span class="card-title">EIG per Dollar</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Expected Information Gain divided by tool cost. The right metric to rank candidate tool calls when the budget is finite. Cheap calls that re…</p>
+      </a>
+      <a class="card" href="entropy.html">
+        <span class="module-pill">M2</span>
+        <span class="card-title">Entropy / Mutual Information</span>
+        <span class="import-bar" title="Importance 7/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">H(p) = −Σ p·log(p). Measures uncertainty in bits. Mutual information I(X;Y) measures how much one variable tells you about another — the bas…</p>
+      </a>
+    <div class="group-header">
+      <h3><a href="../m03/index.html" style="color:inherit;text-decoration:none;">M3 — LLM Internals</a></h3>
+      <span class="count">4 concepts</span>
+    </div>
+      <a class="card" href="strict-tool-use.html">
+        <span class="module-pill">M3</span>
+        <span class="card-title">Strict Tool Use (Constrained Decoding)</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">Forcing the model to emit only valid tool-call JSON via grammar-constrained decoding. Eliminates the 'oops the model invented a tool' class …</p>
+      </a>
+      <a class="card" href="seven-block-prompt.html">
+        <span class="module-pill">M3</span>
+        <span class="card-title">7-Block Prompt Structure</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">A standardized prompt layout — role · context · task · constraints · examples · output format · safety. Reduces prompt-injection surface, si…</p>
+      </a>
+      <a class="card" href="prompt-cache.html">
+        <span class="module-pill">M3</span>
+        <span class="card-title">Prompt Cache</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Reusing the KV-cache for a stable prompt prefix across requests. Cuts time-to-first-token by ~5x and input cost by ~90% on the cached portio…</p>
+      </a>
+      <a class="card" href="constrained-decoding.html">
+        <span class="module-pill">M3</span>
+        <span class="card-title">Constrained Decoding (FSM over grammar)</span>
+        <span class="import-bar" title="Importance 7/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Restricting next-token sampling to those that satisfy a grammar (regex, JSON Schema, or finite-state machine). Implemented as a token-level …</p>
+      </a>
+    <div class="group-header">
+      <h3><a href="../m04/index.html" style="color:inherit;text-decoration:none;">M4 — Single-Agent Sherpa</a></h3>
+      <span class="count">6 concepts</span>
+    </div>
+      <a class="card" href="sherpa-v1.html">
+        <span class="module-pill">M4</span>
+        <span class="card-title">Sherpa v1 (ReAct)</span>
+        <span class="import-bar" title="Importance 10/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></span>
+        <p class="card-sub">The reference implementation of a plain ReAct agent. Six tools, no memory, no reflection — the 'hello world' you compare every fancier desig…</p>
+      </a>
+      <a class="card" href="sherpa-v5.html">
+        <span class="module-pill">M4</span>
+        <span class="card-title">Sherpa v5 (Production hybrid)</span>
+        <span class="import-bar" title="Importance 10/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></span>
+        <p class="card-sub">The production hybrid — ReAct for simple turns, Plan-and-Solve for complex ones, Reflexion only on failures, memory only when needed. The pa…</p>
+      </a>
+      <a class="card" href="eval-gate.html">
+        <span class="module-pill">M4</span>
+        <span class="card-title">Eval Gate (CI)</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">A CI check that blocks merges if the regression eval set drops below a threshold. The discipline that turns 'agent demo' into 'agent that sh…</p>
+      </a>
+      <a class="card" href="sherpa-v2.html">
+        <span class="module-pill">M4</span>
+        <span class="card-title">Sherpa v2 (Memory Tiers)</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Sherpa v1 + three memory tiers (scratchpad · session · long-term vector store). Demonstrates when memory helps (multi-turn) and when it hurt…</p>
+      </a>
+      <a class="card" href="sherpa-v4.html">
+        <span class="module-pill">M4</span>
+        <span class="card-title">Sherpa v4 (Plan-and-Solve)</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Sherpa v3 + explicit Plan-and-Solve decomposition before execution. Best when tasks have ≥ 5 sub-steps and the plan itself is the deliverabl…</p>
+      </a>
+      <a class="card" href="sherpa-v3.html">
+        <span class="module-pill">M4</span>
+        <span class="card-title">Sherpa v3 (Reflection)</span>
+        <span class="import-bar" title="Importance 7/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Sherpa v2 + a Reflexion-style self-critique step after each major decision. Improves on hard tasks but doubles cost — not always worth it.</p>
+      </a>
+    <div class="group-header">
+      <h3><a href="../m05/index.html" style="color:inherit;text-decoration:none;">M5 — Memory &amp; Retrieval</a></h3>
+      <span class="count">5 concepts</span>
+    </div>
+      <a class="card" href="agentic-rag.html">
+        <span class="module-pill">M5</span>
+        <span class="card-title">Agentic RAG (multi-hop)</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">RAG where the model decides what and when to retrieve, performs multiple hops, and reformulates queries between hops. Outperforms single-sho…</p>
+      </a>
+      <a class="card" href="citation-faithfulness.html">
+        <span class="module-pill">M5</span>
+        <span class="card-title">Citation Faithfulness</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">The fraction of model claims that can be verified against the cited source. The headline eval metric for any retrieval-grounded system. Targ…</p>
+      </a>
+      <a class="card" href="hybrid-retrieval.html">
+        <span class="module-pill">M5</span>
+        <span class="card-title">Hybrid Retrieval (Dense + BM25 + Rerank)</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Combining dense vector search (semantic) with sparse BM25 (lexical) and a reranker. Recovers exact-match precision that pure dense search lo…</p>
+      </a>
+      <a class="card" href="vector-store.html">
+        <span class="module-pill">M5</span>
+        <span class="card-title">Vector Store (HNSW/IVF/PQ)</span>
+        <span class="import-bar" title="Importance 7/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">An ANN index (HNSW, IVF, or PQ) over embedding vectors. Returns nearest neighbors in O(log N). The retrieval substrate underneath every RAG …</p>
+      </a>
+      <a class="card" href="memory-compaction.html">
+        <span class="module-pill">M5</span>
+        <span class="card-title">Memory Compaction</span>
+        <span class="import-bar" title="Importance 7/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Periodically summarizing scratchpad/conversation memory into a smaller representation so context stays under budget. Naive truncation drops …</p>
+      </a>
+    <div class="group-header">
+      <h3><a href="../m06/index.html" style="color:inherit;text-decoration:none;">M6 — Multi-Agent Systems</a></h3>
+      <span class="count">4 concepts</span>
+    </div>
+      <a class="card" href="handoff-schema.html">
+        <span class="module-pill">M6</span>
+        <span class="card-title">Typed Handoff Schemas</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">A typed (Zod / JSON Schema) contract for what one agent passes to another. The thing that separates 'multi-agent system' from 'pile of promp…</p>
+      </a>
+      <a class="card" href="orchestrator-worker.html">
+        <span class="module-pill">M6</span>
+        <span class="card-title">Orchestrator-Worker</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">One agent (orchestrator) decomposes the task and dispatches sub-tasks to specialized worker agents. The default multi-agent pattern. Costs m…</p>
+      </a>
+      <a class="card" href="specialist-supervisor.html">
+        <span class="module-pill">M6</span>
+        <span class="card-title">Specialist Supervisor</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Inverted orchestrator — a lightweight supervisor routes each query to the most relevant specialist agent. Lower latency than orchestrator-wo…</p>
+      </a>
+      <a class="card" href="debate.html">
+        <span class="module-pill">M6</span>
+        <span class="card-title">Multi-Agent Debate / Consensus</span>
+        <span class="import-bar" title="Importance 6/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Multiple agents argue toward consensus or majority-vote on an answer. Improves accuracy ~5% on reasoning benchmarks at 3–5x cost. Rarely wor…</p>
+      </a>
+    <div class="group-header">
+      <h3><a href="../m07/index.html" style="color:inherit;text-decoration:none;">M7 — Tools &amp; MCP</a></h3>
+      <span class="count">4 concepts</span>
+    </div>
+      <a class="card" href="mcp-server.html">
+        <span class="module-pill">M7</span>
+        <span class="card-title">MCP Server</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">Model Context Protocol server — a standardized way to expose tools, resources, and prompts to any MCP-compatible client (Claude Desktop, Cla…</p>
+      </a>
+      <a class="card" href="sandbox.html">
+        <span class="module-pill">M7</span>
+        <span class="card-title">Sandbox (Docker/Firecracker/E2B)</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Isolated runtime (Docker, Firecracker, E2B) for executing untrusted code or commands. Without it, CodeAct agents are a security liability.</p>
+      </a>
+      <a class="card" href="tool-registry.html">
+        <span class="module-pill">M7</span>
+        <span class="card-title">Tool Registry</span>
+        <span class="import-bar" title="Importance 7/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">A central catalog of available tools with their schemas, descriptions, and permissions. Enables runtime tool selection, deprecation, and acc…</p>
+      </a>
+      <a class="card" href="capability-token.html">
+        <span class="module-pill">M7</span>
+        <span class="card-title">Capability Tokens</span>
+        <span class="import-bar" title="Importance 7/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">A scoped, signed token that grants an agent permission to call exactly one resource for a limited time. Replaces 'tool has root' with 'tool …</p>
+      </a>
+    <div class="group-header">
+      <h3><a href="../m08/index.html" style="color:inherit;text-decoration:none;">M8 — Evaluation &amp; Observability</a></h3>
+      <span class="count">4 concepts</span>
+    </div>
+      <a class="card" href="regression-eval.html">
+        <span class="module-pill">M8</span>
+        <span class="card-title">Regression Eval Set</span>
+        <span class="import-bar" title="Importance 10/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></span>
+        <p class="card-sub">A frozen set of input → expected-output pairs run on every code change to catch regressions. The single most important investment in agent r…</p>
+      </a>
+      <a class="card" href="calibration-ece.html">
+        <span class="module-pill">M8</span>
+        <span class="card-title">Calibration / ECE</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Expected Calibration Error — how well the model's stated confidence matches its actual accuracy. Uncalibrated agents either hedge constantly…</p>
+      </a>
+      <a class="card" href="llm-judge.html">
+        <span class="module-pill">M8</span>
+        <span class="card-title">LLM as Judge</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Using a (usually larger) model to grade outputs of another model along defined rubrics. Cheaper than human grading; harder to trust on subje…</p>
+      </a>
+      <a class="card" href="observability-spans.html">
+        <span class="module-pill">M8</span>
+        <span class="card-title">Observability Spans</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">OpenTelemetry-style structured traces around every LLM call, tool call, and agent loop iteration. Makes 'why did the agent do that?' a 30-se…</p>
+      </a>
+    <div class="group-header">
+      <h3><a href="../m09/index.html" style="color:inherit;text-decoration:none;">M9 — Production Engineering</a></h3>
+      <span class="count">4 concepts</span>
+    </div>
+      <a class="card" href="durable-execution.html">
+        <span class="module-pill">M9</span>
+        <span class="card-title">Durable Execution</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">Agent state persisted to a checkpoint store after every step, so a crash can be resumed without re-running expensive LLM calls. Pattern: Tem…</p>
+      </a>
+      <a class="card" href="retry-idempotency.html">
+        <span class="module-pill">M9</span>
+        <span class="card-title">Retry + Idempotency</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">Retry transient failures with exponential backoff + jitter; design tool calls so re-execution is safe. The two patterns that make agents sur…</p>
+      </a>
+      <a class="card" href="prompt-cache-prod.html">
+        <span class="module-pill">M9</span>
+        <span class="card-title">Caching Tiers (Prompt + Semantic + Model)</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">Three-tier caching in production: prompt cache (KV-cache reuse) + semantic cache (embedding-similar prompts) + model cache (memoize tool res…</p>
+      </a>
+      <a class="card" href="runbooks.html">
+        <span class="module-pill">M9</span>
+        <span class="card-title">Runbooks + Degradation Modes</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Pre-written response playbooks for known failure modes (rate-limited, model down, tool returns garbage). The difference between a 2 AM page …</p>
+      </a>
+    <div class="group-header">
+      <h3><a href="../m10/index.html" style="color:inherit;text-decoration:none;">M10 — Safety, Alignment &amp; Security</a></h3>
+      <span class="count">4 concepts</span>
+    </div>
+      <a class="card" href="prompt-injection.html">
+        <span class="module-pill">M10</span>
+        <span class="card-title">Prompt Injection (defenses)</span>
+        <span class="import-bar" title="Importance 10/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></span>
+        <p class="card-sub">An attacker embedding instructions in tool output, retrieved documents, or user input to hijack the agent. The #1 production security risk. …</p>
+      </a>
+      <a class="card" href="camel.html">
+        <span class="module-pill">M10</span>
+        <span class="card-title">CaMeL Privilege Separation</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">Capability-Mediated LLM — a privilege-separation pattern where a trusted planner agent decides what to do, and an isolated executor agent (w…</p>
+      </a>
+      <a class="card" href="audit-trail.html">
+        <span class="module-pill">M10</span>
+        <span class="card-title">Audit Trail (SR 11-7 / EU AI Act)</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">Append-only log of every agent decision (input, tools called, output, model version, prompt hash). Required for SR 11-7 (banking) and EU AI …</p>
+      </a>
+      <a class="card" href="red-team.html">
+        <span class="module-pill">M10</span>
+        <span class="card-title">Red Team Campaigns</span>
+        <span class="import-bar" title="Importance 7/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Adversarial testing campaigns that probe for jailbreaks, injection, and unsafe outputs before launch. The eval set you build *and then keep …</p>
+      </a>
+    <div class="group-header">
+      <h3><a href="../m11/index.html" style="color:inherit;text-decoration:none;">M11 — Business Cases</a></h3>
+      <span class="count">3 concepts</span>
+    </div>
+      <a class="card" href="roi-model.html">
+        <span class="module-pill">M11</span>
+        <span class="card-title">ROI Model + Sensitivity Analysis</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">A spreadsheet that translates agent capability into dollars saved/earned, with sensitivity bands on the three biggest uncertainties (volume,…</p>
+      </a>
+      <a class="card" href="change-mgmt.html">
+        <span class="module-pill">M11</span>
+        <span class="card-title">Change Management (4-phase rollout)</span>
+        <span class="import-bar" title="Importance 8/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">A 4-phase rollout: shadow mode → assist mode → auto with human review → auto. Skipping phases is how 'pilot success' becomes 'production rol…</p>
+      </a>
+      <a class="card" href="build-vs-buy.html">
+        <span class="module-pill">M11</span>
+        <span class="card-title">Build vs Buy (vendor evaluation)</span>
+        <span class="import-bar" title="Importance 7/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Framework for choosing between custom-built agents and vendor offerings on four axes: data sensitivity, customization depth, time-to-value, …</p>
+      </a>
+    <div class="group-header">
+      <h3><a href="../m12/index.html" style="color:inherit;text-decoration:none;">M12 — Advanced Designs</a></h3>
+      <span class="count">3 concepts</span>
+    </div>
+      <a class="card" href="self-improvement.html">
+        <span class="module-pill">M12</span>
+        <span class="card-title">Self-Improvement (prompt-level)</span>
+        <span class="import-bar" title="Importance 7/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Prompt-level self-improvement: the agent maintains a 'lessons learned' memory and prepends relevant past mistakes to its system prompt. Chea…</p>
+      </a>
+      <a class="card" href="dpo-rollouts.html">
+        <span class="module-pill">M12</span>
+        <span class="card-title">DPO on Agent Rollouts</span>
+        <span class="import-bar" title="Importance 5/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Direct Preference Optimization on collected agent trajectories. Distills 'good behavior' from rollouts where the outcome was rated positive.…</p>
+      </a>
+      <a class="card" href="lora-adapters.html">
+        <span class="module-pill">M12</span>
+        <span class="card-title">LoRA Adapters</span>
+        <span class="import-bar" title="Importance 5/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Low-Rank Adaptation — train tiny adapter matrices instead of full model weights. Lets you ship per-tenant or per-task model specializations …</p>
+      </a>
+    <div class="group-header">
+      <h3><a href="../m13/index.html" style="color:inherit;text-decoration:none;">M13 — Frontier &amp; Governance</a></h3>
+      <span class="count">2 concepts</span>
+    </div>
+      <a class="card" href="governance.html">
+        <span class="module-pill">M13</span>
+        <span class="card-title">Governance Frameworks (SR 11-7 / EU AI Act / NIST)</span>
+        <span class="import-bar" title="Importance 7/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">The intersection of SR 11-7 (banking model risk), EU AI Act (risk-tiered obligations), and NIST AI RMF. Determines what documentation, monit…</p>
+      </a>
+      <a class="card" href="capability-frontier.html">
+        <span class="module-pill">M13</span>
+        <span class="card-title">Capability Frontier (3-year horizon)</span>
+        <span class="import-bar" title="Importance 6/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">A structured forecast of what frontier models will be able to do in 1–3 years (long-horizon planning, true multimodal action, persistent mem…</p>
+      </a>
+    <div class="group-header">
+      <h3><a href="../m14/index.html" style="color:inherit;text-decoration:none;">M14 — Claude-Specific Architect</a></h3>
+      <span class="count">10 concepts</span>
+    </div>
+      <a class="card" href="messages-api.html">
+        <span class="module-pill">M14</span>
+        <span class="card-title">Messages API + Content Blocks + Streaming</span>
+        <span class="import-bar" title="Importance 10/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></span>
+        <p class="card-sub">Anthropic's primary API surface. Requests are arrays of message turns; responses are arrays of content blocks (text, tool_use, thinking, ima…</p>
+      </a>
+      <a class="card" href="tool-use-claude.html">
+        <span class="module-pill">M14</span>
+        <span class="card-title">Claude Tool Use (input_schema, tool_choice, parallel)</span>
+        <span class="import-bar" title="Importance 10/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></span>
+        <p class="card-sub">Claude's tool-use protocol: declare tools with input_schema (JSON Schema), set tool_choice (auto/any/tool/none), receive tool_use blocks, re…</p>
+      </a>
+      <a class="card" href="cache-control.html">
+        <span class="module-pill">M14</span>
+        <span class="card-title">Prompt Caching (cache_control breakpoints, 4-block hierarchy, TTL)</span>
+        <span class="import-bar" title="Importance 10/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></span>
+        <p class="card-sub">Mark up to 4 prompt-prefix breakpoints with `cache_control: {type: 'ephemeral'}` to cache that portion server-side. TTL defaults to 5 min; 1…</p>
+      </a>
+      <a class="card" href="model-tier-routing.html">
+        <span class="module-pill">M14</span>
+        <span class="card-title">Model Tier Selection (Opus/Sonnet/Haiku routing)</span>
+        <span class="import-bar" title="Importance 10/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></span>
+        <p class="card-sub">Pick the smallest model that meets your quality bar — Haiku (cheap/fast), Sonnet (balanced), Opus (hardest tasks). Patterns: cascade (try Ha…</p>
+      </a>
+      <a class="card" href="extended-thinking.html">
+        <span class="module-pill">M14</span>
+        <span class="card-title">Extended Thinking (budget_tokens, redacted blocks)</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">Enable internal reasoning blocks (thinking type) with a `budget_tokens` cap. Blocks may be redacted when they contain sensitive content. Imp…</p>
+      </a>
+      <a class="card" href="batch-api.html">
+        <span class="module-pill">M14</span>
+        <span class="card-title">Batch API (50% discount, 24h SLA)</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">Submit up to 100K requests per batch; results within 24h at 50% of the per-request price. Use for evals, backfills, and bulk content generat…</p>
+      </a>
+      <a class="card" href="rate-limit-tiers.html">
+        <span class="module-pill">M14</span>
+        <span class="card-title">Rate Limit Tiers (ITPM/OTPM/RPM, headroom planning)</span>
+        <span class="import-bar" title="Importance 9/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span></span>
+        <p class="card-sub">Three independent limits — ITPM (input tokens/min), OTPM (output tokens/min), RPM (requests/min) — scaling with usage tier. Capacity plannin…</p>
+      </a>
+      <a class="card" href="vision-pdf-native.html">
+        <span class="module-pill">M14</span>
+        <span class="card-title">Vision + Native PDF (image/document blocks)</span>
+        <span class="import-bar" title="Importance 7/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Pass images (base64 or URL) and PDFs (up to 32 MB, 100 pages) as content blocks. Native PDF means the model sees the rendered pages, not ext…</p>
+      </a>
+      <a class="card" href="citations-api.html">
+        <span class="module-pill">M14</span>
+        <span class="card-title">Citations API (grounded output)</span>
+        <span class="import-bar" title="Importance 7/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Set `citations: {enabled: true}` on document blocks to get back machine-readable citations pointing to specific page/character ranges. The g…</p>
+      </a>
+      <a class="card" href="computer-use.html">
+        <span class="module-pill">M14</span>
+        <span class="card-title">Computer Use (screenshot/click/type)</span>
+        <span class="import-bar" title="Importance 6/10"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span></span>
+        <p class="card-sub">Beta capability where Claude takes screenshots and emits mouse/keyboard actions through a sandboxed virtual machine. Treat as research-grade…</p>
+      </a>
+  </div>
+</body>
+</html>
