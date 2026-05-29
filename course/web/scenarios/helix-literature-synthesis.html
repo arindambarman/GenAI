@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Literature synthesis with verifiable citations · Scenario · AdaptLearn</title>
+  <style>
+:root {
+  --bg: #fafafa; --surface: #ffffff;
+  --text: #1c2230; --text-muted: #5b6473;
+  --border: #e5e7eb; --accent: #2563eb; --accent-soft: #eff6ff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-size: 17px; line-height: 1.65; color: var(--text); background: var(--bg); }
+.container { max-width: 920px; margin: 0 auto; padding: 32px; }
+.breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.hero { padding: 36px 32px; background: linear-gradient(135deg, #1c2230 0%, #2d3a55 100%);
+  color: #fff; border-radius: 14px; margin-bottom: 28px; }
+.hero h1 { margin: 0 0 8px; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.hero p { margin: 0; opacity: 0.85; font-size: 16px; }
+.hero .meta { font-size: 13px; opacity: 0.75; margin-top: 10px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted); margin: 32px 0 12px; font-weight: 700; }
+.card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 24px; margin-bottom: 12px; }
+.prose { font-size: 16px; line-height: 1.7; }
+.approach ol { padding-left: 22px; margin: 0; }
+.approach li { margin-bottom: 10px; font-size: 15px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-block; padding: 4px 10px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent); font-size: 13px;
+  text-decoration: none; border: 1px solid transparent; }
+.chip:hover { border-color: var(--accent); }
+.industry-pill { display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; margin-right: 8px; }
+.archetype-pill { display: inline-block; padding: 3px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; background: #f3f4f6; color: var(--text-muted);
+  margin-right: 8px; }
+.complexity { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 700; color: var(--text-muted); }
+.tradeoff { background: #fff8f0; border-left: 3px solid #f59e0b; padding: 12px 16px;
+  margin-bottom: 8px; border-radius: 4px; }
+.tradeoff .ruled { font-weight: 600; font-size: 14px; }
+.tradeoff .reason { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+.success { background: #f0fdf4; border-left: 3px solid #16a34a; padding: 14px 18px;
+  border-radius: 6px; font-size: 15px; }
+.lesson-link { display: inline-block; margin-right: 6px; padding: 3px 9px;
+  background: var(--accent-soft); color: var(--accent); border-radius: 6px;
+  font-size: 13px; text-decoration: none; font-variant-numeric: tabular-nums; }
+.lesson-link:hover { background: var(--accent); color: #fff; }
+.diagram { background: #fafafa; border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px; overflow-x: auto; }
+.toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.toc-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid;
+  border-radius: 10px; padding: 16px 20px; text-decoration: none; color: inherit;
+  transition: border-color 0.15s; display: block; }
+.toc-card:hover { border-color: var(--accent); }
+.toc-card .title { font-weight: 700; font-size: 16px; margin: 4px 0 6px; }
+.toc-card .summary { color: var(--text-muted); font-size: 13px; margin: 0; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; align-items: center; }
+.filter-row .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted); font-weight: 700; margin-right: 4px; }
+.section-divider { color: var(--text-muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.1em; font-weight: 700; margin: 28px 0 10px; }
+</style>
+  <script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: true, theme: 'neutral', themeVariables: { fontFamily: 'inherit' } });
+</script>
+</head>
+<body>
+  <div class="container">
+    <nav class="breadcrumb">
+      <a href="../book.html">Book</a>
+      <span class="sep">›</span>
+      <a href="index.html">Scenarios</a>
+      <span class="sep">›</span>
+      <span>Literature synthesis with verifiable citations</span>
+    </nav>
+
+    <header class="hero">
+      <h1>Literature synthesis with verifiable citations</h1>
+      <p>Helix Research · Biotech / Research</p>
+      <div class="badges">
+        <span class="badge">Agentic RAG</span>
+        <span class="badge">intermediate</span>
+      </div>
+    </header>
+
+    <h2 class="section">Situation</h2>
+    <div class="card prose">Helix researchers spend 2–3 days assembling literature reviews for each new target. Sources span PubMed, internal lab notebooks, conference proceedings, and patent filings. Current LLM tools hallucinate ~12% of citations — unusable for any decision that goes into a grant or IND filing.</div>
+
+    <h2 class="section">Problem</h2>
+    <div class="card prose">Produce a 5-page synthesis on demand for any target, with every claim citing a real source at page/paragraph granularity. Hallucination rate must drop below 1%.</div>
+
+    <h2 class="section">Approach</h2>
+    <div class="card approach"><ol>
+      <li>Agentic RAG: model decides what to retrieve, performs 3–5 hops, reformulates queries between hops based on what it learned.</li>
+      <li>Hybrid retrieval (dense + BM25 + cross-encoder rerank) over a curated corpus of 380K papers + 14K internal notebooks.</li>
+      <li>Synthesis pass uses Claude's Citations API on document blocks, so every claim links back to a specific page+character range.</li>
+      <li>A separate eval agent (Sonnet) scores citation faithfulness on every output before delivery; outputs below 95% trigger re-retrieval.</li>
+      <li>Memory compaction: per-target retrieval transcripts are summarized into a per-target knowledge object that the agent can re-read in future runs without re-retrieving.</li>
+      <li>Researcher rates each synthesis on a 5-point scale; ratings + flagged citations feed back into the regression eval and the reranker training set.</li>
+    </ol></div>
+
+    <h2 class="section">Architecture</h2>
+    <div class="diagram">
+      <pre class="mermaid">graph LR
+  Q[Research&lt;br/&gt;Question] --&gt; AGENT[Agentic RAG&lt;br/&gt;3-5 hops]
+  AGENT &lt;--&gt; RET[Hybrid Retriever&lt;br/&gt;BM25 + dense + rerank]
+  RET --&gt; CORPUS[(380K papers&lt;br/&gt;14K notebooks)]
+  AGENT --&gt; SYNTH[Synthesis&lt;br/&gt;Citations API]
+  SYNTH --&gt; JUDGE[Eval Agent&lt;br/&gt;citation faithfulness]
+  JUDGE --&gt;|95% pass| DELIVER[5-page review]
+  JUDGE --&gt;|&lt;95% fail| AGENT
+  DELIVER --&gt; MEMORY[(Per-target&lt;br/&gt;knowledge object)]</pre>
+    </div>
+
+    <h2 class="section">Concepts applied</h2>
+    <div class="card"><div class="chips"><a class="chip" href="../concepts/agentic-rag.html">Agentic RAG (multi-hop)</a><a class="chip" href="../concepts/hybrid-retrieval.html">Hybrid Retrieval (Dense + BM25 + Rerank)</a><a class="chip" href="../concepts/citations-api.html">Citations API (grounded output)</a><a class="chip" href="../concepts/citation-faithfulness.html">Citation Faithfulness</a><a class="chip" href="../concepts/vision-pdf-native.html">Vision + Native PDF (image/document blocks)</a><a class="chip" href="../concepts/llm-judge.html">LLM as Judge</a><a class="chip" href="../concepts/memory-compaction.html">Memory Compaction</a><a class="chip" href="../concepts/regression-eval.html">Regression Eval Set</a></div></div>
+
+    <h2 class="section">Trade-offs (what we ruled out)</h2>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Single-shot RAG (one retrieval, one generation)</div>
+      <div class="reason">Multi-hop questions fail 40% of the time; agentic RAG resolves them at 3x cost — worth it for this use case.</div>
+    </div>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Pre-extracted citation text only (no native PDF)</div>
+      <div class="reason">Figures and table footnotes are where the load-bearing claims live; need native PDF to see them.</div>
+    </div>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Human-rated faithfulness only</div>
+      <div class="reason">Too slow for daily use; LLM-judge with periodic human calibration (every 200 outputs) is the right cost trade.</div>
+    </div>
+
+    <h2 class="section">Eval criteria</h2>
+    <div class="success">Citation faithfulness ≥ 99% (LLM-judge, calibrated quarterly against human raters) · Researcher satisfaction ≥ 4.2/5 · Average turnaround ≤ 8 min for warm-cached targets, ≤ 30 min for cold.</div>
+
+    <h2 class="section">Rollout plan</h2>
+    <div class="card prose">Pilot with 5 researchers on archived (already-done) reviews → compare side-by-side → expand to live targets with sign-off requirement → drop sign-off once citation faithfulness stays ≥ 99% for 60 days.</div>
+
+    <h2 class="section">Read next</h2>
+    <div class="card"><a class="lesson-link" href="../m05/lesson-5.4.html">§5.4</a><a class="lesson-link" href="../m05/lesson-5.5.html">§5.5</a><a class="lesson-link" href="../m14/lesson-14.4.html">§14.4</a><a class="lesson-link" href="../m08/lesson-8.3.html">§8.3</a></div>
+  </div>
+</body>
+</html>

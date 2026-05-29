@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KYC document review at scale · Scenario · AdaptLearn</title>
+  <style>
+:root {
+  --bg: #fafafa; --surface: #ffffff;
+  --text: #1c2230; --text-muted: #5b6473;
+  --border: #e5e7eb; --accent: #2563eb; --accent-soft: #eff6ff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-size: 17px; line-height: 1.65; color: var(--text); background: var(--bg); }
+.container { max-width: 920px; margin: 0 auto; padding: 32px; }
+.breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.hero { padding: 36px 32px; background: linear-gradient(135deg, #1c2230 0%, #2d3a55 100%);
+  color: #fff; border-radius: 14px; margin-bottom: 28px; }
+.hero h1 { margin: 0 0 8px; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.hero p { margin: 0; opacity: 0.85; font-size: 16px; }
+.hero .meta { font-size: 13px; opacity: 0.75; margin-top: 10px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted); margin: 32px 0 12px; font-weight: 700; }
+.card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 24px; margin-bottom: 12px; }
+.prose { font-size: 16px; line-height: 1.7; }
+.approach ol { padding-left: 22px; margin: 0; }
+.approach li { margin-bottom: 10px; font-size: 15px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-block; padding: 4px 10px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent); font-size: 13px;
+  text-decoration: none; border: 1px solid transparent; }
+.chip:hover { border-color: var(--accent); }
+.industry-pill { display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; margin-right: 8px; }
+.archetype-pill { display: inline-block; padding: 3px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; background: #f3f4f6; color: var(--text-muted);
+  margin-right: 8px; }
+.complexity { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 700; color: var(--text-muted); }
+.tradeoff { background: #fff8f0; border-left: 3px solid #f59e0b; padding: 12px 16px;
+  margin-bottom: 8px; border-radius: 4px; }
+.tradeoff .ruled { font-weight: 600; font-size: 14px; }
+.tradeoff .reason { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+.success { background: #f0fdf4; border-left: 3px solid #16a34a; padding: 14px 18px;
+  border-radius: 6px; font-size: 15px; }
+.lesson-link { display: inline-block; margin-right: 6px; padding: 3px 9px;
+  background: var(--accent-soft); color: var(--accent); border-radius: 6px;
+  font-size: 13px; text-decoration: none; font-variant-numeric: tabular-nums; }
+.lesson-link:hover { background: var(--accent); color: #fff; }
+.diagram { background: #fafafa; border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px; overflow-x: auto; }
+.toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.toc-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid;
+  border-radius: 10px; padding: 16px 20px; text-decoration: none; color: inherit;
+  transition: border-color 0.15s; display: block; }
+.toc-card:hover { border-color: var(--accent); }
+.toc-card .title { font-weight: 700; font-size: 16px; margin: 4px 0 6px; }
+.toc-card .summary { color: var(--text-muted); font-size: 13px; margin: 0; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; align-items: center; }
+.filter-row .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted); font-weight: 700; margin-right: 4px; }
+.section-divider { color: var(--text-muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.1em; font-weight: 700; margin: 28px 0 10px; }
+</style>
+  <script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: true, theme: 'neutral', themeVariables: { fontFamily: 'inherit' } });
+</script>
+</head>
+<body>
+  <div class="container">
+    <nav class="breadcrumb">
+      <a href="../book.html">Book</a>
+      <span class="sep">›</span>
+      <a href="index.html">Scenarios</a>
+      <span class="sep">›</span>
+      <span>KYC document review at scale</span>
+    </nav>
+
+    <header class="hero">
+      <h1>KYC document review at scale</h1>
+      <p>HSBC Mid-Office · Banking</p>
+      <div class="badges">
+        <span class="badge">Multi-modal</span>
+        <span class="badge">intermediate</span>
+      </div>
+    </header>
+
+    <h2 class="section">Situation</h2>
+    <div class="card prose">HSBC's mid-office processes 8,000 corporate KYC packages per month. Each package contains 30–80 PDFs (incorporation docs, UBO statements, sanctions screening). Analysts spend 40 minutes per package extracting and verifying fields against a 120-item checklist. Compliance failure rate is 6%, attracting regulatory attention.</div>
+
+    <h2 class="section">Problem</h2>
+    <div class="card prose">Cut analyst time per package by 70% while keeping false-clear rate under 0.5% (regulator hard limit). Every decision must be auditable to SR 11-7 model risk standards.</div>
+
+    <h2 class="section">Approach</h2>
+    <div class="card approach"><ol>
+      <li>Use Claude's native PDF blocks (no OCR pre-step) so the model sees tables and stamps in context.</li>
+      <li>Apply the Citations API to every extracted field so each value links back to a page+character range in source PDFs.</li>
+      <li>Run Extended Thinking on the 12 highest-risk fields (UBO chain, sanctions match, jurisdiction); skip for routine fields to control cost.</li>
+      <li>Use prompt caching on the 8-page checklist policy prompt (reused across all packages, saves ~85% on input cost).</li>
+      <li>Route routine packages to Haiku, escalate complex ones to Sonnet via a tier-routing classifier.</li>
+      <li>Log every decision to an append-only audit table (input hash, model version, prompt hash, output, analyst override) for SR 11-7 evidence.</li>
+      <li>Human reviews every flagged item + a 5% random sample of approved ones; this becomes the regression eval set.</li>
+    </ol></div>
+
+    <h2 class="section">Architecture</h2>
+    <div class="diagram">
+      <pre class="mermaid">graph LR
+  PDF[KYC Package&lt;br/&gt;30-80 PDFs] --&gt; CLS{Tier&lt;br/&gt;Classifier}
+  CLS --&gt;|routine 70%| HAIKU[Haiku&lt;br/&gt;+ cached policy&lt;br/&gt;+ citations]
+  CLS --&gt;|complex 30%| SONNET[Sonnet&lt;br/&gt;+ extended thinking&lt;br/&gt;+ citations]
+  HAIKU --&gt; AUDIT[(Audit Log&lt;br/&gt;SR 11-7)]
+  SONNET --&gt; AUDIT
+  AUDIT --&gt; REVIEW[Analyst&lt;br/&gt;flagged + 5% sample]
+  REVIEW --&gt; EVAL[Regression&lt;br/&gt;Eval Set]</pre>
+    </div>
+
+    <h2 class="section">Concepts applied</h2>
+    <div class="card"><div class="chips"><a class="chip" href="../concepts/vision-pdf-native.html">Vision + Native PDF (image/document blocks)</a><a class="chip" href="../concepts/citations-api.html">Citations API (grounded output)</a><a class="chip" href="../concepts/extended-thinking.html">Extended Thinking (budget_tokens, redacted blocks)</a><a class="chip" href="../concepts/cache-control.html">Prompt Caching (cache_control breakpoints, 4-block hierarchy, TTL)</a><a class="chip" href="../concepts/model-tier-routing.html">Model Tier Selection (Opus/Sonnet/Haiku routing)</a><a class="chip" href="../concepts/audit-trail.html">Audit Trail (SR 11-7 / EU AI Act)</a><a class="chip" href="../concepts/regression-eval.html">Regression Eval Set</a><a class="chip" href="../concepts/calibration-ece.html">Calibration / ECE</a></div></div>
+
+    <h2 class="section">Trade-offs (what we ruled out)</h2>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Pre-OCR with Textract then send text to Claude</div>
+      <div class="reason">Loses layout/table fidelity; stamps and signatures missed. Native PDF blocks score 14 points higher on internal eval.</div>
+    </div>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Single Opus model for everything</div>
+      <div class="reason">5x cost with only 2-point quality lift on routine packages; tier routing captures most of the benefit.</div>
+    </div>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Full autonomous approval</div>
+      <div class="reason">Regulator requires human-in-the-loop for first 12 months; design accordingly rather than retrofit.</div>
+    </div>
+
+    <h2 class="section">Eval criteria</h2>
+    <div class="success">Per-field accuracy ≥ 98% (sample of 500 packages, dual analyst grading) · False-clear rate ≤ 0.5% · Citation faithfulness ≥ 95% · Average wall-clock per package ≤ 12 min.</div>
+
+    <h2 class="section">Rollout plan</h2>
+    <div class="card prose">Shadow mode (1 month, no impact on workflow) → Assist mode (analyst sees suggestions, 2 months) → Auto-approve routine + flag complex (6 months, with quarterly model risk review) → Re-baseline annually.</div>
+
+    <h2 class="section">Read next</h2>
+    <div class="card"><a class="lesson-link" href="../m14/lesson-14.4.html">§14.4</a><a class="lesson-link" href="../m14/lesson-14.2.html">§14.2</a><a class="lesson-link" href="../m10/lesson-10.4.html">§10.4</a><a class="lesson-link" href="../m08/lesson-8.1.html">§8.1</a></div>
+  </div>
+</body>
+</html>

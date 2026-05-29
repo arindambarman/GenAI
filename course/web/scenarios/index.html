@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scenario Knowledge Base · AdaptLearn</title>
+  <style>
+:root {
+  --bg: #fafafa; --surface: #ffffff;
+  --text: #1c2230; --text-muted: #5b6473;
+  --border: #e5e7eb; --accent: #2563eb; --accent-soft: #eff6ff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-size: 17px; line-height: 1.65; color: var(--text); background: var(--bg); }
+.container { max-width: 920px; margin: 0 auto; padding: 32px; }
+.breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.hero { padding: 36px 32px; background: linear-gradient(135deg, #1c2230 0%, #2d3a55 100%);
+  color: #fff; border-radius: 14px; margin-bottom: 28px; }
+.hero h1 { margin: 0 0 8px; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.hero p { margin: 0; opacity: 0.85; font-size: 16px; }
+.hero .meta { font-size: 13px; opacity: 0.75; margin-top: 10px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted); margin: 32px 0 12px; font-weight: 700; }
+.card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 24px; margin-bottom: 12px; }
+.prose { font-size: 16px; line-height: 1.7; }
+.approach ol { padding-left: 22px; margin: 0; }
+.approach li { margin-bottom: 10px; font-size: 15px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-block; padding: 4px 10px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent); font-size: 13px;
+  text-decoration: none; border: 1px solid transparent; }
+.chip:hover { border-color: var(--accent); }
+.industry-pill { display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; margin-right: 8px; }
+.archetype-pill { display: inline-block; padding: 3px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; background: #f3f4f6; color: var(--text-muted);
+  margin-right: 8px; }
+.complexity { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 700; color: var(--text-muted); }
+.tradeoff { background: #fff8f0; border-left: 3px solid #f59e0b; padding: 12px 16px;
+  margin-bottom: 8px; border-radius: 4px; }
+.tradeoff .ruled { font-weight: 600; font-size: 14px; }
+.tradeoff .reason { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+.success { background: #f0fdf4; border-left: 3px solid #16a34a; padding: 14px 18px;
+  border-radius: 6px; font-size: 15px; }
+.lesson-link { display: inline-block; margin-right: 6px; padding: 3px 9px;
+  background: var(--accent-soft); color: var(--accent); border-radius: 6px;
+  font-size: 13px; text-decoration: none; font-variant-numeric: tabular-nums; }
+.lesson-link:hover { background: var(--accent); color: #fff; }
+.diagram { background: #fafafa; border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px; overflow-x: auto; }
+.toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.toc-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid;
+  border-radius: 10px; padding: 16px 20px; text-decoration: none; color: inherit;
+  transition: border-color 0.15s; display: block; }
+.toc-card:hover { border-color: var(--accent); }
+.toc-card .title { font-weight: 700; font-size: 16px; margin: 4px 0 6px; }
+.toc-card .summary { color: var(--text-muted); font-size: 13px; margin: 0; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; align-items: center; }
+.filter-row .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted); font-weight: 700; margin-right: 4px; }
+.section-divider { color: var(--text-muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.1em; font-weight: 700; margin: 28px 0 10px; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <nav class="breadcrumb">
+      <a href="../book.html">Book</a>
+      <span class="sep">›</span>
+      <span>Scenarios</span>
+    </nav>
+    <header class="hero">
+      <h1>Scenario Knowledge Base</h1>
+      <p>Real-world problems and how to architect agent solutions for them. Each scenario cross-links to the concepts and lessons it uses.</p>
+      <p class="meta">10 scenarios · 6 industries · 6 archetypes</p>
+    </header>
+
+    <div class="section-divider">Banking · 2 scenarios</div>
+    <div class="toc-grid">
+        <a class="toc-card" href="hsbc-kyc-doc-review.html" style="border-left-color: #2563eb;">
+          <span class="industry-pill" style="background: #dbeafe; color: #1e3a8a; border: 1px solid #2563eb;">Banking</span>
+          <span class="archetype-pill">Multi-modal</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">KYC document review at scale</div>
+          <p class="summary">Cut analyst time per package by 70% while keeping false-clear rate under 0.5% (regulator hard limit). Every decision must be auditable to SR 11-7 model risk sta…</p>
+        </a>
+        <a class="toc-card" href="hsbc-aml-investigation.html" style="border-left-color: #2563eb;">
+          <span class="industry-pill" style="background: #dbeafe; color: #1e3a8a; border: 1px solid #2563eb;">Banking</span>
+          <span class="archetype-pill">Multi-agent</span>
+          <span class="complexity">advanced</span>
+          <div class="title">AML investigation co-pilot</div>
+          <p class="summary">Reduce time-to-first-decision per alert by 60% without missing any genuine money-laundering pattern. Investigators must remain final decision-makers (regulator …</p>
+        </a>
+    </div>
+    <div class="section-divider">Biotech / Research · 2 scenarios</div>
+    <div class="toc-grid">
+        <a class="toc-card" href="helix-literature-synthesis.html" style="border-left-color: #16a34a;">
+          <span class="industry-pill" style="background: #dcfce7; color: #14532d; border: 1px solid #16a34a;">Biotech / Research</span>
+          <span class="archetype-pill">Agentic RAG</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">Literature synthesis with verifiable citations</div>
+          <p class="summary">Produce a 5-page synthesis on demand for any target, with every claim citing a real source at page/paragraph granularity. Hallucination rate must drop below 1%.</p>
+        </a>
+        <a class="toc-card" href="helix-adverse-events-batch.html" style="border-left-color: #16a34a;">
+          <span class="industry-pill" style="background: #dcfce7; color: #14532d; border: 1px solid #16a34a;">Biotech / Research</span>
+          <span class="archetype-pill">Batch processing</span>
+          <span class="complexity">starter</span>
+          <div class="title">Adverse event classification at trial scale</div>
+          <p class="summary">Auto-classify 80% of AEs with coder-level accuracy, surface the 20% complex cases for human review, cut cost by 60%, and produce an audit trail acceptable to th…</p>
+        </a>
+    </div>
+    <div class="section-divider">E-commerce · 2 scenarios</div>
+    <div class="toc-grid">
+        <a class="toc-card" href="acme-tier1-deflection.html" style="border-left-color: #b45309;">
+          <span class="industry-pill" style="background: #fef3c7; color: #78350f; border: 1px solid #b45309;">E-commerce</span>
+          <span class="archetype-pill">Cost optimization</span>
+          <span class="complexity">starter</span>
+          <div class="title">Tier-1 support deflection with cost guardrails</div>
+          <p class="summary">Push deflection to 55% without making CSAT drop more than 3 points. Total API spend must stay under $0.04 per ticket on the average.</p>
+        </a>
+        <a class="toc-card" href="acme-catalog-enrichment.html" style="border-left-color: #b45309;">
+          <span class="industry-pill" style="background: #fef3c7; color: #78350f; border: 1px solid #b45309;">E-commerce</span>
+          <span class="archetype-pill">Multi-modal</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">Product catalog enrichment from images</div>
+          <p class="summary">Auto-enrich 100% of new SKUs from supplier-provided images + raw text within 4h of upload, hitting parity with human-curated SKUs on click-through rate (CTR).</p>
+        </a>
+    </div>
+    <div class="section-divider">Healthcare · 2 scenarios</div>
+    <div class="toc-grid">
+        <a class="toc-card" href="healthcare-discharge-summary.html" style="border-left-color: #b91c1c;">
+          <span class="industry-pill" style="background: #fee2e2; color: #7f1d1d; border: 1px solid #b91c1c;">Healthcare</span>
+          <span class="archetype-pill">Safety-critical</span>
+          <span class="complexity">advanced</span>
+          <div class="title">Discharge summary drafting (safety-critical)</div>
+          <p class="summary">Produce a draft discharge summary in 90 seconds that the hospitalist edits in ≤ 8 minutes. Zero tolerance for hallucinated medications, dosages, or follow-up da…</p>
+        </a>
+        <a class="toc-card" href="healthcare-radiology-second-read.html" style="border-left-color: #b91c1c;">
+          <span class="industry-pill" style="background: #fee2e2; color: #7f1d1d; border: 1px solid #b91c1c;">Healthcare</span>
+          <span class="archetype-pill">Multi-modal</span>
+          <span class="complexity">advanced</span>
+          <div class="title">Radiology second-read assistant</div>
+          <p class="summary">Provide a second-read assistant that flags candidate findings on every study, with low enough false-positive rate that radiologists actually attend to flags rat…</p>
+        </a>
+    </div>
+    <div class="section-divider">Legal · 1 scenario</div>
+    <div class="toc-grid">
+        <a class="toc-card" href="legal-contract-clause-extraction.html" style="border-left-color: #7c3aed;">
+          <span class="industry-pill" style="background: #ede9fe; color: #4c1d95; border: 1px solid #7c3aed;">Legal</span>
+          <span class="archetype-pill">Multi-modal</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">Contract clause extraction with citations</div>
+          <p class="summary">Extract all required clauses with citations to page+paragraph, hit 98% recall on a curated test set of 50 contracts, and produce a deal-ready summary table in 4…</p>
+        </a>
+    </div>
+    <div class="section-divider">Public Sector · 1 scenario</div>
+    <div class="toc-grid">
+        <a class="toc-card" href="public-citizen-faq.html" style="border-left-color: #0284c7;">
+          <span class="industry-pill" style="background: #e0f2fe; color: #075985; border: 1px solid #0284c7;">Public Sector</span>
+          <span class="archetype-pill">Cost optimization</span>
+          <span class="complexity">starter</span>
+          <div class="title">Citizen FAQ co-pilot (high-volume, low-cost)</div>
+          <p class="summary">Push deflection to 60% with answers that cite the official source policy, on a hard API budget of $0.014 per query (≈$25K/year).</p>
+        </a>
+    </div>
+
+    <h2 class="section">How to add more</h2>
+    <div class="card prose">
+      <p>Edit <code>scripts/course-agent/src/scenario-data.ts</code> and run <code>npx tsx scripts/course-agent/src/index.ts scenarios</code> to regenerate. The brainstorm-agent capstone can draft new scenarios from a topic list — see the README.</p>
+    </div>
+  </div>
+</body>
+</html>

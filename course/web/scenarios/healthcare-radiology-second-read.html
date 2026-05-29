@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radiology second-read assistant · Scenario · AdaptLearn</title>
+  <style>
+:root {
+  --bg: #fafafa; --surface: #ffffff;
+  --text: #1c2230; --text-muted: #5b6473;
+  --border: #e5e7eb; --accent: #2563eb; --accent-soft: #eff6ff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-size: 17px; line-height: 1.65; color: var(--text); background: var(--bg); }
+.container { max-width: 920px; margin: 0 auto; padding: 32px; }
+.breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.hero { padding: 36px 32px; background: linear-gradient(135deg, #1c2230 0%, #2d3a55 100%);
+  color: #fff; border-radius: 14px; margin-bottom: 28px; }
+.hero h1 { margin: 0 0 8px; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.hero p { margin: 0; opacity: 0.85; font-size: 16px; }
+.hero .meta { font-size: 13px; opacity: 0.75; margin-top: 10px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted); margin: 32px 0 12px; font-weight: 700; }
+.card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 24px; margin-bottom: 12px; }
+.prose { font-size: 16px; line-height: 1.7; }
+.approach ol { padding-left: 22px; margin: 0; }
+.approach li { margin-bottom: 10px; font-size: 15px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-block; padding: 4px 10px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent); font-size: 13px;
+  text-decoration: none; border: 1px solid transparent; }
+.chip:hover { border-color: var(--accent); }
+.industry-pill { display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; margin-right: 8px; }
+.archetype-pill { display: inline-block; padding: 3px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; background: #f3f4f6; color: var(--text-muted);
+  margin-right: 8px; }
+.complexity { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 700; color: var(--text-muted); }
+.tradeoff { background: #fff8f0; border-left: 3px solid #f59e0b; padding: 12px 16px;
+  margin-bottom: 8px; border-radius: 4px; }
+.tradeoff .ruled { font-weight: 600; font-size: 14px; }
+.tradeoff .reason { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+.success { background: #f0fdf4; border-left: 3px solid #16a34a; padding: 14px 18px;
+  border-radius: 6px; font-size: 15px; }
+.lesson-link { display: inline-block; margin-right: 6px; padding: 3px 9px;
+  background: var(--accent-soft); color: var(--accent); border-radius: 6px;
+  font-size: 13px; text-decoration: none; font-variant-numeric: tabular-nums; }
+.lesson-link:hover { background: var(--accent); color: #fff; }
+.diagram { background: #fafafa; border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px; overflow-x: auto; }
+.toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.toc-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid;
+  border-radius: 10px; padding: 16px 20px; text-decoration: none; color: inherit;
+  transition: border-color 0.15s; display: block; }
+.toc-card:hover { border-color: var(--accent); }
+.toc-card .title { font-weight: 700; font-size: 16px; margin: 4px 0 6px; }
+.toc-card .summary { color: var(--text-muted); font-size: 13px; margin: 0; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; align-items: center; }
+.filter-row .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted); font-weight: 700; margin-right: 4px; }
+.section-divider { color: var(--text-muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.1em; font-weight: 700; margin: 28px 0 10px; }
+</style>
+  <script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: true, theme: 'neutral', themeVariables: { fontFamily: 'inherit' } });
+</script>
+</head>
+<body>
+  <div class="container">
+    <nav class="breadcrumb">
+      <a href="../book.html">Book</a>
+      <span class="sep">›</span>
+      <a href="index.html">Scenarios</a>
+      <span class="sep">›</span>
+      <span>Radiology second-read assistant</span>
+    </nav>
+
+    <header class="hero">
+      <h1>Radiology second-read assistant</h1>
+      <p>Imaging center · Healthcare</p>
+      <div class="badges">
+        <span class="badge">Multi-modal</span>
+        <span class="badge">advanced</span>
+      </div>
+    </header>
+
+    <h2 class="section">Situation</h2>
+    <div class="card prose">Radiologists read 80–120 studies/day. Subtle findings (small pulmonary nodules, early stroke signs) get missed at rates of 3–5% on the second-to-last read of a shift. Liability and patient harm concentrate in this fatigue window.</div>
+
+    <h2 class="section">Problem</h2>
+    <div class="card prose">Provide a second-read assistant that flags candidate findings on every study, with low enough false-positive rate that radiologists actually attend to flags rather than ignoring them.</div>
+
+    <h2 class="section">Approach</h2>
+    <div class="card approach"><ol>
+      <li>Vision blocks on Sonnet for each DICOM-derived image series (key slices selected by a small classifier pre-step).</li>
+      <li>Extended Thinking enabled — radiologists value visible reasoning chains they can audit.</li>
+      <li>Cached prompt: the structured reporting template + the study protocol + the patient's prior comparison findings. Same template applies to thousands of studies/day.</li>
+      <li>Output is a structured candidate-findings list with location (image+coords), confidence (1–5), and rationale — NOT a freeform report.</li>
+      <li>Radiologist reviews flags inline in the PACS UI; accept/reject feeds back to the eval set.</li>
+      <li>Quarterly calibration: compare flag rate against ground-truth follow-up outcomes (biopsies, clinical resolution) to ensure neither over- nor under-calling.</li>
+    </ol></div>
+
+    <h2 class="section">Architecture</h2>
+    <div class="diagram">
+      <pre class="mermaid">graph LR
+  STUDY[DICOM study] --&gt; SLICE[Key-slice&lt;br/&gt;classifier]
+  SLICE --&gt; CLAUDE[Sonnet vision&lt;br/&gt;+ extended thinking&lt;br/&gt;+ cached template]
+  CLAUDE --&gt; FINDINGS[Structured&lt;br/&gt;candidate findings]
+  FINDINGS --&gt; PACS[PACS UI&lt;br/&gt;radiologist review]
+  PACS --&gt; ACCEPT{Accept?}
+  ACCEPT --&gt;|yes| REPORT[Final report]
+  ACCEPT --&gt;|no| EVAL[Eval set]
+  REPORT --&gt; OUTCOME[6-mo outcome tracking]
+  OUTCOME --&gt; CAL[Quarterly calibration]</pre>
+    </div>
+
+    <h2 class="section">Concepts applied</h2>
+    <div class="card"><div class="chips"><a class="chip" href="../concepts/vision-pdf-native.html">Vision + Native PDF (image/document blocks)</a><a class="chip" href="../concepts/extended-thinking.html">Extended Thinking (budget_tokens, redacted blocks)</a><a class="chip" href="../concepts/cache-control.html">Prompt Caching (cache_control breakpoints, 4-block hierarchy, TTL)</a><a class="chip" href="../concepts/strict-tool-use.html">Strict Tool Use (Constrained Decoding)</a><a class="chip" href="../concepts/regression-eval.html">Regression Eval Set</a><a class="chip" href="../concepts/calibration-ece.html">Calibration / ECE</a><a class="chip" href="../concepts/audit-trail.html">Audit Trail (SR 11-7 / EU AI Act)</a></div></div>
+
+    <h2 class="section">Trade-offs (what we ruled out)</h2>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Replace radiologist primary read</div>
+      <div class="reason">Regulatory non-starter; positioning matters — assistive only.</div>
+    </div>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Freeform report generation</div>
+      <div class="reason">Hard to integrate into PACS workflow; structured findings are reviewable in seconds.</div>
+    </div>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: No extended thinking</div>
+      <div class="reason">Radiologists need to see the reasoning to trust the flag; opacity destroys adoption.</div>
+    </div>
+
+    <h2 class="section">Eval criteria</h2>
+    <div class="success">Sensitivity on a held-out 500-study set ≥ 94% · False-positive rate ≤ 1.5 flags/study (radiologist patience threshold) · Calibration ECE ≤ 0.05 · 6-month outcome agreement with ground truth ≥ 92%.</div>
+
+    <h2 class="section">Rollout plan</h2>
+    <div class="card prose">Retrospective on 5K archived studies with known outcomes → live shadow mode (3 months) → opt-in second-read with attribution (6 months) → default on for fatigue window only (per radiologist preference).</div>
+
+    <h2 class="section">Read next</h2>
+    <div class="card"><a class="lesson-link" href="../m14/lesson-14.4.html">§14.4</a><a class="lesson-link" href="../m14/lesson-14.3.html">§14.3</a><a class="lesson-link" href="../m08/lesson-8.2.html">§8.2</a><a class="lesson-link" href="../m10/lesson-10.4.html">§10.4</a></div>
+  </div>
+</body>
+</html>

@@ -413,6 +413,11 @@ function renderBookCover(
       <h3>🔎 Reference — Concept Index</h3>
       <p>${conceptCount} atomic concepts, each with definition, prereqs, related, and source lessons. Browse or jump in.</p>
     </a>
+    <a class="section-card" href="scenarios/index.html">
+      <span class="arrow">→</span>
+      <h3>📂 Scenarios — Real-world problems &amp; solutions</h3>
+      <p>Industry scenarios with situation, approach, architecture diagram, trade-offs, and concept cross-links.</p>
+    </a>
     <a class="section-card" href="curriculum-claude-architect.html">
       <span class="arrow">→</span>
       <h3>🎯 Curriculum — Claude Architect Foundations</h3>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Citizen FAQ co-pilot (high-volume, low-cost) · Scenario · AdaptLearn</title>
+  <style>
+:root {
+  --bg: #fafafa; --surface: #ffffff;
+  --text: #1c2230; --text-muted: #5b6473;
+  --border: #e5e7eb; --accent: #2563eb; --accent-soft: #eff6ff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-size: 17px; line-height: 1.65; color: var(--text); background: var(--bg); }
+.container { max-width: 920px; margin: 0 auto; padding: 32px; }
+.breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.hero { padding: 36px 32px; background: linear-gradient(135deg, #1c2230 0%, #2d3a55 100%);
+  color: #fff; border-radius: 14px; margin-bottom: 28px; }
+.hero h1 { margin: 0 0 8px; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.hero p { margin: 0; opacity: 0.85; font-size: 16px; }
+.hero .meta { font-size: 13px; opacity: 0.75; margin-top: 10px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted); margin: 32px 0 12px; font-weight: 700; }
+.card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 24px; margin-bottom: 12px; }
+.prose { font-size: 16px; line-height: 1.7; }
+.approach ol { padding-left: 22px; margin: 0; }
+.approach li { margin-bottom: 10px; font-size: 15px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-block; padding: 4px 10px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent); font-size: 13px;
+  text-decoration: none; border: 1px solid transparent; }
+.chip:hover { border-color: var(--accent); }
+.industry-pill { display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; margin-right: 8px; }
+.archetype-pill { display: inline-block; padding: 3px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; background: #f3f4f6; color: var(--text-muted);
+  margin-right: 8px; }
+.complexity { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 700; color: var(--text-muted); }
+.tradeoff { background: #fff8f0; border-left: 3px solid #f59e0b; padding: 12px 16px;
+  margin-bottom: 8px; border-radius: 4px; }
+.tradeoff .ruled { font-weight: 600; font-size: 14px; }
+.tradeoff .reason { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+.success { background: #f0fdf4; border-left: 3px solid #16a34a; padding: 14px 18px;
+  border-radius: 6px; font-size: 15px; }
+.lesson-link { display: inline-block; margin-right: 6px; padding: 3px 9px;
+  background: var(--accent-soft); color: var(--accent); border-radius: 6px;
+  font-size: 13px; text-decoration: none; font-variant-numeric: tabular-nums; }
+.lesson-link:hover { background: var(--accent); color: #fff; }
+.diagram { background: #fafafa; border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px; overflow-x: auto; }
+.toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.toc-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid;
+  border-radius: 10px; padding: 16px 20px; text-decoration: none; color: inherit;
+  transition: border-color 0.15s; display: block; }
+.toc-card:hover { border-color: var(--accent); }
+.toc-card .title { font-weight: 700; font-size: 16px; margin: 4px 0 6px; }
+.toc-card .summary { color: var(--text-muted); font-size: 13px; margin: 0; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; align-items: center; }
+.filter-row .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted); font-weight: 700; margin-right: 4px; }
+.section-divider { color: var(--text-muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.1em; font-weight: 700; margin: 28px 0 10px; }
+</style>
+  <script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: true, theme: 'neutral', themeVariables: { fontFamily: 'inherit' } });
+</script>
+</head>
+<body>
+  <div class="container">
+    <nav class="breadcrumb">
+      <a href="../book.html">Book</a>
+      <span class="sep">›</span>
+      <a href="index.html">Scenarios</a>
+      <span class="sep">›</span>
+      <span>Citizen FAQ co-pilot (high-volume, low-cost)</span>
+    </nav>
+
+    <header class="hero">
+      <h1>Citizen FAQ co-pilot (high-volume, low-cost)</h1>
+      <p>City services portal · Public Sector</p>
+      <div class="badges">
+        <span class="badge">Cost optimization</span>
+        <span class="badge">starter</span>
+      </div>
+    </header>
+
+    <h2 class="section">Situation</h2>
+    <div class="card prose">A city portal handles 1.8M FAQ queries/year on garbage collection, permits, benefits eligibility, etc. Current system is keyword search with 31% deflection; remainder go to a 20-person call center. Budget pressure is intense — any solution must come in under $25K/year API cost.</div>
+
+    <h2 class="section">Problem</h2>
+    <div class="card prose">Push deflection to 60% with answers that cite the official source policy, on a hard API budget of $0.014 per query (≈$25K/year).</div>
+
+    <h2 class="section">Approach</h2>
+    <div class="card approach"><ol>
+      <li>7-block prompt with the entire small-corpus FAQ + recent policy updates cached at the prefix (city policy corpus is ~80K tokens — caches well).</li>
+      <li>Haiku as the only model — no escalation tier. Cost is the binding constraint.</li>
+      <li>Citations API: every answer links back to the official policy page; this is the trust signal that lets the city stand behind the answer.</li>
+      <li>Semantic cache: ~40% of queries are textual variants of the top 200 questions; cache hits return frozen answers at $0 LLM cost.</li>
+      <li>If the model's confidence is low or the question is out-of-scope, return a 'this question needs a human' card with the call center number — never invent.</li>
+      <li>Weekly regression eval on 100 representative queries graded by city staff.</li>
+    </ol></div>
+
+    <h2 class="section">Architecture</h2>
+    <div class="diagram">
+      <pre class="mermaid">graph LR
+  Q[Citizen query] --&gt; SEM{Semantic&lt;br/&gt;cache hit?}
+  SEM --&gt;|yes 40%| FROZEN[Frozen answer&lt;br/&gt;$0]
+  SEM --&gt;|no| HAIKU[Haiku&lt;br/&gt;+ cached policy corpus&lt;br/&gt;+ citations]
+  HAIKU --&gt; CONF{Confident&lt;br/&gt;+ in-scope?}
+  CONF --&gt;|yes 60%| ANSWER[Answer + citation]
+  CONF --&gt;|no 40%| HANDOFF[Call center&lt;br/&gt;handoff card]
+  ANSWER --&gt; EVAL[Weekly eval&lt;br/&gt;100 queries graded]</pre>
+    </div>
+
+    <h2 class="section">Concepts applied</h2>
+    <div class="card"><div class="chips"><a class="chip" href="../concepts/seven-block-prompt.html">7-Block Prompt Structure</a><a class="chip" href="../concepts/cache-control.html">Prompt Caching (cache_control breakpoints, 4-block hierarchy, TTL)</a><a class="chip" href="../concepts/prompt-cache-prod.html">Caching Tiers (Prompt + Semantic + Model)</a><a class="chip" href="../concepts/citations-api.html">Citations API (grounded output)</a><a class="chip" href="../concepts/model-tier-routing.html">Model Tier Selection (Opus/Sonnet/Haiku routing)</a><a class="chip" href="../concepts/regression-eval.html">Regression Eval Set</a><a class="chip" href="../concepts/calibration-ece.html">Calibration / ECE</a></div></div>
+
+    <h2 class="section">Trade-offs (what we ruled out)</h2>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Sonnet escalation tier</div>
+      <div class="reason">Cost ceiling forbids it; Haiku + caching + handoff for unsure cases hits the deflection target close enough.</div>
+    </div>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Full agentic RAG</div>
+      <div class="reason">Overkill for a small static corpus; cached corpus + single-pass beats RAG on both latency and cost.</div>
+    </div>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Open answer style without citations</div>
+      <div class="reason">Public-sector trust requires source attribution; non-negotiable.</div>
+    </div>
+
+    <h2 class="section">Eval criteria</h2>
+    <div class="success">Deflection ≥ 60% measured by no-call follow-through · API cost ≤ $0.014/query · Citation faithfulness 100% · Quarterly staff-graded accuracy ≥ 95%.</div>
+
+    <h2 class="section">Rollout plan</h2>
+    <div class="card prose">Backfill against 6 months of past queries with known resolutions (4 weeks) → 10% live traffic A/B (8 weeks) → full rollout with prominent 'still need help?' link (ongoing).</div>
+
+    <h2 class="section">Read next</h2>
+    <div class="card"><a class="lesson-link" href="../m03/lesson-3.5.html">§3.5</a><a class="lesson-link" href="../m14/lesson-14.2.html">§14.2</a><a class="lesson-link" href="../m09/lesson-9.3.html">§9.3</a></div>
+  </div>
+</body>
+</html>

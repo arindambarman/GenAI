@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AML investigation co-pilot · Scenario · AdaptLearn</title>
+  <style>
+:root {
+  --bg: #fafafa; --surface: #ffffff;
+  --text: #1c2230; --text-muted: #5b6473;
+  --border: #e5e7eb; --accent: #2563eb; --accent-soft: #eff6ff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-size: 17px; line-height: 1.65; color: var(--text); background: var(--bg); }
+.container { max-width: 920px; margin: 0 auto; padding: 32px; }
+.breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.hero { padding: 36px 32px; background: linear-gradient(135deg, #1c2230 0%, #2d3a55 100%);
+  color: #fff; border-radius: 14px; margin-bottom: 28px; }
+.hero h1 { margin: 0 0 8px; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.hero p { margin: 0; opacity: 0.85; font-size: 16px; }
+.hero .meta { font-size: 13px; opacity: 0.75; margin-top: 10px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted); margin: 32px 0 12px; font-weight: 700; }
+.card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 24px; margin-bottom: 12px; }
+.prose { font-size: 16px; line-height: 1.7; }
+.approach ol { padding-left: 22px; margin: 0; }
+.approach li { margin-bottom: 10px; font-size: 15px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-block; padding: 4px 10px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent); font-size: 13px;
+  text-decoration: none; border: 1px solid transparent; }
+.chip:hover { border-color: var(--accent); }
+.industry-pill { display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; margin-right: 8px; }
+.archetype-pill { display: inline-block; padding: 3px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; background: #f3f4f6; color: var(--text-muted);
+  margin-right: 8px; }
+.complexity { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 700; color: var(--text-muted); }
+.tradeoff { background: #fff8f0; border-left: 3px solid #f59e0b; padding: 12px 16px;
+  margin-bottom: 8px; border-radius: 4px; }
+.tradeoff .ruled { font-weight: 600; font-size: 14px; }
+.tradeoff .reason { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+.success { background: #f0fdf4; border-left: 3px solid #16a34a; padding: 14px 18px;
+  border-radius: 6px; font-size: 15px; }
+.lesson-link { display: inline-block; margin-right: 6px; padding: 3px 9px;
+  background: var(--accent-soft); color: var(--accent); border-radius: 6px;
+  font-size: 13px; text-decoration: none; font-variant-numeric: tabular-nums; }
+.lesson-link:hover { background: var(--accent); color: #fff; }
+.diagram { background: #fafafa; border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px; overflow-x: auto; }
+.toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.toc-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid;
+  border-radius: 10px; padding: 16px 20px; text-decoration: none; color: inherit;
+  transition: border-color 0.15s; display: block; }
+.toc-card:hover { border-color: var(--accent); }
+.toc-card .title { font-weight: 700; font-size: 16px; margin: 4px 0 6px; }
+.toc-card .summary { color: var(--text-muted); font-size: 13px; margin: 0; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; align-items: center; }
+.filter-row .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted); font-weight: 700; margin-right: 4px; }
+.section-divider { color: var(--text-muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.1em; font-weight: 700; margin: 28px 0 10px; }
+</style>
+  <script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: true, theme: 'neutral', themeVariables: { fontFamily: 'inherit' } });
+</script>
+</head>
+<body>
+  <div class="container">
+    <nav class="breadcrumb">
+      <a href="../book.html">Book</a>
+      <span class="sep">›</span>
+      <a href="index.html">Scenarios</a>
+      <span class="sep">›</span>
+      <span>AML investigation co-pilot</span>
+    </nav>
+
+    <header class="hero">
+      <h1>AML investigation co-pilot</h1>
+      <p>HSBC Financial Crime · Banking</p>
+      <div class="badges">
+        <span class="badge">Multi-agent</span>
+        <span class="badge">advanced</span>
+      </div>
+    </header>
+
+    <h2 class="section">Situation</h2>
+    <div class="card prose">AML investigators receive 600 transaction-monitoring alerts per day. Each alert requires pulling customer history, related parties, news sentiment, and prior SARs — 35 minutes of manual data assembly per alert. Backlog hits 2 weeks during peaks. Most alerts (82%) close as no-action.</div>
+
+    <h2 class="section">Problem</h2>
+    <div class="card prose">Reduce time-to-first-decision per alert by 60% without missing any genuine money-laundering pattern. Investigators must remain final decision-makers (regulator non-negotiable).</div>
+
+    <h2 class="section">Approach</h2>
+    <div class="card approach"><ol>
+      <li>Orchestrator-Worker pattern: a planning agent decomposes each alert into sub-investigations (customer profile, related-party network, news/sanctions check, transaction pattern analysis).</li>
+      <li>Each sub-investigation is a specialist worker with its own tool registry and scope-limited capability tokens (read-only access to specific tables).</li>
+      <li>Hybrid retrieval (BM25 + dense embeddings + cross-encoder rerank) over the 4-year SAR corpus to find similar past cases.</li>
+      <li>Specialists return typed handoff schemas; orchestrator synthesizes a structured 'investigation brief' instead of a freeform report.</li>
+      <li>Privilege separation via CaMeL: the synthesis agent cannot call tools directly — only assemble outputs from specialists. Prevents prompt injection from external news.</li>
+      <li>Every tool call logged with capability-token + input/output hash for audit replay.</li>
+    </ol></div>
+
+    <h2 class="section">Architecture</h2>
+    <div class="diagram">
+      <pre class="mermaid">graph TB
+  ALERT[TM Alert] --&gt; PLAN[Planner Agent]
+  PLAN --&gt;|decomposed| ORCH[Orchestrator]
+  ORCH --&gt;|cap token A| W1[Customer&lt;br/&gt;Profile Worker]
+  ORCH --&gt;|cap token B| W2[Network&lt;br/&gt;Analysis Worker]
+  ORCH --&gt;|cap token C| W3[News + Sanctions&lt;br/&gt;Worker]
+  ORCH --&gt;|cap token D| W4[Pattern Match&lt;br/&gt;Worker - RAG over SARs]
+  W1 --&gt; SYNTH[Synthesis Agent&lt;br/&gt;CaMeL - no tools]
+  W2 --&gt; SYNTH
+  W3 --&gt; SYNTH
+  W4 --&gt; SYNTH
+  SYNTH --&gt; BRIEF[Structured&lt;br/&gt;Investigation Brief]
+  BRIEF --&gt; INV[Human Investigator]</pre>
+    </div>
+
+    <h2 class="section">Concepts applied</h2>
+    <div class="card"><div class="chips"><a class="chip" href="../concepts/orchestrator-worker.html">Orchestrator-Worker</a><a class="chip" href="../concepts/specialist-supervisor.html">Specialist Supervisor</a><a class="chip" href="../concepts/handoff-schema.html">Typed Handoff Schemas</a><a class="chip" href="../concepts/tool-registry.html">Tool Registry</a><a class="chip" href="../concepts/capability-token.html">Capability Tokens</a><a class="chip" href="../concepts/camel.html">CaMeL Privilege Separation</a><a class="chip" href="../concepts/hybrid-retrieval.html">Hybrid Retrieval (Dense + BM25 + Rerank)</a><a class="chip" href="../concepts/prompt-injection.html">Prompt Injection (defenses)</a><a class="chip" href="../concepts/audit-trail.html">Audit Trail (SR 11-7 / EU AI Act)</a></div></div>
+
+    <h2 class="section">Trade-offs (what we ruled out)</h2>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Single mega-agent with all tools</div>
+      <div class="reason">Prompt injection in news/email content could exfiltrate customer data. CaMeL separation is the only safe pattern.</div>
+    </div>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Pre-compute everything overnight in batch</div>
+      <div class="reason">Alerts age fast; freshness matters more than the 50% batch discount.</div>
+    </div>
+    <div class="tradeoff">
+      <div class="ruled">Ruled out: Auto-close low-risk alerts</div>
+      <div class="reason">Regulator wants final human sign-off on every alert. Goal is decision support, not deflection.</div>
+    </div>
+
+    <h2 class="section">Eval criteria</h2>
+    <div class="success">Time-to-first-decision p50 ≤ 14 min (vs 35 min baseline) · 100% recall on adversarial red-team set (no genuine cases missed) · Zero successful prompt-injection in penetration test · Investigator override rate ≤ 8%.</div>
+
+    <h2 class="section">Rollout plan</h2>
+    <div class="card prose">Build red-team injection set first (4 weeks) → Shadow mode with parallel runs (6 weeks) → Assist mode with investigator opt-in (3 months) → Default-on with rollback flag (12 months).</div>
+
+    <h2 class="section">Read next</h2>
+    <div class="card"><a class="lesson-link" href="../m06/lesson-6.1.html">§6.1</a><a class="lesson-link" href="../m06/lesson-6.3.html">§6.3</a><a class="lesson-link" href="../m07/lesson-7.4.html">§7.4</a><a class="lesson-link" href="../m10/lesson-10.2.html">§10.2</a><a class="lesson-link" href="../m10/lesson-10.4.html">§10.4</a></div>
+  </div>
+</body>
+</html>
