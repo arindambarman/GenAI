@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Concept Graph · Agentic Systems Book · AdaptLearn</title>
+<style>
+:root{
+  --bg0:#05070f; --bg1:#0a0f1f; --panel:rgba(15,21,38,0.82);
+  --line:rgba(120,140,190,0.18); --txt:#e6ecff; --muted:#8b97b8; --faint:#5d6b8e; --accent:#38bdf8;
+  --book:#f59e0b;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg0);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;color:var(--txt);}
+canvas{display:block;position:fixed;inset:0;cursor:grab;}
+canvas.grabbing{cursor:grabbing;}
+.glow-bg{position:fixed;inset:0;z-index:-1;
+  background:
+    radial-gradient(900px 600px at 18% 12%, rgba(56,189,248,0.10), transparent 60%),
+    radial-gradient(800px 600px at 85% 80%, rgba(168,85,247,0.10), transparent 60%),
+    radial-gradient(700px 500px at 70% 20%, rgba(245,158,11,0.06), transparent 60%),
+    linear-gradient(180deg,#05070f,#080c18 60%,#05070f);}
+
+/* ── top bar ── */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;
+  gap:14px;padding:14px 20px;pointer-events:none;}
+.brand{pointer-events:auto;}
+.brand h1{margin:0;font-size:16px;font-weight:800;letter-spacing:-0.01em;
+  background:linear-gradient(90deg,#fcd34d,#a78bfa,#7dd3fc);-webkit-background-clip:text;
+  background-clip:text;color:transparent;}
+.brand .sub{font-size:11px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;}
+.search{pointer-events:auto;margin-left:6px;position:relative;}
+.search input{width:230px;background:var(--panel);border:1px solid var(--line);color:var(--txt);
+  border-radius:999px;padding:9px 16px 9px 36px;font-size:13px;outline:none;backdrop-filter:blur(8px);}
+.search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,189,248,0.15);}
+.search .mag{position:absolute;left:13px;top:9px;opacity:.6;font-size:13px;}
+.spacer{flex:1;}
+.hud{pointer-events:auto;display:flex;gap:8px;}
+.hud .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:7px 12px;backdrop-filter:blur(8px);text-align:center;}
+.hud .stat b{display:block;font-size:16px;font-weight:800;line-height:1;}
+.hud .stat span{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.links{pointer-events:auto;display:flex;gap:6px;}
+.links a{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:8px 11px;font-size:12px;color:var(--txt);text-decoration:none;backdrop-filter:blur(8px);
+  transition:border-color .15s,color .15s;}
+.links a:hover{border-color:var(--accent);color:#7dd3fc;}
+.links a.book{border-color:rgba(245,158,11,0.4);color:var(--book);}
+.links a.book:hover{border-color:var(--book);}
+
+/* ── breadcrumb / focus path ── */
+.crumb{position:fixed;top:60px;left:20px;z-index:30;display:flex;align-items:center;gap:7px;
+  background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:7px 14px;
+  backdrop-filter:blur(8px);font-size:12px;pointer-events:auto;max-width:62vw;}
+.crumb a{color:#cfd8f5;text-decoration:none;cursor:pointer;white-space:nowrap;}
+.crumb a:hover{color:#7dd3fc;}
+.crumb .home{color:var(--book);font-weight:700;}
+.crumb .sep{color:var(--faint);}
+.crumb .cur{color:#fff;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── legend / filters ── */
+.legend{position:fixed;left:20px;bottom:20px;z-index:30;width:240px;background:var(--panel);
+  border:1px solid var(--line);border-radius:14px;padding:14px;backdrop-filter:blur(10px);}
+.legend h3{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
+.legend .hint{font-size:10.5px;color:var(--muted);margin:0 0 10px;}
+.cat{display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:8px;cursor:pointer;
+  font-size:12px;user-select:none;transition:background .12s;}
+.cat:hover{background:rgba(255,255,255,0.04);}
+.cat.off{opacity:.32;}
+.cat .dot{width:11px;height:11px;border-radius:50%;flex:none;box-shadow:0 0 8px currentColor;}
+.cat .n{margin-left:auto;font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
+.kinds{margin-top:10px;border-top:1px solid var(--line);padding-top:10px;display:flex;
+  flex-wrap:wrap;gap:10px 14px;font-size:10.5px;color:var(--muted);}
+.kinds .k{display:flex;align-items:center;gap:6px;}
+.kinds .kd{flex:none;}
+.edge-legend{margin-top:10px;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:5px;}
+.edge-legend .e{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--muted);}
+.edge-legend .ln{width:22px;height:0;border-top:2px solid;}
+
+/* ── tour ── */
+.tour{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:30;display:flex;
+  align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;
+  padding:7px 9px;backdrop-filter:blur(10px);}
+.tour button{background:rgba(255,255,255,0.06);border:1px solid var(--line);color:var(--txt);
+  width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;
+  justify-content:center;transition:background .12s,border-color .12s;}
+.tour button:hover{background:rgba(56,189,248,0.18);border-color:var(--accent);}
+.tour .play{width:auto;border-radius:999px;padding:0 16px;font-weight:700;font-size:12px;gap:6px;}
+.tour .label{font-size:11px;color:var(--muted);min-width:150px;text-align:center;}
+.tour .label b{color:var(--txt);}
+
+/* ── study panel ── */
+.panel{position:fixed;top:0;right:0;height:100%;width:392px;z-index:40;background:var(--panel);
+  border-left:1px solid var(--line);backdrop-filter:blur(16px);transform:translateX(100%);
+  transition:transform .32s cubic-bezier(.4,0,.2,1);overflow-y:auto;}
+.panel.open{transform:translateX(0);}
+.panel .ph{padding:60px 26px 18px;border-bottom:1px solid var(--line);position:relative;}
+.panel .close{position:absolute;top:18px;right:20px;background:none;border:none;color:var(--muted);
+  font-size:22px;cursor:pointer;line-height:1;}
+.panel .close:hover{color:var(--txt);}
+.panel .cat-pill{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
+.panel .cat-pill .dot{width:9px;height:9px;border-radius:50%;box-shadow:0 0 8px currentColor;}
+.panel h2{margin:0;font-size:23px;font-weight:800;letter-spacing:-0.02em;}
+.panel .meta{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;}
+.panel .tag{font-size:10.5px;border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--muted);}
+.panel .body{padding:20px 26px 40px;}
+.panel .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);
+  margin:18px 0 7px;font-weight:700;}
+.panel .lbl:first-child{margin-top:0;}
+.panel .measures{font-size:14.5px;line-height:1.6;color:#cfd8f5;}
+.panel .rel{display:flex;flex-direction:column;gap:5px;}
+.panel .rel a{display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfd8f5;text-decoration:none;
+  padding:7px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.12s;}
+.panel .rel a:hover{border-color:var(--accent);color:#7dd3fc;background:rgba(56,189,248,0.06);}
+.panel .rel .d{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:0 0 7px currentColor;}
+.panel .rel .tg{margin-left:auto;font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.panel .none{font-size:12px;color:var(--muted);font-style:italic;}
+.panel .actions{display:grid;gap:8px;margin-top:6px;}
+.panel .actions a{text-align:center;text-decoration:none;font-size:13px;font-weight:700;padding:11px;
+  border-radius:10px;transition:.15s;}
+.panel .actions a.primary{background:linear-gradient(90deg,#0ea5e9,#6366f1);color:#fff;
+  box-shadow:0 6px 22px rgba(56,189,248,0.28);}
+.panel .actions a.primary:hover{filter:brightness(1.08);}
+.panel .actions a.ghost{background:rgba(255,255,255,0.05);border:1px solid var(--line);color:var(--txt);}
+.panel .actions a.ghost:hover{border-color:var(--accent);color:#7dd3fc;}
+
+.help{position:fixed;right:20px;bottom:20px;z-index:25;font-size:10.5px;color:var(--muted);
+  text-align:right;line-height:1.6;pointer-events:none;}
+@media(max-width:720px){.legend,.hud,.help{display:none;}.panel{width:100%;}.crumb{max-width:90vw;}}
+</style>
+</head>
+<body>
+<div class="glow-bg"></div>
+<canvas id="cv"></canvas>
+
+<div class="topbar">
+  <div class="brand">
+    <h1>Agentic Systems — Concept Graph</h1>
+    <div class="sub">14 modules · 63 concepts · 55 lessons · click to drill in</div>
+  </div>
+  <div class="search">
+    <span class="mag">⌕</span>
+    <input id="search" type="text" placeholder="Search concepts…" autocomplete="off" />
+  </div>
+  <div class="spacer"></div>
+  <div class="hud">
+    <div class="stat"><b id="stat-n">14</b><span>Modules</span></div>
+    <div class="stat"><b id="stat-c">63</b><span>Concepts</span></div>
+    <div class="stat"><b id="stat-l">55</b><span>Lessons</span></div>
+  </div>
+  <div class="links">
+    <a href="../book.html" class="book">📖 Book</a>
+    <a href="book-graph-3d.html">🥽 3D / VR</a>
+    <a href="journey.html">Journey</a>
+    <a href="knowledge-graph.html">Eval Graph</a>
+    <a href="dashboard.html">Console</a>
+  </div>
+</div>
+
+<nav class="crumb" id="crumb"></nav>
+
+<aside class="legend">
+  <h3>Clusters · click to filter</h3>
+  <p class="hint">Click a node to <b>focus</b> it — its tier-below detail + related nodes appear. Esc zooms back out.</p>
+  <div id="cats"></div>
+  <div class="kinds">
+    <div class="k"><svg class="kd" width="20" height="20"><polygon points="10,2 17,6 17,14 10,18 3,14 3,6" fill="none" stroke="#f59e0b" stroke-width="2"/></svg>module</div>
+    <div class="k"><span class="kd" style="width:13px;height:13px;border-radius:50%;border:2px solid #38bdf8;display:inline-block;"></span>concept</div>
+    <div class="k"><span class="kd" style="width:9px;height:9px;border-radius:50%;background:#5eead4;display:inline-block;"></span>lesson</div>
+  </div>
+  <div class="edge-legend">
+    <div class="e"><span class="ln" style="border-color:#38bdf8"></span>prerequisite</div>
+    <div class="e"><span class="ln" style="border-color:#a78bfa"></span>used by</div>
+    <div class="e"><span class="ln" style="border-color:#64748b"></span>related / kin</div>
+    <div class="e"><span class="ln" style="border-color:#475569;border-top-style:dashed"></span>contains (tier link)</div>
+  </div>
+</aside>
+
+<div class="tour">
+  <button id="tour-prev" title="Previous">‹</button>
+  <button id="tour-play" class="play"><span id="tour-icon">▶</span><span>Guided tour</span></button>
+  <button id="tour-next" title="Next">›</button>
+  <span class="label" id="tour-label">Foundations → Frontier</span>
+</div>
+
+<aside class="panel" id="panel">
+  <div class="ph">
+    <button class="close" id="panel-close">×</button>
+    <div class="cat-pill" id="p-cat"><span class="dot"></span><span id="p-cat-t"></span></div>
+    <h2 id="p-title"></h2>
+    <div class="meta" id="p-meta"></div>
+  </div>
+  <div class="body" id="p-body"></div>
+</aside>
+
+<div class="help">click node to focus · Esc to zoom out · scroll to zoom · drag to pan</div>
+
+<script src="../book-data.js"></script>
+<script>
+"use strict";
+const BOOK = window.BOOK || { modules:{}, lessons:{}, concepts:{} };
+const M = BOOK.modules || {}, C = BOOK.concepts || {}, L = BOOK.lessons || {};
+
+/* ───────────────────────── palette ───────────────────────── */
+const CATS = {
+  "foundational": { c:"#38bdf8" }, "architecture": { c:"#a78bfa" },
+  "math":         { c:"#fbbf24" }, "operational":  { c:"#34d399" },
+  "safety":       { c:"#f87171" }, "frontier":     { c:"#22d3ee" },
+  "business":     { c:"#f472b6" },
+};
+const CATLABEL = {
+  foundational:"Foundational", architecture:"Architecture", math:"Math & theory",
+  operational:"Operational", safety:"Safety", frontier:"Frontier", business:"Business",
+};
+const MODULE_COL = "#f59e0b", LESSON_COL = "#5eead4";
+const EDGE_COLOR = { prereq:"#38bdf8", usedby:"#a78bfa", related:"#64748b", member:"#475569", covers:"#475569" };
+const CAT_ORDER = ["foundational","math","architecture","operational","safety","frontier","business"];
+
+/* ───────────────────────── category list (concepts) ───────────────────────── */
+const catList = CAT_ORDER.filter(c => Object.values(C).some(x => x.category === c));
+Object.values(C).forEach(c => { if (c.category && !catList.includes(c.category)) catList.push(c.category); });
+
+/* ───────────────────────── 3-tier node model ───────────────────────── */
+const nodes = {};   // nodeId -> node
+const order = [];   // all node ids
+const W = window.innerWidth, H = window.innerHeight;
+const radiusFor = (imp) => imp == null ? 14 : Math.round(11 + Math.max(1,Math.min(10,imp))*1.0);
+
+// modules (tier 0)
+const modIds = Object.keys(M);
+modIds.forEach((mid, i) => {
+  const m = M[mid];
+  const ang = (i/Math.max(1,modIds.length))*Math.PI*2;
+  const rr = 320;
+  const nid = "mod:"+mid;
+  nodes[nid] = { id:nid, kind:"module", mid, num:m.num, t:"M"+m.num, full:m.title||mid,
+    prereqs:m.prereqs||"", r:24,
+    x:W/2+Math.cos(ang)*rr, y:H/2+Math.sin(ang)*rr, vx:0, vy:0 };
+  order.push(nid);
+});
+// concepts (tier 1) — seeded near their parent module
+Object.keys(C).forEach(cid => {
+  const c = C[cid];
+  const mp = nodes["mod:"+c.module];
+  const bx = mp ? mp.x : W/2, by = mp ? mp.y : H/2;
+  nodes[cid] = { id:cid, kind:"concept", t:c.title||cid, cat:c.category||"foundational",
+    imp:c.importance, module:c.module||"", def:c.def||"", lessons:c.lessons||[],
+    href:c.href||("concepts/"+cid+".html"), r:radiusFor(c.importance),
+    x:bx+(Math.random()-0.5)*120, y:by+(Math.random()-0.5)*120, vx:0, vy:0 };
+  order.push(cid);
+});
+// lessons (tier 2) — seeded near a covering concept
+Object.keys(L).forEach(num => {
+  const l = L[num];
+  const nid = "les:"+num;
+  nodes[nid] = { id:nid, kind:"lesson", num, t:num, full:l.title||("Lesson "+num),
+    module:l.module||"", href:l.href||"", r:8,
+    x:W/2+(Math.random()-0.5)*200, y:H/2+(Math.random()-0.5)*200, vx:0, vy:0 };
+  order.push(nid);
+});
+
+/* ───────────────────────── hierarchy + relation maps ───────────────────────── */
+const conceptsOfModule = {}; modIds.forEach(mid => conceptsOfModule[mid] = []);
+Object.keys(C).forEach(cid => { const mid = C[cid].module; if (mid && conceptsOfModule[mid]) conceptsOfModule[mid].push(cid); });
+
+const childLessons = {}, parentConcepts = {};
+Object.keys(C).forEach(cid => {
+  childLessons[cid] = (C[cid].lessons||[]).filter(n => L[n]).map(n => "les:"+n);
+  childLessons[cid].forEach(lk => { (parentConcepts[lk] = parentConcepts[lk] || []).push(cid); });
+});
+// re-seed lessons near their first parent concept now that concepts are placed
+Object.keys(parentConcepts).forEach(lk => {
+  const p = nodes[parentConcepts[lk][0]];
+  if (p && nodes[lk]) { nodes[lk].x = p.x + (Math.random()-0.5)*50; nodes[lk].y = p.y + (Math.random()-0.5)*50; }
+});
+
+// typed concept↔concept relations (for panel + edges)
+const relsOf = {};
+Object.keys(C).forEach(cid => relsOf[cid] = { prereq:[], usedby:[], related:[] });
+Object.keys(C).forEach(cid => {
+  (C[cid].prereqs||[]).forEach(p => { if (nodes[p]) relsOf[cid].prereq.push(p); });
+  (C[cid].usedby ||[]).forEach(u => { if (nodes[u]) relsOf[cid].usedby.push(u); });
+  (C[cid].related||[]).forEach(r => { if (nodes[r]) relsOf[cid].related.push(r); });
+});
+
+/* ───────────────────────── edges ───────────────────────── */
+const edges = [];
+const neighbor = {}; order.forEach(id => neighbor[id] = new Set());
+const link = (a,b,type) => { if(!nodes[a]||!nodes[b]||a===b) return; edges.push({a,b,type}); neighbor[a].add(b); neighbor[b].add(a); };
+// member: module → concept
+Object.keys(C).forEach(cid => { const mid = C[cid].module; if (mid && nodes["mod:"+mid]) link("mod:"+mid, cid, "member"); });
+// covers: concept → lesson
+Object.keys(C).forEach(cid => childLessons[cid].forEach(lk => link(cid, lk, "covers")));
+// concept relations: one line per concept pair (prereq > usedby > related)
+const pairSeen = new Set();
+const relLink = (a,b,type) => { const key = a<b?a+"|"+b:b+"|"+a; if(pairSeen.has(key)) return; pairSeen.add(key); link(a,b,type); };
+Object.keys(C).forEach(cid => (C[cid].prereqs||[]).forEach(p => relLink(p, cid, "prereq")));
+Object.keys(C).forEach(cid => (C[cid].usedby ||[]).forEach(u => relLink(cid, u, "usedby")));
+Object.keys(C).forEach(cid => (C[cid].related||[]).forEach(r => relLink(cid, r, "related")));
+
+/* ───────────────────────── colour helpers ───────────────────────── */
+function nodeColor(n){
+  if (n.kind==="module") return MODULE_COL;
+  if (n.kind==="lesson"){ const p = (parentConcepts[n.id]||[])[0]; return p ? (CATS[nodes[p].cat]||{c:LESSON_COL}).c : LESSON_COL; }
+  return (CATS[n.cat]||{c:"#8b97b8"}).c;
+}
+
+/* ───────────────────────── guided tour (concepts, cluster→importance) ───────────────────────── */
+const TOUR = catList.flatMap(cat =>
+  Object.keys(C).filter(id => nodes[id].cat===cat).sort((a,b)=>(nodes[b].imp||0)-(nodes[a].imp||0)));
+
+/* ───────────────────────── state ───────────────────────── */
+let cam = { x:0, y:0, k:1 };
+let camTargetK = 1, camTarget = null;   // camera animation goals
+let alpha = 1;
+const off = {};                          // category filter (concepts, overview only)
+let focusId = null;                      // the drilled-in node
+let hovered = null, dragNode = null;
+let shown = new Set();                    // currently visible node ids
+let refit = 0;                            // frames left to keep re-fitting camera
+let tourOn = false, tourIdx = -1, tourTimer = null;
+
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+let DPR = Math.min(window.devicePixelRatio || 1, 2);
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = window.innerWidth*DPR; cv.height = window.innerHeight*DPR;
+  cv.style.width = window.innerWidth+"px"; cv.style.height = window.innerHeight+"px";
+}
+resize(); window.addEventListener("resize", resize);
+
+/* ───────────────────────── visibility / focus ───────────────────────── */
+const relNeighbors = (cid) => {
+  const s = new Set();
+  relsOf[cid].prereq.forEach(x=>s.add(x)); relsOf[cid].usedby.forEach(x=>s.add(x)); relsOf[cid].related.forEach(x=>s.add(x));
+  return s;
+};
+function computeShown(){
+  shown = new Set();
+  if (!focusId){
+    // overview: modules + concepts (lessons hidden)
+    order.forEach(id => { if (nodes[id].kind!=="lesson") shown.add(id); });
+    return;
+  }
+  const f = nodes[focusId];
+  shown.add(focusId);
+  if (f.kind==="module"){
+    conceptsOfModule[f.mid].forEach(c => shown.add(c));          // tier-below detail
+  } else if (f.kind==="concept"){
+    if (nodes["mod:"+f.module]) shown.add("mod:"+f.module);       // parent module (up)
+    (childLessons[focusId]||[]).forEach(l => shown.add(l));       // tier-below lessons (detail)
+    relNeighbors(focusId).forEach(c => shown.add(c));             // related concepts
+  } else if (f.kind==="lesson"){
+    (parentConcepts[focusId]||[]).forEach(c => shown.add(c));     // parent concept(s)
+    if (nodes["mod:"+f.module]) shown.add("mod:"+f.module);       // parent module
+  }
+}
+function catOk(id){ const n=nodes[id]; return !(n.kind==="concept" && off[n.cat]); }
+function visible(id){ return shown.has(id) && catOk(id); }
+
+/* ───────────────────────── physics (visible nodes only) ───────────────────────── */
+function step(){
+  if (alpha < 0.02) alpha = 0.02;
+  const REP = 6000, SPRING = 0.014, GRAV = 0.02, DAMP = 0.86;
+  const list = order.filter(id => visible(id));
+  const cxw = window.innerWidth/2, cyw = window.innerHeight/2;
+
+  for (let i=0;i<list.length;i++){
+    const a = nodes[list[i]];
+    for (let j=i+1;j<list.length;j++){
+      const b = nodes[list[j]];
+      let dx=a.x-b.x, dy=a.y-b.y; let d2=dx*dx+dy*dy; if(d2<1)d2=1;
+      const d=Math.sqrt(d2); const f=REP/d2; const fx=(dx/d)*f, fy=(dy/d)*f;
+      a.vx+=fx*alpha; a.vy+=fy*alpha; b.vx-=fx*alpha; b.vy-=fy*alpha;
+    }
+  }
+  edges.forEach(e => {
+    if (!visible(e.a) || !visible(e.b)) return;
+    const a=nodes[e.a], b=nodes[e.b];
+    let dx=b.x-a.x, dy=b.y-a.y; let d=Math.sqrt(dx*dx+dy*dy)||1;
+    const rest = e.type==="covers"?80 : e.type==="related"?120 : e.type==="member"?150 : 160;
+    const f = SPRING*(d-rest); const fx=(dx/d)*f, fy=(dy/d)*f;
+    a.vx+=fx*alpha; a.vy+=fy*alpha; b.vx-=fx*alpha; b.vy-=fy*alpha;
+  });
+  list.forEach(id => {
+    const n=nodes[id];
+    n.vx += (cxw-n.x)*GRAV*alpha*0.35; n.vy += (cyw-n.y)*GRAV*alpha*0.35;
+  });
+  list.forEach(id => {
+    const n=nodes[id]; if (n===dragNode){ n.vx=0; n.vy=0; return; }
+    n.vx*=DAMP; n.vy*=DAMP;
+    const sp=Math.hypot(n.vx,n.vy); if(sp>30){ n.vx*=30/sp; n.vy*=30/sp; }
+    n.x+=n.vx; n.y+=n.vy;
+  });
+  alpha *= 0.99;
+}
+
+/* ───────────────────────── camera ───────────────────────── */
+const world = (sx,sy)=>({ x:(sx-cam.x)/cam.k, y:(sy-cam.y)/cam.k });
+function fitTarget(){
+  const pts = order.filter(visible).map(id=>nodes[id]);
+  if (!pts.length) return;
+  let minx=1e9,miny=1e9,maxx=-1e9,maxy=-1e9;
+  pts.forEach(n=>{ minx=Math.min(minx,n.x-n.r); miny=Math.min(miny,n.y-n.r); maxx=Math.max(maxx,n.x+n.r); maxy=Math.max(maxy,n.y+n.r); });
+  const bw=Math.max(1,maxx-minx), bh=Math.max(1,maxy-miny);
+  const panelW = document.getElementById("panel").classList.contains("open")?392:0;
+  const availW=window.innerWidth-panelW-160, availH=window.innerHeight-220;
+  let k=Math.min(availW/bw, availH/bh); k=Math.max(0.4, Math.min(1.7, k));
+  camTargetK = k; camTarget = { x:(minx+maxx)/2, y:(miny+maxy)/2 };
+}
+function lerpCam(){
+  if (!camTarget) return;
+  const panelW = document.getElementById("panel").classList.contains("open")?392:0;
+  const tx = (window.innerWidth-panelW)/2 - camTarget.x*cam.k;
+  const ty = window.innerHeight/2 - camTarget.y*cam.k;
+  cam.x += (tx-cam.x)*0.12; cam.y += (ty-cam.y)*0.12;
+  cam.k += (camTargetK-cam.k)*0.12;
+}
+
+/* ───────────────────────── render ───────────────────────── */
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+  ctx.save(); ctx.translate(cam.x,cam.y); ctx.scale(cam.k,cam.k);
+
+  const hl = hovered;
+  const lit = hl ? neighbor[hl] : null;
+
+  // edges
+  edges.forEach(e => {
+    if (!visible(e.a) || !visible(e.b)) return;
+    const a=nodes[e.a], b=nodes[e.b];
+    const hier = e.type==="member" || e.type==="covers";
+    const involved = hl && (e.a===hl || e.b===hl);
+    ctx.save();
+    if (hl){ if (involved){ ctx.globalAlpha=0.95; ctx.lineWidth=2.1; } else { ctx.globalAlpha=0.05; ctx.lineWidth=1; } }
+    else { ctx.globalAlpha = hier?0.5:0.32; ctx.lineWidth = hier?1.1:1.4; }
+    ctx.strokeStyle = EDGE_COLOR[e.type];
+    ctx.setLineDash(hier ? [5,5] : []);
+    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+    const nx=-(b.y-a.y), ny=(b.x-a.x); const len=Math.hypot(nx,ny)||1;
+    const bow = hier?6:18; const cxp=mx+(nx/len)*bow, cyp=my+(ny/len)*bow;
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.quadraticCurveTo(cxp,cyp,b.x,b.y); ctx.stroke();
+    if (involved && (e.type==="prereq"||e.type==="usedby"||e.type==="covers")){
+      const ang=Math.atan2(b.y-cyp,b.x-cxp); const ah=7;
+      const ex=b.x-Math.cos(ang)*(b.r+2), ey=b.y-Math.sin(ang)*(b.r+2);
+      ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(ex,ey);
+      ctx.lineTo(ex-Math.cos(ang-0.4)*ah, ey-Math.sin(ang-0.4)*ah);
+      ctx.lineTo(ex-Math.cos(ang+0.4)*ah, ey-Math.sin(ang+0.4)*ah);
+      ctx.closePath(); ctx.fillStyle=EDGE_COLOR[e.type]; ctx.fill();
+    }
+    ctx.restore();
+  });
+  ctx.setLineDash([]);
+
+  // nodes
+  order.forEach(id => {
+    if (!visible(id)) return;
+    const n = nodes[id]; const col = nodeColor(n);
+    const isFocus = id===focusId;
+    const dim = hl && id!==hl && !(lit && lit.has(id));
+    const isTour = tourOn && TOUR[tourIdx]===id;
+
+    ctx.save();
+    // glow
+    const gr = n.r + (isFocus?18:9) + (isTour?10:0);
+    const g = ctx.createRadialGradient(n.x,n.y,1,n.x,n.y,gr);
+    g.addColorStop(0,col); g.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.globalAlpha = dim?0.07:(isFocus?0.6:0.30);
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(n.x,n.y,gr,0,Math.PI*2); ctx.fill();
+
+    ctx.globalAlpha = dim?0.3:1;
+    if (n.kind==="module"){
+      // hexagon hub
+      ctx.beginPath();
+      for (let s=0;s<6;s++){ const a=Math.PI/6 + s*Math.PI/3; const px=n.x+Math.cos(a)*n.r, py=n.y+Math.sin(a)*n.r; s?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+      ctx.closePath(); ctx.fillStyle="#0a0f1f"; ctx.fill();
+      ctx.lineWidth=isFocus?3.5:2.5; ctx.strokeStyle=col; ctx.stroke();
+      ctx.fillStyle=col; ctx.font="800 13px Inter, sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText(n.t, n.x, n.y);
+    } else {
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2); ctx.fillStyle="#0a0f1f"; ctx.fill();
+      ctx.lineWidth=isFocus?3:2; ctx.strokeStyle=col; ctx.stroke();
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r*0.42,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+      if (n.kind==="concept" && n.imp!=null && n.imp>=8){
+        ctx.beginPath(); ctx.arc(n.x,n.y,n.r+4,0,Math.PI*2);
+        ctx.lineWidth=1.4; ctx.strokeStyle="rgba(255,255,255,0.55)"; ctx.setLineDash([2,3]); ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+    // labels
+    const showLabel = isFocus || isTour || n.kind==="module" || (lit&&lit.has(id)) ||
+      (n.kind==="concept" && cam.k>0.7) || (n.kind==="lesson" && cam.k>0.9);
+    if (showLabel){
+      ctx.globalAlpha = dim?0.3:1;
+      const txt = n.kind==="module" ? n.full : (n.kind==="lesson" ? ("Lesson "+n.num) : n.t);
+      ctx.font = (isFocus?"700 ":"500 ")+(n.kind==="module"?"12px":"12px")+" Inter, sans-serif";
+      ctx.textAlign="center"; ctx.textBaseline="top";
+      ctx.fillStyle = isFocus? "#ffffff" : (n.kind==="lesson"?"#9fb0d0":"#c8d2f0");
+      ctx.fillText(txt, n.x, n.y+n.r+5);
+    }
+    ctx.restore();
+  });
+
+  ctx.restore();
+}
+function frame(){
+  step();
+  if (refit>0){ fitTarget(); refit--; }
+  lerpCam();
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ───────────────────────── hit testing ───────────────────────── */
+function nodeAt(sx,sy){
+  const w=world(sx,sy); let best=null, bd=1e9;
+  order.forEach(id=>{ if(!visible(id)) return; const n=nodes[id]; const d=Math.hypot(n.x-w.x,n.y-w.y);
+    if (d<n.r+6 && d<bd){ bd=d; best=n; } });
+  return best;
+}
+
+/* ───────────────────────── interaction ───────────────────────── */
+let down=false, moved=false, last={x:0,y:0}, downNode=null;
+cv.addEventListener("mousedown", e=>{
+  down=true; moved=false; last={x:e.clientX,y:e.clientY};
+  downNode = nodeAt(e.clientX,e.clientY);
+  if (downNode){ dragNode=downNode; alpha=Math.max(alpha,0.7); }
+  cv.classList.add("grabbing");
+});
+window.addEventListener("mousemove", e=>{
+  if (!down){
+    const n=nodeAt(e.clientX,e.clientY); const id=n?n.id:null;
+    if (id!==hovered){ hovered=id; cv.style.cursor=id?"pointer":"grab"; }
+    return;
+  }
+  const dx=e.clientX-last.x, dy=e.clientY-last.y;
+  if (Math.abs(dx)+Math.abs(dy)>3) moved=true;
+  last={x:e.clientX,y:e.clientY};
+  if (dragNode){ const w=world(e.clientX,e.clientY); dragNode.x=w.x; dragNode.y=w.y; alpha=Math.max(alpha,0.6); }
+  else { cam.x+=dx; cam.y+=dy; camTarget=null; }   // manual pan cancels camera animation
+});
+window.addEventListener("mouseup", e=>{
+  cv.classList.remove("grabbing");
+  if (down && !moved && downNode){ focus(downNode.id); stopTour(); }
+  down=false; dragNode=null;
+});
+cv.addEventListener("wheel", e=>{
+  e.preventDefault(); camTarget=null;
+  const f=e.deltaY<0?1.12:1/1.12; const nk=Math.min(2.6,Math.max(0.3,cam.k*f));
+  const wx=(e.clientX-cam.x)/cam.k, wy=(e.clientY-cam.y)/cam.k;
+  cam.k=nk; cam.x=e.clientX-wx*cam.k; cam.y=e.clientY-wy*cam.k;
+}, {passive:false});
+
+/* ───────────────────────── focus + panel ───────────────────────── */
+function focus(id){
+  if (!nodes[id]) return;
+  focusId = id;
+  computeShown();
+  alpha = Math.max(alpha, 0.9);
+  refit = 50;                       // keep re-fitting camera while layout settles
+  renderPanel(id);
+  document.getElementById("panel").classList.add("open");
+  renderCrumb();
+  updateStats();
+  history.replaceState(null,"","#"+id);
+}
+function clearFocus(){
+  focusId = null; computeShown(); alpha=Math.max(alpha,0.7); refit=50;
+  document.getElementById("panel").classList.remove("open");
+  renderCrumb(); updateStats(); history.replaceState(null,"",location.pathname);
+}
+document.getElementById("panel-close").addEventListener("click", clearFocus);
+
+function relRow(id, tag){
+  const n=nodes[id]; const col=nodeColor(n);
+  const label = n.kind==="lesson" ? ("Lesson "+n.num+" · "+(n.full||"")) : (n.kind==="module"? n.full : n.t);
+  return '<a data-focus="'+id+'"><span class="d" style="color:'+col+'"></span><span>'+esc(label)+
+    '</span>'+(tag?'<span class="tg">'+tag+'</span>':'')+'</a>';
+}
+const esc = (s)=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const uniq = (a)=>[...new Set(a)];
+
+function renderPanel(id){
+  const n = nodes[id]; const col = nodeColor(n);
+  const catEl = document.getElementById("p-cat"), dot = catEl.querySelector(".dot");
+  dot.style.color=col; dot.style.background=col;
+  const body = document.getElementById("p-body");
+
+  if (n.kind==="module"){
+    document.getElementById("p-cat-t").textContent = "Module";
+    document.getElementById("p-title").textContent = "Module "+n.num+" · "+n.full;
+    const kids = conceptsOfModule[n.mid]||[];
+    document.getElementById("p-meta").innerHTML =
+      '<span class="tag" style="border-color:'+col+';color:'+col+'">'+kids.length+' concepts</span>';
+    let html = '';
+    if (n.prereqs) html += '<div class="lbl">Module prerequisites</div><div class="measures">'+esc(n.prereqs)+'</div>';
+    html += '<div class="lbl">Concepts in this module — click to drill in</div><div class="rel">'+
+      (kids.length ? kids.map(c=>relRow(c)).join("") : '<span class="none">No concepts mapped.</span>')+'</div>';
+    html += '<div class="lbl">Open</div><div class="actions">'+
+      '<a class="primary" href="../'+n.mid+'/index.html">Module '+n.num+' overview →</a></div>';
+    body.innerHTML = html;
+  }
+  else if (n.kind==="concept"){
+    document.getElementById("p-cat-t").textContent = CATLABEL[n.cat]||n.cat;
+    document.getElementById("p-title").textContent = n.t;
+    const modNum = n.module ? n.module.replace(/^m0?/,"") : "";
+    document.getElementById("p-meta").innerHTML =
+      (n.module?'<span class="tag" style="border-color:'+col+';color:'+col+'">Module '+modNum+'</span>':'')+
+      (n.imp!=null?'<span class="tag">importance '+n.imp+'/10</span>':'')+
+      (n.lessons.length?'<span class="tag">'+n.lessons.length+' lesson'+(n.lessons.length>1?'s':'')+'</span>':'');
+    const pre = uniq(relsOf[id].prereq);
+    const unl=[]; const seen=new Set();
+    relsOf[id].usedby.forEach(r=>{ if(!seen.has(r)){ seen.add(r); unl.push([r,"used by"]); } });
+    relsOf[id].related.forEach(r=>{ if(!seen.has(r)){ seen.add(r); unl.push([r,"related"]); } });
+    let html = '<div class="lbl">Definition</div><div class="measures">'+esc(n.def||"—")+'</div>';
+    html += '<div class="lbl">Detail — lessons that teach it</div><div class="rel">'+
+      ((childLessons[id]||[]).length ? childLessons[id].map(l=>relRow(l,"lesson")).join("")
+        : '<span class="none">No lesson mapped yet.</span>')+'</div>';
+    html += '<div class="lbl">Prerequisites — learn first</div><div class="rel">'+
+      (pre.length ? pre.map(r=>relRow(r,"prereq")).join("") : '<span class="none">Foundational — no prerequisites.</span>')+'</div>';
+    html += '<div class="lbl">Used by / related</div><div class="rel">'+
+      (unl.length ? unl.map(([rid,t])=>relRow(rid,t)).join("") : '<span class="none">Nothing builds on it yet.</span>')+'</div>';
+    html += '<div class="lbl">Open</div><div class="actions">'+
+      '<a class="primary" href="../'+n.href+'">Open concept page →</a>'+
+      (n.module?'<a class="ghost" href="../'+n.module+'/index.html">Module '+modNum+' overview</a>':'')+'</div>';
+    body.innerHTML = html;
+  }
+  else { // lesson
+    document.getElementById("p-cat-t").textContent = "Lesson";
+    document.getElementById("p-title").textContent = "Lesson "+n.num;
+    const modNum = n.module ? n.module.replace(/^m0?/,"") : "";
+    document.getElementById("p-meta").innerHTML =
+      (n.module?'<span class="tag" style="border-color:'+LESSON_COL+';color:'+LESSON_COL+'">Module '+modNum+'</span>':'');
+    const parents = parentConcepts[id]||[];
+    let html = '<div class="lbl">Title</div><div class="measures">'+esc(n.full)+'</div>';
+    html += '<div class="lbl">Concepts covered here</div><div class="rel">'+
+      (parents.length ? parents.map(c=>relRow(c)).join("") : '<span class="none">—</span>')+'</div>';
+    html += '<div class="lbl">Open</div><div class="actions">'+
+      (n.href?'<a class="primary" href="../'+n.href+'">Open lesson →</a>':'')+
+      (n.module?'<a class="ghost" href="../'+n.module+'/index.html">Module '+modNum+' overview</a>':'')+'</div>';
+    body.innerHTML = html;
+  }
+
+  // wire in-graph drill links
+  body.querySelectorAll("[data-focus]").forEach(a=>{
+    a.addEventListener("click", ()=>{ focus(a.getAttribute("data-focus")); stopTour(); });
+  });
+}
+
+/* ───────────────────────── breadcrumb ───────────────────────── */
+function renderCrumb(){
+  const el = document.getElementById("crumb");
+  const seg = ['<a class="home" data-clear>◎ Overview</a>'];
+  if (focusId){
+    const n = nodes[focusId];
+    const mid = n.kind==="module" ? n.mid : n.module;
+    if (mid && nodes["mod:"+mid] && n.kind!=="module")
+      seg.push('<span class="sep">›</span><a data-focus="mod:'+mid+'">M'+nodes["mod:"+mid].num+'</a>');
+    if (n.kind==="lesson"){
+      const pc = (parentConcepts[focusId]||[])[0];
+      if (pc) seg.push('<span class="sep">›</span><a data-focus="'+pc+'">'+esc(nodes[pc].t)+'</a>');
+    }
+    const cur = n.kind==="module" ? "Module "+n.num : (n.kind==="lesson" ? "Lesson "+n.num : n.t);
+    seg.push('<span class="sep">›</span><span class="cur">'+esc(cur)+'</span>');
+  } else {
+    seg[0] = '<span class="home">◎ Overview</span>';
+    seg.push('<span class="sep">·</span><span class="cur" style="font-weight:400;color:var(--muted)">click any node to drill in</span>');
+  }
+  el.innerHTML = seg.join("");
+  const clr = el.querySelector("[data-clear]"); if (clr) clr.addEventListener("click", clearFocus);
+  el.querySelectorAll("[data-focus]").forEach(a=> a.addEventListener("click", ()=>{ focus(a.getAttribute("data-focus")); stopTour(); }));
+}
+
+/* ───────────────────────── stats ───────────────────────── */
+function updateStats(){
+  let m=0,c=0,l=0;
+  order.forEach(id=>{ if(!visible(id)) return; const k=nodes[id].kind; if(k==="module")m++; else if(k==="concept")c++; else l++; });
+  document.getElementById("stat-n").textContent=m;
+  document.getElementById("stat-c").textContent=c;
+  document.getElementById("stat-l").textContent=l;
+}
+
+/* ───────────────────────── search ───────────────────────── */
+const searchEl = document.getElementById("search");
+const findHit = (q)=> Object.keys(C).find(id => nodes[id].t.toLowerCase().includes(q) || id.includes(q));
+searchEl.addEventListener("input", ()=>{ const q=searchEl.value.trim().toLowerCase(); if(q){ const h=findHit(q); if(h) hovered=h; } else hovered=null; });
+searchEl.addEventListener("keydown", e=>{ if(e.key==="Enter"){ const h=findHit(searchEl.value.trim().toLowerCase()); if(h){ focus(h); stopTour(); } } });
+
+/* ───────────────────────── cluster filters ───────────────────────── */
+const catsEl = document.getElementById("cats");
+catList.forEach(c=>{
+  const count = Object.keys(C).filter(id=>nodes[id].cat===c).length;
+  const row=document.createElement("div"); row.className="cat"; row.dataset.cat=c;
+  const col=(CATS[c]||{c:"#8b97b8"}).c;
+  row.innerHTML='<span class="dot" style="color:'+col+';background:'+col+'"></span><span>'+(CATLABEL[c]||c)+'</span><span class="n">'+count+'</span>';
+  row.addEventListener("click", ()=>{ off[c]=!off[c]; row.classList.toggle("off",off[c]); alpha=Math.max(alpha,0.4); updateStats(); });
+  catsEl.appendChild(row);
+});
+
+/* ───────────────────────── tour (focuses each concept) ───────────────────────── */
+function tourGo(i){
+  tourIdx=(i+TOUR.length)%TOUR.length; const id=TOUR[tourIdx];
+  if (off[nodes[id].cat]){ off[nodes[id].cat]=false; const r=document.querySelector('.cat[data-cat="'+CSS.escape(nodes[id].cat)+'"]'); if(r)r.classList.remove("off"); }
+  focus(id);
+  document.getElementById("tour-label").innerHTML='Step <b>'+(tourIdx+1)+'</b> / '+TOUR.length+' · <b>'+esc(nodes[id].t)+'</b>';
+}
+function startTour(){ tourOn=true; document.getElementById("tour-icon").textContent="❚❚"; if(tourIdx<0)tourGo(0); else tourGo(tourIdx); clearInterval(tourTimer); tourTimer=setInterval(()=>tourGo(tourIdx+1),3600); }
+function stopTour(){ tourOn=false; document.getElementById("tour-icon").textContent="▶"; clearInterval(tourTimer); tourTimer=null; }
+document.getElementById("tour-play").addEventListener("click", ()=> tourOn?stopTour():startTour());
+document.getElementById("tour-next").addEventListener("click", ()=>{ tourGo(tourIdx+1); if(tourOn){clearInterval(tourTimer);tourTimer=setInterval(()=>tourGo(tourIdx+1),3600);} });
+document.getElementById("tour-prev").addEventListener("click", ()=>{ tourGo(tourIdx-1); if(tourOn){clearInterval(tourTimer);tourTimer=setInterval(()=>tourGo(tourIdx+1),3600);} });
+
+/* ───────────────────────── init ───────────────────────── */
+computeShown(); updateStats(); renderCrumb();
+const h = decodeURIComponent(location.hash.slice(1)).trim();
+if (h && nodes[h]) setTimeout(()=>focus(h), 400);
+else { camTarget={x:W/2,y:H/2}; camTargetK=0.85; }
+window.addEventListener("keydown", e=>{ if(e.key==="Escape"){ stopTour(); clearFocus(); } });
+</script>
+</body>
+</html>

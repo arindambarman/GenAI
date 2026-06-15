@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Concept Graph 3D / VR · Agentic Systems Book · AdaptLearn</title>
+<style>
+:root{
+  --bg0:#05070f; --panel:rgba(15,21,38,0.86); --line:rgba(120,140,190,0.18);
+  --txt:#e6ecff; --muted:#8b97b8; --faint:#5d6b8e; --accent:#38bdf8; --book:#f59e0b;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg0);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;color:var(--txt);}
+#cv3d{position:fixed;inset:0;}
+.overlay{position:fixed;inset:0;z-index:20;pointer-events:none;}
+.overlay *{pointer-events:auto;}
+
+/* top bar */
+.topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:14px;padding:14px 20px;pointer-events:none;}
+.brand h1{margin:0;font-size:16px;font-weight:800;letter-spacing:-0.01em;
+  background:linear-gradient(90deg,#fcd34d,#a78bfa,#7dd3fc);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.brand .sub{font-size:11px;color:var(--muted);letter-spacing:.13em;text-transform:uppercase;}
+.brand{pointer-events:auto;}
+.search{pointer-events:auto;margin-left:6px;position:relative;}
+.search input{width:210px;background:var(--panel);border:1px solid var(--line);color:var(--txt);
+  border-radius:999px;padding:8px 14px 8px 32px;font-size:13px;outline:none;backdrop-filter:blur(8px);}
+.search input:focus{border-color:var(--accent);}
+.search .mag{position:absolute;left:11px;top:8px;opacity:.6;font-size:12px;}
+.spacer{flex:1;}
+.hud{pointer-events:auto;display:flex;gap:8px;}
+.hud .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 11px;backdrop-filter:blur(8px);text-align:center;}
+.hud .stat b{display:block;font-size:15px;font-weight:800;line-height:1;}
+.hud .stat span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.links{pointer-events:auto;display:flex;gap:6px;}
+.links a{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--txt);text-decoration:none;backdrop-filter:blur(8px);transition:.15s;}
+.links a:hover{border-color:var(--accent);color:#7dd3fc;}
+.links a.book{border-color:rgba(245,158,11,0.4);color:var(--book);}
+.links a.vr{border-color:rgba(56,189,248,0.45);color:#7dd3fc;background:rgba(56,189,248,0.10);}
+.links a.vr:hover{background:rgba(56,189,248,0.2);}
+.links a.tour{border-color:rgba(167,139,250,0.5);color:#c4b5fd;background:rgba(167,139,250,0.12);}
+.links a.tour:hover{background:rgba(167,139,250,0.22);}
+
+/* guided-tour transport bar */
+.tourbar{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;
+  background:var(--panel);border:1px solid rgba(167,139,250,0.35);border-radius:999px;padding:8px 12px;backdrop-filter:blur(10px);
+  box-shadow:0 10px 40px rgba(0,0,0,0.4);max-width:min(620px,92vw);}
+.tourbar[hidden]{display:none;}
+.tourbar button{background:rgba(255,255,255,0.05);border:1px solid var(--line);color:var(--txt);border-radius:50%;width:34px;height:34px;
+  font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:.12s;}
+.tourbar button:hover{border-color:#a78bfa;color:#c4b5fd;}
+.tourbar #t-play{width:40px;height:40px;font-size:16px;background:linear-gradient(135deg,#7c3aed,#6366f1);border-color:transparent;color:#fff;}
+.tourbar #t-narr.off{opacity:.45;}
+.tourbar .t-info{min-width:0;padding:0 6px;}
+.tourbar .t-label{font-size:13px;font-weight:700;color:#eef3ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tourbar .t-prog{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+
+/* QR "open in VR" modal */
+.qrwrap{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(3,5,12,0.72);backdrop-filter:blur(4px);}
+.qrwrap[hidden]{display:none;}
+.qrcard{position:relative;width:340px;max-width:92vw;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;backdrop-filter:blur(16px);box-shadow:0 24px 70px rgba(0,0,0,0.55);}
+.qrcard h3{margin:0 0 6px;font-size:16px;font-weight:800;}
+.qrcard .qrsub{margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.5;}
+.qrcard .qrsub b{color:var(--book);}
+.qrx{position:absolute;top:11px;right:14px;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;}
+.qrx:hover{color:var(--txt);}
+#qrcanvas{display:block;margin:0 auto;border-radius:10px;background:#fff;padding:8px;width:220px;height:220px;}
+.qrnote{margin:12px 0 0;font-size:11.5px;text-align:center;line-height:1.45;}
+.qrnote.ok{color:#34d399;}
+.qrnote.warn{color:#fbbf24;}
+.qrlbl{display:block;margin:14px 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;}
+.qrrow{display:flex;gap:7px;}
+.qrrow input{flex:1;min-width:0;background:rgba(255,255,255,0.05);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;font-size:12px;outline:none;font-family:ui-monospace,Menlo,monospace;}
+.qrrow input:focus{border-color:var(--accent);}
+.qrbtn{background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.4);color:#7dd3fc;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.qrbtn:hover{background:rgba(56,189,248,0.24);}
+.qrtip{margin:12px 0 0;font-size:11px;color:var(--faint);line-height:1.5;}
+.qrtip code{background:rgba(255,255,255,0.06);border-radius:4px;padding:1px 5px;color:#cfd8f5;font-size:10.5px;}
+
+/* breadcrumb */
+.crumb{position:absolute;top:60px;left:20px;display:flex;align-items:center;gap:7px;background:var(--panel);
+  border:1px solid var(--line);border-radius:999px;padding:7px 14px;backdrop-filter:blur(8px);font-size:12px;max-width:60vw;}
+.crumb a{color:#cfd8f5;text-decoration:none;cursor:pointer;white-space:nowrap;}
+.crumb a:hover{color:#7dd3fc;}
+.crumb .home{color:var(--book);font-weight:700;}
+.crumb .sep{color:var(--faint);}
+.crumb .cur{color:#fff;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* legend */
+.legend{position:absolute;left:20px;bottom:20px;width:228px;background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:13px;backdrop-filter:blur(10px);font-size:12px;}
+.legend h3{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
+.legend .cat{display:flex;align-items:center;gap:8px;padding:3px 4px;}
+.legend .dot{width:11px;height:11px;border-radius:50%;box-shadow:0 0 8px currentColor;flex:none;}
+.legend .n{margin-left:auto;font-size:10px;color:var(--muted);}
+.kinds{margin-top:9px;border-top:1px solid var(--line);padding-top:9px;display:flex;flex-wrap:wrap;gap:8px 12px;font-size:10.5px;color:var(--muted);}
+.kinds .k{display:flex;align-items:center;gap:6px;}
+
+/* panel */
+.panel{position:absolute;top:0;right:0;height:100%;width:374px;background:var(--panel);border-left:1px solid var(--line);
+  backdrop-filter:blur(16px);transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);overflow-y:auto;}
+.panel.open{transform:translateX(0);}
+.panel .ph{padding:56px 24px 16px;border-bottom:1px solid var(--line);position:relative;}
+.panel .close{position:absolute;top:16px;right:18px;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;}
+.panel .close:hover{color:var(--txt);}
+.panel .cat-pill{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;}
+.panel .cat-pill .dot{width:9px;height:9px;border-radius:50%;box-shadow:0 0 8px currentColor;}
+.panel h2{margin:0;font-size:21px;font-weight:800;letter-spacing:-0.02em;}
+.panel .meta{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;}
+.panel .tag{font-size:10.5px;border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--muted);}
+.panel .body{padding:18px 24px 40px;}
+.panel .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);margin:16px 0 7px;font-weight:700;}
+.panel .lbl:first-child{margin-top:0;}
+.panel .measures{font-size:14px;line-height:1.6;color:#cfd8f5;}
+.panel .rel{display:flex;flex-direction:column;gap:5px;}
+.panel .rel a{display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfd8f5;text-decoration:none;padding:7px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.12s;}
+.panel .rel a:hover{border-color:var(--accent);color:#7dd3fc;background:rgba(56,189,248,0.06);}
+.panel .rel .d{width:8px;height:8px;border-radius:50%;box-shadow:0 0 7px currentColor;flex:none;}
+.panel .rel .tg{margin-left:auto;font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.panel .none{font-size:12px;color:var(--muted);font-style:italic;}
+.panel .actions{display:grid;gap:8px;margin-top:6px;}
+.panel .actions a{text-align:center;text-decoration:none;font-size:13px;font-weight:700;padding:11px;border-radius:10px;transition:.15s;}
+.panel .actions a.primary{background:linear-gradient(90deg,#0ea5e9,#6366f1);color:#fff;box-shadow:0 6px 22px rgba(56,189,248,0.28);}
+.panel .actions a.ghost{background:rgba(255,255,255,0.05);border:1px solid var(--line);color:var(--txt);}
+.panel .actions a.ghost:hover{border-color:var(--accent);color:#7dd3fc;}
+
+/* vr hint + loading */
+.vrhint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);
+  border-radius:999px;padding:8px 16px;font-size:11.5px;color:var(--muted);backdrop-filter:blur(8px);}
+.vrhint b{color:var(--book);}
+#loading{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;
+  gap:14px;background:var(--bg0);color:var(--muted);font-size:14px;}
+#loading .ring{width:42px;height:42px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;}
+#loading .err{color:#f87171;max-width:520px;text-align:center;line-height:1.6;font-size:13px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* three.js VRButton lives bottom-center by default; nudge it up a touch */
+button.vr-button-placeholder{display:none;}
+@media(max-width:720px){.legend{display:none;}.panel{width:100%;}}
+</style>
+</head>
+<body>
+<div id="loading"><div class="ring"></div><div id="loadmsg">Loading 3D engine &amp; concept graph…</div></div>
+<canvas id="cv3d"></canvas>
+
+<div class="overlay">
+  <div class="topbar">
+    <div class="brand">
+      <h1>Concept Graph — 3D / VR</h1>
+      <div class="sub">14 modules · 63 concepts · 55 lessons · click to drill · ⬡ enter VR</div>
+    </div>
+    <div class="search"><span class="mag">⌕</span><input id="search" type="text" placeholder="Search concepts…" autocomplete="off" /></div>
+    <div class="spacer"></div>
+    <div class="hud">
+      <div class="stat"><b id="stat-m">14</b><span>Modules</span></div>
+      <div class="stat"><b id="stat-c">63</b><span>Concepts</span></div>
+      <div class="stat"><b id="stat-l">55</b><span>Lessons</span></div>
+    </div>
+    <div class="links">
+      <a id="tour-open" href="#" class="tour" title="Auto-tour the concepts with audio narration">🎧 Guided Tour</a>
+      <a id="qr-open" href="#" class="vr" title="Open this 3D graph on a VR headset">📱 Open in VR</a>
+      <a href="book-graph.html">2D Graph</a>
+      <a href="../book.html" class="book">📖 Book</a>
+      <a href="journey.html">Journey</a>
+    </div>
+  </div>
+
+  <nav class="crumb" id="crumb"></nav>
+
+  <aside class="legend">
+    <h3>Clusters</h3>
+    <div id="cats"></div>
+    <div class="kinds">
+      <div class="k"><span style="width:12px;height:12px;border-radius:3px;transform:rotate(45deg);background:#f59e0b;display:inline-block;"></span>module</div>
+      <div class="k"><span style="width:12px;height:12px;border-radius:50%;border:2px solid #38bdf8;display:inline-block;"></span>concept</div>
+      <div class="k"><span style="width:8px;height:8px;border-radius:50%;background:#5eead4;display:inline-block;"></span>lesson</div>
+    </div>
+  </aside>
+
+  <aside class="panel" id="panel">
+    <div class="ph">
+      <button class="close" id="panel-close">×</button>
+      <div class="cat-pill" id="p-cat"><span class="dot"></span><span id="p-cat-t"></span></div>
+      <h2 id="p-title"></h2>
+      <div class="meta" id="p-meta"></div>
+    </div>
+    <div class="body" id="p-body"></div>
+  </aside>
+
+  <div class="vrhint" id="vrhint">Drag to orbit · scroll to zoom · click a node to focus · <b>⬡ VR</b> button → put on a Quest headset</div>
+
+  <div class="tourbar" id="tourbar" hidden>
+    <button id="t-prev" title="Previous concept">⏮</button>
+    <button id="t-play" title="Play / pause">⏸</button>
+    <button id="t-next" title="Next concept">⏭</button>
+    <div class="t-info"><div class="t-label" id="t-label">—</div><div class="t-prog" id="t-prog"></div></div>
+    <button id="t-narr" class="on" title="Mute / unmute narration">🔊</button>
+    <button id="t-stop" title="End tour">✕</button>
+  </div>
+</div>
+
+<div class="qrwrap" id="qrwrap" hidden>
+  <div class="qrcard">
+    <button class="qrx" id="qr-close" aria-label="Close">×</button>
+    <h3>Open on a VR headset</h3>
+    <p class="qrsub">Scan with the <b>Quest Browser</b> (or your phone), open the page, then tap <b>ENTER VR</b>.</p>
+    <canvas id="qrcanvas" width="220" height="220"></canvas>
+    <div class="qrnote" id="qrnote"></div>
+    <label class="qrlbl" for="qrurl">URL to encode</label>
+    <div class="qrrow">
+      <input id="qrurl" type="text" spellcheck="false" autocomplete="off" />
+      <button id="qrcopy" class="qrbtn">Copy</button>
+    </div>
+    <p class="qrtip">A headset can't reach <code>localhost</code> or a <code>192.168.*</code> LAN address. Serve over HTTPS first — e.g. <code>cloudflared tunnel --url http://localhost:4181</code> — then paste that <code>https://…</code> link above and the code updates.</p>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://esm.sh/three@0.160.0",
+    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
+    "three-forcegraph": "https://esm.sh/three-forcegraph@1.41.4?external=three",
+    "three-spritetext": "https://esm.sh/three-spritetext@1.8.2?external=three"
+  }
+}
+</script>
+
+<script src="../book-data.js"></script>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { VRButton } from "three/addons/webxr/VRButton.js";
+import ThreeForceGraph from "three-forcegraph";
+import SpriteText from "three-spritetext";
+
+const loadEl = document.getElementById("loading");
+const loadMsg = document.getElementById("loadmsg");
+const fail = (msg) => { loadEl.innerHTML = '<div class="err">⚠ '+msg+'</div>'; };
+
+const BOOK = window.BOOK;
+if (!BOOK || !BOOK.concepts) { fail("book-data.js did not load. Open this page through the local server (serve), not file://."); throw new Error("no BOOK"); }
+const M = BOOK.modules, C = BOOK.concepts, L = BOOK.lessons;
+
+/* ───────── palette ───────── */
+const CATS = { foundational:"#38bdf8", architecture:"#a78bfa", math:"#fbbf24", operational:"#34d399", safety:"#f87171", frontier:"#22d3ee", business:"#f472b6" };
+const CATLABEL = { foundational:"Foundational", architecture:"Architecture", math:"Math & theory", operational:"Operational", safety:"Safety", frontier:"Frontier", business:"Business" };
+const MODULE_COL = "#f59e0b", LESSON_COL = "#5eead4";
+const EDGE_COLOR = { prereq:"#38bdf8", usedby:"#a78bfa", related:"#64748b", member:"#3b4a66", covers:"#3b4a66" };
+const CAT_ORDER = ["foundational","math","architecture","operational","safety","frontier","business"];
+
+/* ───────── adapter: BOOK → {nodes, links} ───────── */
+function buildGraph(){
+  const nodes = [], links = [];
+  for (const m of Object.values(M)) nodes.push({ id:"mod:"+m.id, kind:"module", num:m.num, label:"M"+m.num, full:m.title, prereqs:m.prereqs, val:24 });
+  for (const c of Object.values(C)) nodes.push({ id:c.id, kind:"concept", label:c.title, cat:c.category||"foundational", imp:c.importance, def:c.def, module:c.module, lessons:c.lessons||[], href:c.href, val:8+(c.importance||5) });
+  for (const [num,l] of Object.entries(L)) nodes.push({ id:"les:"+num, kind:"lesson", num, label:num, full:l.title, module:l.module, href:l.href, val:4 });
+  for (const c of Object.values(C)){
+    if (c.module && M[c.module]) links.push({ source:"mod:"+c.module, target:c.id, type:"member" });
+    for (const ln of c.lessons||[]) if (L[ln]) links.push({ source:c.id, target:"les:"+ln, type:"covers" });
+  }
+  const pair = new Set();
+  const rel = (a,b,type) => { if(!nodeIds.has(a)||!nodeIds.has(b)||a===b) return; const k=a<b?a+"|"+b:b+"|"+a; if(pair.has(k))return; pair.add(k); links.push({source:a,target:b,type}); };
+  const nodeIds = new Set(nodes.map(n=>n.id));
+  for (const c of Object.values(C)) (c.prereqs||[]).forEach(p=>rel(p,c.id,"prereq"));
+  for (const c of Object.values(C)) (c.usedby||[]).forEach(u=>rel(c.id,u,"usedby"));
+  for (const c of Object.values(C)) (c.related||[]).forEach(r=>rel(c.id,r,"related"));
+  return { nodes, links };
+}
+const DATA = buildGraph();
+const NODE = Object.fromEntries(DATA.nodes.map(n=>[n.id,n]));
+
+/* ───────── hierarchy + relation maps (focus mode) ───────── */
+const conceptsOfModule = {}; Object.values(M).forEach(m=>conceptsOfModule["mod:"+m.id]=[]);
+Object.values(C).forEach(c=>{ if(c.module&&conceptsOfModule["mod:"+c.module]) conceptsOfModule["mod:"+c.module].push(c.id); });
+const childLessons = {}, parentConcepts = {};
+Object.values(C).forEach(c=>{ childLessons[c.id]=(c.lessons||[]).filter(n=>L[n]).map(n=>"les:"+n);
+  childLessons[c.id].forEach(lk=>{ (parentConcepts[lk]=parentConcepts[lk]||[]).push(c.id); }); });
+const relsOf = {};
+Object.values(C).forEach(c=>{ relsOf[c.id]={ prereq:(c.prereqs||[]).filter(x=>NODE[x]), usedby:(c.usedby||[]).filter(x=>NODE[x]), related:(c.related||[]).filter(x=>NODE[x]) }; });
+const relNeighbors = (cid) => new Set([...(relsOf[cid]?.prereq||[]), ...(relsOf[cid]?.usedby||[]), ...(relsOf[cid]?.related||[])]);
+
+/* ───────── three.js scene ───────── */
+const canvas = document.getElementById("cv3d");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05070f);
+scene.fog = new THREE.FogExp2(0x05070f, 0.0011);
+
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 6000);
+camera.position.set(0, 30, 360);
+const rig = new THREE.Group(); rig.add(camera); scene.add(rig);   // move rig for VR locomotion
+
+scene.add(new THREE.AmbientLight(0x8aa0d0, 1.5));
+const dir = new THREE.DirectionalLight(0xffffff, 1.1); dir.position.set(1,1,1); scene.add(dir);
+const camLight = new THREE.PointLight(0x6688ff, 0.6, 0, 2); camera.add(camLight);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.1; controls.rotateSpeed = 0.7;
+
+/* world group holds the graph (scaled down on entering VR) */
+const world = new THREE.Group(); scene.add(world);
+
+/* ───────── node visuals ───────── */
+const meshById = {}, labelById = {};
+function makeNode(node){
+  const g = new THREE.Group();
+  const col = node.kind==="module" ? MODULE_COL : node.kind==="lesson" ? lessonColor(node.id) : CATS[node.cat] || "#8b97b8";
+  let geo, r;
+  if (node.kind==="module"){ r = 8;  geo = new THREE.IcosahedronGeometry(r, 0); }
+  else if (node.kind==="lesson"){ r = 2; geo = new THREE.SphereGeometry(r, 12, 12); }
+  else { r = 2.6 + (node.imp||5)*0.42; geo = new THREE.SphereGeometry(r, 18, 18); }
+  const mat = new THREE.MeshStandardMaterial({ color:col, emissive:col, emissiveIntensity:0.55, roughness:0.45, metalness:0.15 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.userData.nodeId = node.id;
+  g.add(mesh);
+  if (node.kind==="concept" && (node.imp||0)>=8){
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r+1.4, 0.25, 8, 32), new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.5 }));
+    g.add(ring);
+  }
+  const text = node.kind==="module" ? node.full : node.kind==="lesson" ? ("L"+node.num) : node.label;
+  const sprite = new SpriteText(text, node.kind==="module"?7:node.kind==="lesson"?3:4.4, node.kind==="module"?"#fde68a":"#dbe4ff");
+  sprite.fontFace = "Inter, sans-serif"; sprite.fontWeight = node.kind==="module"?"700":"500";
+  sprite.position.set(0, r+3, 0); sprite.material.depthWrite = false;
+  sprite.visible = node.kind!=="lesson";        // lessons labelled on focus only
+  g.add(sprite);
+  g.userData = { nodeId:node.id, mesh, mat, sprite, baseEmissive:0.55, r };
+  meshById[node.id] = g; labelById[node.id] = sprite;
+  return g;
+}
+function lessonColor(lid){ const p = (parentConcepts[lid]||[])[0]; return p ? (CATS[NODE[p].cat]||LESSON_COL) : LESSON_COL; }
+
+/* ───────── force graph ───────── */
+const Graph = new ThreeForceGraph()
+  .graphData(DATA)
+  .numDimensions(3)
+  .nodeThreeObject(makeNode)
+  .nodeThreeObjectExtend(false)
+  .linkColor(l => EDGE_COLOR[l.type] || "#3b4a66")
+  .linkWidth(l => (l.type==="member"||l.type==="covers") ? 0.4 : l.type==="related" ? 0.5 : 0.9)
+  .linkOpacity(0.4)
+  .linkDirectionalParticles(l => l.type==="prereq" ? 2 : 0)
+  .linkDirectionalParticleWidth(1.4)
+  .linkDirectionalParticleSpeed(0.012)
+  .linkVisibility(linkVis)
+  .nodeVisibility(n => shown.has(n.id));
+Graph.d3Force("link").distance(l => l.type==="covers"?16 : l.type==="member"?34 : l.type==="related"?26 : 30);
+Graph.d3Force("charge").strength(-140);
+world.add(Graph);
+
+function srcId(l){ return typeof l.source==="object" ? l.source.id : l.source; }
+function tgtId(l){ return typeof l.target==="object" ? l.target.id : l.target; }
+function linkVis(l){ return shown.has(srcId(l)) && shown.has(tgtId(l)); }
+
+/* ───────── relationship text: point/hover a link → tooltip ───────── */
+const EDGE_LABEL = { prereq:"prerequisite", usedby:"used by", related:"related", member:"contains", covers:"teaches" };
+function nodeName(id){ const n=NODE[id]; if(!n) return id;
+  if(n.kind==="module") return "Module "+n.num;
+  if(n.kind==="lesson") return "Lesson "+n.num;
+  return n.label; }
+function linkSentence(l){            // full plain-English sentence for the desktop tooltip
+  const a=nodeName(srcId(l)), b=nodeName(tgtId(l));
+  switch(l.type){
+    case "prereq":  return a+" is a prerequisite for "+b+" — learn it first.";
+    case "usedby":  return b+" is built on "+a+".";
+    case "related": return a+" is related to "+b+".";
+    case "member":  return b+" belongs to "+a+".";
+    case "covers":  return b+" teaches "+a+".";
+    default:        return a+" → "+b;
+  }
+}
+function linkSentenceShort(l){       // compact 2-line form for the in-VR floating label
+  return (EDGE_LABEL[l.type]||l.type)+"\n"+nodeName(srcId(l))+"  ·  "+nodeName(tgtId(l));
+}
+const _la=new THREE.Vector3(), _lb=new THREE.Vector3(), _lpr=new THREE.Vector3(), _lps=new THREE.Vector3(), _lproj=new THREE.Vector3();
+function nearestLink(rayObj){        // closest VISIBLE edge to a ray (camera or controller)
+  let best=null, bestD=Infinity, bestPt=null;
+  for(const l of DATA.links){
+    if(!linkVis(l)) continue;
+    const a=meshById[srcId(l)], b=meshById[tgtId(l)];
+    if(!a||!b) continue;
+    a.getWorldPosition(_la); b.getWorldPosition(_lb);
+    const d2=rayObj.distanceSqToSegment(_la,_lb,_lpr,_lps);   // 3-D distance from ray to the segment
+    if(d2<bestD){ bestD=d2; best=l; bestPt=_lps.clone(); }
+  }
+  return best ? { link:best, dist:Math.sqrt(bestD), point:bestPt } : null;
+}
+
+/* ───────── focus-scoped edge labels: relationship verbs on the active node's links ───────── */
+const edgeLabelGroup = new THREE.Group(); world.add(edgeLabelGroup);
+let activeEdgeLabels = [];
+function edgeLabelText(F, l){
+  const out = srcId(l)===F;                 // is the focused node the SOURCE end of this edge?
+  switch(l.type){
+    case "prereq":  return out ? "unlocks"  : "prerequisite";
+    case "usedby":  return out ? "used by"  : "built on";
+    case "member":  return out ? "contains" : "in module";
+    case "covers":  return out ? "teaches"  : "taught in";
+    case "related": return "related";
+    default:        return l.type;
+  }
+}
+function clearEdgeLabels(){
+  for(const e of activeEdgeLabels){ edgeLabelGroup.remove(e.sprite);
+    if(e.sprite.material){ if(e.sprite.material.map) e.sprite.material.map.dispose(); e.sprite.material.dispose(); } }
+  activeEdgeLabels = [];
+}
+function buildEdgeLabels(id){
+  clearEdgeLabels();
+  if(!id) return;
+  for(const l of DATA.links){
+    if(srcId(l)!==id && tgtId(l)!==id) continue;     // only edges touching the focused node
+    if(!linkVis(l)) continue;
+    const col = EDGE_COLOR[l.type] || "#8b97b8";
+    const s = new SpriteText(edgeLabelText(id, l), 4.6, col);
+    s.fontFace="Inter, sans-serif"; s.fontWeight="600";
+    s.backgroundColor="rgba(5,7,15,0.72)"; s.padding=1.5; s.borderRadius=2;
+    s.material.depthWrite=false; s.renderOrder=900;
+    edgeLabelGroup.add(s);
+    activeEdgeLabels.push({ sprite:s, link:l });     // store the link; position from live sim coords
+  }
+  updateEdgeLabels();
+}
+function updateEdgeLabels(){                 // keep each label glued to its edge midpoint as the layout settles
+  if(!activeEdgeLabels.length) return;
+  for(const e of activeEdgeLabels){
+    const a=NODE[srcId(e.link)], b=NODE[tgtId(e.link)];   // sim coords exist for ALL nodes, even hidden lessons
+    if(!a||!b||a.x==null||b.x==null) continue;
+    // Graph sits at identity inside `world`, so node sim coords are already world-local for the label group
+    e.sprite.position.set((a.x+b.x)*0.5, (a.y+b.y)*0.5, (a.z+b.z)*0.5);
+  }
+}
+
+/* ───────── focus mode (ported from book-graph.html) ───────── */
+let focusId = null;
+let shown = new Set();
+function computeShown(){
+  shown = new Set();
+  if (!focusId){ DATA.nodes.forEach(n=>{ if(n.kind!=="lesson") shown.add(n.id); }); return; }
+  const f = NODE[focusId]; shown.add(focusId);
+  if (f.kind==="module"){ (conceptsOfModule[focusId]||[]).forEach(c=>shown.add(c)); }
+  else if (f.kind==="concept"){
+    if (NODE["mod:"+f.module]) shown.add("mod:"+f.module);
+    (childLessons[focusId]||[]).forEach(l=>shown.add(l));
+    relNeighbors(focusId).forEach(c=>shown.add(c));
+  } else if (f.kind==="lesson"){
+    (parentConcepts[focusId]||[]).forEach(c=>shown.add(c));
+    if (NODE["mod:"+f.module]) shown.add("mod:"+f.module);
+  }
+}
+function applyVisibility(){
+  Graph.nodeVisibility(n=>shown.has(n.id)).linkVisibility(linkVis);
+  // lesson labels visible only within a focus
+  Object.keys(labelById).forEach(id=>{ const n=NODE[id]; if(n.kind==="lesson") labelById[id].visible = !!focusId && shown.has(id); });
+  updateStats();
+}
+
+let flyTarget = null;     // desktop fly-in (OrbitControls target)
+function focus(id){
+  if (!NODE[id]) return;
+  focusId = id; computeShown(); applyVisibility(); buildEdgeLabels(id);
+  renderPanel(id); document.getElementById("panel").classList.add("open");
+  renderCrumb();
+  const g = meshById[id];
+  if (g){ const wp = new THREE.Vector3(); g.getWorldPosition(wp);
+    if (renderer.xr.isPresenting){ recenterXR(g); showVRPanel(id); } else flyTarget = wp.clone(); }
+  history.replaceState(null,"","#"+id);
+}
+function clearFocus(){
+  focusId = null; computeShown(); applyVisibility(); clearEdgeLabels();
+  document.getElementById("panel").classList.remove("open"); renderCrumb();
+  hideVRPanel();
+  if (!renderer.xr.isPresenting) flyTarget = new THREE.Vector3(0,0,0);
+  history.replaceState(null,"",location.pathname);
+}
+document.getElementById("panel-close").addEventListener("click", clearFocus);
+
+function recenterXR(g){
+  const cur = new THREE.Vector3(); g.getWorldPosition(cur);
+  const cam = renderer.xr.getCamera();
+  const camPos = new THREE.Vector3(); cam.getWorldPosition(camPos);
+  const fwd = new THREE.Vector3(0,0,-1).applyQuaternion(cam.quaternion).normalize();
+  const P = camPos.clone().add(fwd.multiplyScalar(2.0));
+  world.position.add(P.sub(cur));     // slide whole world so the node sits ~2m ahead
+}
+
+/* ───────── in-VR reader panel (canvas → world plane) ───────── */
+const VRP_W = 512, VRP_H = 700;
+const vrpCanvas = document.createElement("canvas"); vrpCanvas.width = VRP_W; vrpCanvas.height = VRP_H;
+const vrpCtx = vrpCanvas.getContext("2d");
+const vrpTex = new THREE.CanvasTexture(vrpCanvas); vrpTex.anisotropy = 4; vrpTex.colorSpace = THREE.SRGBColorSpace;
+const vrPanel = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.72, 0.72 * VRP_H / VRP_W),
+  new THREE.MeshBasicMaterial({ map:vrpTex, transparent:true, side:THREE.DoubleSide, depthTest:false })
+);
+vrPanel.renderOrder = 999; vrPanel.visible = false; vrPanel.userData.id = null;
+scene.add(vrPanel);
+
+function rrect(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+function vrpWrap(c,text,x,y,maxW,lh,maxLines){
+  const words=String(text||"").split(/\s+/); let line="",yy=y,used=0;
+  for(let i=0;i<words.length;i++){ const t=line?line+" "+words[i]:words[i];
+    if(c.measureText(t).width>maxW && line){ c.fillText(line,x,yy); yy+=lh; used++; line=words[i];
+      if(maxLines && used>=maxLines){ c.fillText("…",x,yy); return yy+lh; } }
+    else line=t; }
+  if(line){ c.fillText(line,x,yy); yy+=lh; }
+  return yy;
+}
+function vrpName(id){ const n=NODE[id]; return n.kind==="lesson"?("Lesson "+n.num):(n.kind==="module"?("M"+n.num+" "+n.full):n.label); }
+function vrpChips(c,ids,x,y,col,maxRows){
+  if(!ids.length){ c.fillStyle="#6b7896"; c.font="italic 21px Inter, sans-serif"; c.fillText("—",x,y); return y+30; }
+  let yy=y,rows=0;
+  for(const id of ids){ c.fillStyle=col; c.font="22px Inter, sans-serif"; c.fillText("•",x,yy);
+    c.fillStyle="#cfd8f5"; yy=vrpWrap(c,vrpName(id),x+22,yy,VRP_W-2*34-22,28,2); yy+=5;
+    if(++rows>=(maxRows||5)){ if(ids.length>rows){ c.fillStyle="#6b7896"; c.fillText("+ "+(ids.length-rows)+" more",x+22,yy); yy+=28; } break; } }
+  return yy;
+}
+function drawVRPanel(id){
+  const n=NODE[id]; if(!n) return;
+  const c=vrpCtx, W=VRP_W, H=VRP_H, padX=34;
+  const col = n.kind==="module"?MODULE_COL : n.kind==="lesson"?lessonColor(id) : (CATS[n.cat]||"#8b97b8");
+  c.clearRect(0,0,W,H);
+  rrect(c,2,2,W-4,H-4,26); c.fillStyle="rgba(9,13,26,0.97)"; c.fill(); c.lineWidth=3; c.strokeStyle=col; c.stroke();
+  rrect(c,2,2,W-4,12,6); c.fillStyle=col; c.fill();
+  let y=66; c.textBaseline="alphabetic"; c.textAlign="left";
+  c.fillStyle=col; c.font="700 22px Inter, sans-serif";
+  c.fillText((n.kind==="module"?"MODULE":n.kind==="lesson"?"LESSON":(CATLABEL[n.cat]||n.cat)).toUpperCase(), padX, y); y+=44;
+  c.fillStyle="#eef3ff"; c.font="800 36px Inter, sans-serif";
+  y=vrpWrap(c,(n.kind==="module"?("Module "+n.num):n.kind==="lesson"?("Lesson "+n.num):n.label),padX,y,W-2*padX,42)+4;
+  c.fillStyle="#9fb0d6"; c.font="22px Inter, sans-serif";
+  if(n.kind==="module"){ y=vrpWrap(c,n.full,padX,y,W-2*padX,28,2); }
+  else if(n.kind==="lesson"){ const mn=n.module?n.module.replace(/^m0?/,""):""; c.fillText("Module "+mn,padX,y); y+=30; y=vrpWrap(c,n.full||"",padX,y,W-2*padX,28,2); }
+  else { const mn=n.module?n.module.replace(/^m0?/,""):""; c.fillText("Module "+mn+"  ·  importance "+(n.imp!=null?n.imp:"–")+"/10",padX,y); y+=30; }
+  y+=16;
+  const section=(lbl)=>{ c.fillStyle=col; c.font="700 17px Inter, sans-serif"; c.fillText(lbl.toUpperCase(),padX,y); y+=28; };
+  if(n.kind==="concept"){
+    section("Definition"); c.fillStyle="#cfd8f5"; c.font="23px Inter, sans-serif"; y=vrpWrap(c,n.def||"—",padX,y,W-2*padX,30,5); y+=16;
+    section("Lessons that teach it"); y=vrpChips(c,(childLessons[id]||[]),padX,y,LESSON_COL,3); y+=14;
+    section("Prerequisites — learn first"); y=vrpChips(c,uniq(relsOf[id].prereq),padX,y,"#38bdf8",3);
+  } else if(n.kind==="module"){
+    const kids=conceptsOfModule[id]||[]; section(kids.length+" concepts in this module"); y=vrpChips(c,kids,padX,y,col,8);
+  } else {
+    section("Concepts covered here"); y=vrpChips(c,(parentConcepts[id]||[]),padX,y,col,6);
+  }
+  c.fillStyle="#5d6b8e"; c.font="19px Inter, sans-serif"; c.textAlign="center";
+  c.fillText("◎ trigger a node to drill in   ·   grip to exit", W/2, H-28); c.textAlign="left";
+  vrpTex.needsUpdate=true; vrPanel.userData.id=id;
+}
+function placeVRPanel(id){
+  const g=meshById[id]; if(!g){ vrPanel.visible=false; return; }
+  const np=new THREE.Vector3(); g.getWorldPosition(np);
+  const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;
+  const camPos=new THREE.Vector3(); cam.getWorldPosition(camPos);
+  const toCam=camPos.clone().sub(np); toCam.y=0; if(toCam.lengthSq()<1e-5) toCam.set(0,0,1); toCam.normalize();
+  const right=new THREE.Vector3().crossVectors(toCam,new THREE.Vector3(0,1,0)).normalize();
+  vrPanel.position.copy(np).add(toCam.multiplyScalar(0.35)).add(right.multiplyScalar(0.62));
+  vrPanel.lookAt(camPos);
+}
+function showVRPanel(id){ drawVRPanel(id); placeVRPanel(id); vrPanel.visible=true; }
+function hideVRPanel(){ vrPanel.visible=false; vrPanel.userData.id=null; }
+
+/* ───────── interaction: mouse (desktop) ───────── */
+const ray = new THREE.Raycaster();
+const ptr = new THREE.Vector2();
+let hovered = null, down=null;
+function pickAt(cx, cy){
+  ptr.x = (cx/window.innerWidth)*2 - 1; ptr.y = -(cy/window.innerHeight)*2 + 1;
+  ray.setFromCamera(ptr, camera);
+  const hits = ray.intersectObjects(Graph.children, true);
+  for (const h of hits){ let o=h.object; while(o){ if(o.userData && o.userData.nodeId && shown.has(o.userData.nodeId)) return o.userData.nodeId; o=o.parent; } }
+  return null;
+}
+canvas.addEventListener("pointermove", e=>{
+  const id = pickAt(e.clientX, e.clientY);
+  if (id!==hovered){ setHover(hovered,false); hovered=id; setHover(hovered,true); canvas.style.cursor = id?"pointer":"grab"; }
+  if (down || id) hideLinkTip();                       // dragging, or over a node → no edge tip
+  else updateLinkTipFromRay(e.clientX, e.clientY);     // empty space → check for a nearby edge
+});
+canvas.addEventListener("pointerdown", e=>{ down={x:e.clientX,y:e.clientY,id:pickAt(e.clientX,e.clientY)}; hideLinkTip(); });
+canvas.addEventListener("pointerup", e=>{ if(down && down.id && Math.abs(e.clientX-down.x)+Math.abs(e.clientY-down.y)<5) focus(down.id); down=null; });
+canvas.addEventListener("pointerleave", hideLinkTip);
+function setHover(id,on){ const g=id&&meshById[id]; if(!g) return; g.userData.mat.emissiveIntensity = on?1.0:g.userData.baseEmissive; g.scale.setScalar(on?1.18:1); }
+
+/* link-relationship tooltip (desktop hover) */
+const LINK_HIT_PX = 20;        // cursor-to-edge screen tolerance (px) — larger = easier to catch thin links
+const linkTip = document.createElement("div"); linkTip.id="linktip";
+linkTip.style.cssText="position:fixed;z-index:40;max-width:262px;padding:8px 11px;border-radius:9px;background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(8px);color:var(--txt);font-size:12px;line-height:1.42;pointer-events:none;display:none;box-shadow:0 6px 24px rgba(0,0,0,0.45)";
+document.body.appendChild(linkTip);
+function hideLinkTip(){ if(linkTip.style.display!=="none") linkTip.style.display="none"; }
+function showLinkTip(l, cx, cy){
+  const col=EDGE_COLOR[l.type]||"#8b97b8";
+  linkTip.innerHTML='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
+    +'<span style="width:9px;height:9px;border-radius:50%;background:'+col+';box-shadow:0 0 6px '+col+'"></span>'
+    +'<span style="font-weight:600;color:'+col+';text-transform:uppercase;font-size:10px;letter-spacing:.5px">'+(EDGE_LABEL[l.type]||l.type)+'</span></div>'
+    +'<div>'+esc(linkSentence(l))+'</div>';
+  linkTip.style.display="block";
+  const w=linkTip.offsetWidth, h=linkTip.offsetHeight;
+  let x=cx+14, y=cy+14;
+  if(x+w>window.innerWidth-8) x=cx-w-14;
+  if(y+h>window.innerHeight-8) y=cy-h-14;
+  linkTip.style.left=Math.max(8,x)+"px"; linkTip.style.top=Math.max(8,y)+"px";
+}
+function updateLinkTipFromRay(cx, cy){               // ray already set by pickAt() for this cursor
+  const nl=nearestLink(ray.ray);
+  if(!nl){ hideLinkTip(); return; }
+  _lproj.copy(nl.point).project(camera);
+  if(_lproj.z>1 || _lproj.z<-1){ hideLinkTip(); return; }   // behind camera
+  const sx=(_lproj.x*0.5+0.5)*window.innerWidth, sy=(-_lproj.y*0.5+0.5)*window.innerHeight;
+  if(Math.hypot(sx-cx, sy-cy) > LINK_HIT_PX){ hideLinkTip(); return; }  // not close enough to the line (px)
+  showLinkTip(nl.link, cx, cy);
+}
+
+/* ───────── interaction: VR controllers ───────── */
+const tmpM = new THREE.Matrix4();
+function controllerPick(ctrl){
+  tmpM.identity().extractRotation(ctrl.matrixWorld);
+  ray.ray.origin.setFromMatrixPosition(ctrl.matrixWorld);
+  ray.ray.direction.set(0,0,-1).applyMatrix4(tmpM);
+  const hits = ray.intersectObjects(Graph.children, true);
+  for (const h of hits){ let o=h.object; while(o){ if(o.userData && o.userData.nodeId && shown.has(o.userData.nodeId)) return o.userData.nodeId; o=o.parent; } }
+  return null;
+}
+function makeController(i){
+  const ctrl = renderer.xr.getController(i);
+  const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-1)]);
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color:0x38bdf8 })); line.scale.z = 5; ctrl.add(line);
+  ctrl.addEventListener("selectstart", ()=>{ const id = controllerPick(ctrl); if(id){ focus(id); return; } beginTeleportAim(ctrl); });
+  ctrl.addEventListener("selectend",   ()=>{ endTeleportAim(ctrl); });
+  ctrl.addEventListener("squeezestart", ()=>{ onGripStart(ctrl); });
+  ctrl.addEventListener("squeezeend",   ()=>{ onGripEnd(ctrl); });
+  scene.add(ctrl);
+  return ctrl;
+}
+const controllers = [makeController(0), makeController(1)];
+
+/* in-VR floating relationship label — point a controller at a link to read it */
+const linkTipVR = new SpriteText("", 0.045, "#cfe0ff");
+linkTipVR.fontFace = "Inter, sans-serif"; linkTipVR.fontWeight = "600";
+linkTipVR.backgroundColor = "rgba(8,12,24,0.88)"; linkTipVR.padding = 2; linkTipVR.borderRadius = 3; linkTipVR.borderWidth = 0.6;
+linkTipVR.material.depthTest = false; linkTipVR.renderOrder = 998; linkTipVR.visible = false;
+scene.add(linkTipVR);
+const VR_LINK_HIT = 0.16;                 // world-metres tolerance from a controller ray to an edge (easier to catch)
+function updateVRLinkTip(){
+  let nodeHit=false, found=null;
+  for(const c of controllers){
+    if(controllerPick(c)){ nodeHit=true; break; }     // pointing at a node → its panel wins
+    const nl=nearestLink(ray.ray);                     // controllerPick set ray.ray for this controller
+    if(nl && nl.dist < VR_LINK_HIT) found=nl;
+  }
+  if(nodeHit || !found){ linkTipVR.visible=false; return; }
+  const l=found.link, key=l.type+srcId(l)+tgtId(l);
+  if(linkTipVR.userData.key!==key){
+    const col=EDGE_COLOR[l.type]||"#cfe0ff";
+    linkTipVR.text=linkSentenceShort(l); linkTipVR.color=col; linkTipVR.borderColor=col;
+    linkTipVR.userData.key=key;
+  }
+  linkTipVR.position.copy(found.point); linkTipVR.visible=true;
+}
+
+/* ───────── VR locomotion: thumbstick glide + comfort snap-turn + fly ───────── */
+const xrClock  = new THREE.Clock();
+const xrUP     = new THREE.Vector3(0,1,0);
+const MOVE_SPEED = 2.2;          // metres / second on the horizontal plane (room ≈ 3 m graph)
+const FLY_SPEED  = 1.6;          // metres / second vertical
+const SNAP_ANGLE = Math.PI/6;    // 30° per flick — comfort turning, low nausea
+const DEADZONE   = 0.18;
+let snapArmed = true;            // edge-trigger: one flick past the threshold = one 30° turn
+const _fwd=new THREE.Vector3(), _right=new THREE.Vector3(), _mv=new THREE.Vector3();
+const _camW=new THREE.Vector3(), _snapQ=new THREE.Quaternion();
+function readStick(gp){
+  const a = gp.axes || [];
+  // standard mapping: thumbstick is axes[2],[3]; older/touchpad rigs use [0],[1]
+  const x = a.length>=4 ? a[2] : (a[0]||0);
+  const y = a.length>=4 ? a[3] : (a[1]||0);
+  return [Math.abs(x)>DEADZONE?x:0, Math.abs(y)>DEADZONE?y:0];
+}
+function snapTurn(angle){          // rotate the rig about the vertical axis through the user's head
+  camera.getWorldPosition(_camW);
+  _snapQ.setFromAxisAngle(xrUP, angle);
+  rig.position.sub(_camW).applyQuaternion(_snapQ).add(_camW);
+  rig.quaternion.premultiply(_snapQ);
+}
+function applyLoco(moveX, moveZ, flyY, turnX, dt){
+  // glide on the horizontal plane, relative to where you're looking
+  if (moveX || moveZ){
+    camera.getWorldDirection(_fwd); _fwd.y = 0;
+    if (_fwd.lengthSq() < 1e-4) _fwd.set(0,0,-1);
+    _fwd.normalize();
+    _right.crossVectors(_fwd, xrUP).normalize();
+    _mv.set(0,0,0)
+       .addScaledVector(_fwd,  -moveZ * MOVE_SPEED * dt)   // push stick forward → move forward
+       .addScaledVector(_right, moveX * MOVE_SPEED * dt);  // push stick sideways → strafe
+    rig.position.add(_mv);
+  }
+  if (flyY) rig.position.y += -flyY * FLY_SPEED * dt;       // right-stick up/down = fly up/down
+  if (Math.abs(turnX) > 0.6){ if (snapArmed){ snapTurn(turnX>0 ? -SNAP_ANGLE : SNAP_ANGLE); snapArmed=false; } }
+  else if (Math.abs(turnX) < 0.3){ snapArmed = true; }      // re-arm once the stick re-centres
+}
+function updateLocomotion(dt){
+  const session = renderer.xr.getSession(); if(!session) return;
+  let turnX=0, flyY=0, moveX=0, moveZ=0;
+  for (const src of session.inputSources){
+    if(!src.gamepad) continue;
+    const [sx, sy] = readStick(src.gamepad);
+    if (src.handedness === "right"){ turnX = sx; flyY = sy; }   // right hand: turn + fly
+    else { moveX = sx; moveZ = sy; }                            // left hand (default): translate
+  }
+  applyLoco(moveX, moveZ, flyY, turnX, dt);
+  smoothMoving = !!(moveX || moveZ || flyY);          // drives the comfort vignette
+}
+
+/* ───────── VR navigation & comfort: two-handed grab · teleport · vignette ───────── */
+
+// ── two-handed "grab the universe": hold BOTH grips to scale + yaw-rotate the whole graph
+const grab = { active:false, dist0:1, scale0:1, yaw0:0, quat0:new THREE.Quaternion(), localPivot:new THREE.Vector3() };
+const _g0=new THREE.Vector3(), _g1=new THREE.Vector3(), _gmid=new THREE.Vector3(), _gvec=new THREE.Vector3(), _gq=new THREE.Quaternion(), _gp=new THREE.Vector3();
+function ctrlPositions(){ controllers[0].getWorldPosition(_g0); controllers[1].getWorldPosition(_g1); }
+function bothGripsHeld(){ return !!(controllers[0].userData.gripping && controllers[1].userData.gripping); }
+function beginGrab(){
+  ctrlPositions();
+  grab.dist0  = Math.max(_g0.distanceTo(_g1), 1e-3);
+  grab.scale0 = world.scale.x;
+  _gvec.subVectors(_g1,_g0); grab.yaw0 = Math.atan2(_gvec.x, _gvec.z);
+  grab.quat0.copy(world.quaternion);
+  _gmid.addVectors(_g0,_g1).multiplyScalar(0.5);
+  world.worldToLocal(grab.localPivot.copy(_gmid));   // graph-local point currently between the hands
+  grab.active = true;
+  controllers[0].userData.grabbed = controllers[1].userData.grabbed = true;
+}
+function updateGrab(){
+  if(!grab.active) return;
+  ctrlPositions();
+  _gmid.addVectors(_g0,_g1).multiplyScalar(0.5);
+  const distNow = Math.max(_g0.distanceTo(_g1), 1e-3);
+  let s = grab.scale0 * (distNow/grab.dist0);
+  s = Math.min(Math.max(s, grab.scale0*0.15), grab.scale0*8);   // clamp zoom range
+  _gvec.subVectors(_g1,_g0); const dYaw = Math.atan2(_gvec.x, _gvec.z) - grab.yaw0;
+  _gq.setFromAxisAngle(xrUP, dYaw).multiply(grab.quat0);
+  world.scale.setScalar(s);
+  world.quaternion.copy(_gq);
+  // pin the grabbed graph-point between the hands while scaling/rotating
+  _gp.copy(grab.localPivot).multiplyScalar(s).applyQuaternion(_gq);
+  world.position.copy(_gmid).sub(_gp);
+}
+function onGripStart(ctrl){ ctrl.userData.gripping = true; if(bothGripsHeld()) beginGrab(); }
+function onGripEnd(ctrl){
+  ctrl.userData.gripping = false;
+  if(grab.active){ grab.active = false; }                      // releasing either hand ends the grab
+  else if(!ctrl.userData.grabbed){                             // a lone grip that never became two-handed
+    if(tour.playing) tourEnd(); else clearFocus();
+  }
+  ctrl.userData.grabbed = false;
+}
+
+// ── teleport: trigger on empty space casts a parabolic arc to the floor (y=0); release to jump
+const TELE_FLOOR=0.0, TELE_V=6.0, TELE_G=-9.8, TELE_MAXR=18, TELE_STEPS=30, TELE_DT=0.05;
+const teleArcGeo = new THREE.BufferGeometry();
+teleArcGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array((TELE_STEPS+1)*3), 3));
+const teleArc = new THREE.Line(teleArcGeo, new THREE.LineBasicMaterial({ color:0x34d399, transparent:true, opacity:0.9 }));
+teleArc.frustumCulled=false; teleArc.visible=false; scene.add(teleArc);
+const teleRing = new THREE.Mesh(new THREE.RingGeometry(0.12,0.18,32),
+  new THREE.MeshBasicMaterial({ color:0x34d399, side:THREE.DoubleSide, transparent:true, opacity:0.9, depthTest:false }));
+teleRing.rotation.x = -Math.PI/2; teleRing.renderOrder=997; teleRing.visible=false; scene.add(teleRing);
+const tele = { ctrl:null, valid:false, point:new THREE.Vector3() };
+const _to=new THREE.Vector3(), _td=new THREE.Vector3(), _tp=new THREE.Vector3(), _tm=new THREE.Matrix4();
+function beginTeleportAim(ctrl){ tele.ctrl = ctrl; }
+function endTeleportAim(ctrl){
+  if(tele.ctrl!==ctrl) return;
+  if(tele.valid) teleportTo(tele.point);
+  tele.ctrl=null; tele.valid=false; teleArc.visible=false; teleRing.visible=false;
+}
+function updateTeleportAim(){
+  if(!tele.ctrl){ if(teleArc.visible){ teleArc.visible=false; teleRing.visible=false; } return; }
+  const ctrl=tele.ctrl;
+  _to.setFromMatrixPosition(ctrl.matrixWorld);
+  _tm.identity().extractRotation(ctrl.matrixWorld);
+  _td.set(0,0,-1).applyMatrix4(_tm).normalize();
+  const pos = teleArcGeo.attributes.position.array;
+  let landed=false, n=0;
+  for(let i=0;i<=TELE_STEPS;i++){
+    const t=i*TELE_DT;
+    _tp.set(_to.x + _td.x*TELE_V*t,
+            _to.y + _td.y*TELE_V*t + 0.5*TELE_G*t*t,
+            _to.z + _td.z*TELE_V*t);
+    pos[i*3]=_tp.x; pos[i*3+1]=_tp.y; pos[i*3+2]=_tp.z; n=i;
+    if(_tp.y<=TELE_FLOOR){ landed=true; break; }
+  }
+  for(let i=n+1;i<=TELE_STEPS;i++){ pos[i*3]=_tp.x; pos[i*3+1]=_tp.y; pos[i*3+2]=_tp.z; }
+  teleArcGeo.attributes.position.needsUpdate=true;
+  teleArcGeo.setDrawRange(0, n+1);
+  tele.point.copy(_tp); tele.point.y=TELE_FLOOR;
+  const horiz=Math.hypot(tele.point.x-_to.x, tele.point.z-_to.z);
+  tele.valid = landed && horiz<=TELE_MAXR;
+  const col = tele.valid ? 0x34d399 : 0x64748b;
+  teleArc.material.color.setHex(col); teleRing.material.color.setHex(col);
+  teleArc.visible=true;
+  teleRing.position.copy(tele.point); teleRing.position.y=TELE_FLOOR+0.01; teleRing.visible=tele.valid;
+}
+function teleportTo(point){
+  camera.getWorldPosition(_camW);                 // move the rig so the head ends up over the target, keeping height
+  rig.position.x += point.x - _camW.x;
+  rig.position.z += point.z - _camW.z;
+}
+
+// ── comfort vignette: darken the periphery while gliding/flying (cuts vection nausea)
+function makeVignetteTexture(){
+  const c=document.createElement("canvas"); c.width=c.height=256;
+  const g=c.getContext("2d");
+  const grd=g.createRadialGradient(128,128,64, 128,128,128);
+  grd.addColorStop(0,"rgba(0,0,0,0)"); grd.addColorStop(0.55,"rgba(0,0,0,0)"); grd.addColorStop(1,"rgba(0,0,0,1)");
+  g.fillStyle=grd; g.fillRect(0,0,256,256);
+  const t=new THREE.CanvasTexture(c); t.needsUpdate=true; return t;
+}
+const vignette = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.4,1.4),
+  new THREE.MeshBasicMaterial({ map:makeVignetteTexture(), transparent:true, opacity:0, depthTest:false, depthWrite:false })
+);
+vignette.position.set(0,0,-0.22); vignette.renderOrder=1000; vignette.frustumCulled=false; vignette.visible=false;
+camera.add(vignette);
+let smoothMoving=false, vignetteOp=0;
+function updateVignette(){
+  const target = smoothMoving ? 0.55 : 0.0;
+  vignetteOp += (target-vignetteOp)*0.18;
+  if(vignetteOp<0.01){ vignetteOp=0; vignette.visible=false; }
+  else { vignette.material.opacity=vignetteOp; vignette.visible=true; }
+}
+
+const XR_TARGET = new THREE.Vector3(0, 1.5, -2.6);   // where the graph's centre sits in the room
+const XR_ROOM_SPAN = 3.0;                             // largest graph dimension → ~3 m cluster
+function fitWorldForXR(){
+  // measure the live force-layout bounding box (units depend on node count, so never hardcode)
+  const b = new THREE.Box3();
+  const v = new THREE.Vector3();
+  DATA.nodes.forEach(n=>{ if(n.x==null) return; b.expandByPoint(v.set(n.x,n.y,n.z)); });
+  const size = new THREE.Vector3(); b.getSize(size);
+  const ctr  = new THREE.Vector3(); b.getCenter(ctr);
+  const maxSpan = Math.max(size.x, size.y, size.z) || 1;
+  const s = XR_ROOM_SPAN / maxSpan;
+  world.scale.setScalar(s);
+  // a graph-local point p renders at world.position + p*s, so place the centre at XR_TARGET
+  world.position.copy(XR_TARGET).sub(ctr.multiplyScalar(s));
+}
+renderer.xr.addEventListener("sessionstart", ()=>{
+  controls.enabled = false;
+  rig.position.set(0,0,0); rig.quaternion.identity(); snapArmed = true;  // start from a known vantage
+  grab.active=false; tele.ctrl=null; tele.valid=false; smoothMoving=false; vignetteOp=0;
+  controllers[0].userData.gripping = controllers[1].userData.gripping = false;
+  controllers[0].userData.grabbed  = controllers[1].userData.grabbed  = false;
+  xrClock.getDelta();                    // flush any stale delta before the first locomotion tick
+  fitWorldForXR();                       // auto-fit to room scale (robust to node count)
+  world.quaternion.identity();           // fitWorldForXR sets scale+position; reset any prior grab rotation
+  document.querySelector(".overlay").style.display = "none";
+});
+renderer.xr.addEventListener("sessionend", ()=>{
+  controls.enabled = true;
+  rig.position.set(0,0,0); rig.quaternion.identity();
+  world.scale.setScalar(1); world.position.set(0,0,0); world.quaternion.identity();
+  grab.active=false; tele.ctrl=null; teleArc.visible=false; teleRing.visible=false;
+  smoothMoving=false; vignetteOp=0; vignette.visible=false;
+  hideVRPanel(); linkTipVR.visible = false;
+  document.querySelector(".overlay").style.display = "";
+});
+
+/* ───────── panel / crumb (overlay UI) ───────── */
+const esc = (s)=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const uniq = (a)=>[...new Set(a)];
+function relRow(id, tag){
+  const n=NODE[id]; const col = n.kind==="module"?MODULE_COL : n.kind==="lesson"?lessonColor(id) : (CATS[n.cat]||"#8b97b8");
+  const label = n.kind==="lesson" ? ("Lesson "+n.num+" · "+(n.full||"")) : (n.kind==="module"?n.full:n.label);
+  return '<a data-focus="'+id+'"><span class="d" style="color:'+col+'"></span><span>'+esc(label)+'</span>'+(tag?'<span class="tg">'+tag+'</span>':'')+'</a>';
+}
+function renderPanel(id){
+  const n=NODE[id]; const col = n.kind==="module"?MODULE_COL : n.kind==="lesson"?lessonColor(id) : (CATS[n.cat]||"#8b97b8");
+  const dot = document.querySelector("#p-cat .dot"); dot.style.color=col; dot.style.background=col;
+  const body = document.getElementById("p-body");
+  if (n.kind==="module"){
+    document.getElementById("p-cat-t").textContent="Module";
+    document.getElementById("p-title").textContent="Module "+n.num+" · "+n.full;
+    const kids = conceptsOfModule[id]||[];
+    document.getElementById("p-meta").innerHTML='<span class="tag" style="border-color:'+col+';color:'+col+'">'+kids.length+' concepts</span>';
+    let h=''; if(n.prereqs) h+='<div class="lbl">Module prerequisites</div><div class="measures">'+esc(n.prereqs)+'</div>';
+    h+='<div class="lbl">Concepts — click to drill in</div><div class="rel">'+(kids.length?kids.map(c=>relRow(c)).join(""):'<span class="none">—</span>')+'</div>';
+    h+='<div class="lbl">Open</div><div class="actions"><a class="primary" href="../'+n.id.slice(4)+'/index.html">Module '+n.num+' overview →</a></div>';
+    body.innerHTML=h;
+  } else if (n.kind==="concept"){
+    document.getElementById("p-cat-t").textContent=CATLABEL[n.cat]||n.cat;
+    document.getElementById("p-title").textContent=n.label;
+    const modNum = n.module?n.module.replace(/^m0?/,""):"";
+    document.getElementById("p-meta").innerHTML=(n.module?'<span class="tag" style="border-color:'+col+';color:'+col+'">Module '+modNum+'</span>':'')+(n.imp!=null?'<span class="tag">importance '+n.imp+'/10</span>':'')+(n.lessons.length?'<span class="tag">'+n.lessons.length+' lesson'+(n.lessons.length>1?'s':'')+'</span>':'');
+    const pre=uniq(relsOf[id].prereq); const unl=[],seen=new Set();
+    relsOf[id].usedby.forEach(r=>{ if(!seen.has(r)){seen.add(r);unl.push([r,"used by"]);} });
+    relsOf[id].related.forEach(r=>{ if(!seen.has(r)){seen.add(r);unl.push([r,"related"]);} });
+    let h='<div class="lbl">Definition</div><div class="measures">'+esc(n.def||"—")+'</div>';
+    h+='<div class="lbl">Detail — lessons that teach it</div><div class="rel">'+((childLessons[id]||[]).length?childLessons[id].map(l=>relRow(l,"lesson")).join(""):'<span class="none">No lesson mapped.</span>')+'</div>';
+    h+='<div class="lbl">Prerequisites — learn first</div><div class="rel">'+(pre.length?pre.map(r=>relRow(r,"prereq")).join(""):'<span class="none">Foundational — no prerequisites.</span>')+'</div>';
+    h+='<div class="lbl">Used by / related</div><div class="rel">'+(unl.length?unl.map(([r,t])=>relRow(r,t)).join(""):'<span class="none">Nothing builds on it yet.</span>')+'</div>';
+    h+='<div class="lbl">Open</div><div class="actions"><a class="primary" href="../'+n.href+'">Open concept page →</a>'+(n.module?'<a class="ghost" href="../'+n.module+'/index.html">Module '+modNum+' overview</a>':'')+'</div>';
+    body.innerHTML=h;
+  } else {
+    document.getElementById("p-cat-t").textContent="Lesson";
+    document.getElementById("p-title").textContent="Lesson "+n.num;
+    const modNum=n.module?n.module.replace(/^m0?/,""):"";
+    document.getElementById("p-meta").innerHTML=(n.module?'<span class="tag" style="border-color:'+LESSON_COL+';color:'+LESSON_COL+'">Module '+modNum+'</span>':'');
+    const parents=parentConcepts[id]||[];
+    let h='<div class="lbl">Title</div><div class="measures">'+esc(n.full)+'</div>';
+    h+='<div class="lbl">Concepts covered here</div><div class="rel">'+(parents.length?parents.map(c=>relRow(c)).join(""):'<span class="none">—</span>')+'</div>';
+    h+='<div class="lbl">Open</div><div class="actions">'+(n.href?'<a class="primary" href="../'+n.href+'">Open lesson →</a>':'')+(n.module?'<a class="ghost" href="../'+n.module+'/index.html">Module '+modNum+' overview</a>':'')+'</div>';
+    body.innerHTML=h;
+  }
+  body.querySelectorAll("[data-focus]").forEach(a=>a.addEventListener("click", ()=>focus(a.getAttribute("data-focus"))));
+}
+function renderCrumb(){
+  const el=document.getElementById("crumb"); const seg=['<a class="home" data-clear>◎ Overview</a>'];
+  if (focusId){
+    const n=NODE[focusId]; const mid = n.kind==="module"?n.id : (n.module?"mod:"+n.module:null);
+    if (mid && NODE[mid] && n.kind!=="module") seg.push('<span class="sep">›</span><a data-focus="'+mid+'">M'+NODE[mid].num+'</a>');
+    if (n.kind==="lesson"){ const pc=(parentConcepts[focusId]||[])[0]; if(pc) seg.push('<span class="sep">›</span><a data-focus="'+pc+'">'+esc(NODE[pc].label)+'</a>'); }
+    const cur = n.kind==="module"?"Module "+n.num : n.kind==="lesson"?"Lesson "+n.num : n.label;
+    seg.push('<span class="sep">›</span><span class="cur">'+esc(cur)+'</span>');
+  } else { seg[0]='<span class="home">◎ Overview</span>'; seg.push('<span class="sep">·</span><span class="cur" style="font-weight:400;color:var(--muted)">click any node to drill in</span>'); }
+  el.innerHTML=seg.join("");
+  const clr=el.querySelector("[data-clear]"); if(clr) clr.addEventListener("click", clearFocus);
+  el.querySelectorAll("[data-focus]").forEach(a=>a.addEventListener("click", ()=>focus(a.getAttribute("data-focus"))));
+}
+function updateStats(){
+  let m=0,c=0,l=0; shown.forEach(id=>{ const k=NODE[id].kind; if(k==="module")m++; else if(k==="concept")c++; else l++; });
+  document.getElementById("stat-m").textContent=m; document.getElementById("stat-c").textContent=c; document.getElementById("stat-l").textContent=l;
+}
+
+/* clusters legend */
+const catsEl=document.getElementById("cats");
+CAT_ORDER.filter(c=>Object.values(C).some(x=>x.category===c)).forEach(c=>{
+  const count=Object.values(C).filter(x=>x.category===c).length;
+  const row=document.createElement("div"); row.className="cat";
+  row.innerHTML='<span class="dot" style="color:'+CATS[c]+';background:'+CATS[c]+'"></span><span>'+(CATLABEL[c]||c)+'</span><span class="n">'+count+'</span>';
+  catsEl.appendChild(row);
+});
+
+/* search */
+const searchEl=document.getElementById("search");
+const findHit=(q)=>Object.values(C).map(c=>c.id).find(id=>NODE[id].label.toLowerCase().includes(q)||id.includes(q));
+searchEl.addEventListener("keydown", e=>{ if(e.key==="Enter"){ const h=findHit(searchEl.value.trim().toLowerCase()); if(h) focus(h); } });
+
+/* ───────── render loop ───────── */
+renderer.setAnimationLoop(()=>{
+  Graph.tickFrame();
+  updateEdgeLabels();                                // keep focus-scoped edge labels on their midpoints
+  if (renderer.xr.isPresenting){
+    const dt = Math.min(xrClock.getDelta(), 0.1);   // clamp so the first VR frame doesn't lurch
+    updateLocomotion(dt);
+    updateGrab();                                    // two-handed scale/rotate of the whole graph
+    updateTeleportAim();                             // parabolic teleport arc while a trigger is held on empty space
+    updateVignette();                                // comfort tunnel during smooth movement
+    updateVRLinkTip();                               // show edge relationship when a controller points at a link
+  }
+  if (flyTarget && !renderer.xr.isPresenting){
+    controls.target.lerp(flyTarget, 0.08);
+    const dir2 = camera.position.clone().sub(controls.target).normalize();
+    const want = flyTarget.clone().add(dir2.multiplyScalar(140));
+    camera.position.lerp(want, 0.06);
+    if (camera.position.distanceTo(want) < 1.2) flyTarget = null;
+  }
+  // keep the in-VR reader panel glued beside its node and facing the viewer
+  if (vrPanel.visible && renderer.xr.isPresenting && vrPanel.userData.id) placeVRPanel(vrPanel.userData.id);
+  controls.update();
+  renderer.render(scene, camera);
+});
+
+window.addEventListener("resize", ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+window.addEventListener("keydown", e=>{ if(e.key==="Escape"){ if(tour.playing||!tourBar.hidden) tourEnd(); else clearFocus(); } });
+
+/* ───────── QR: open on a headset ───────── */
+let QRLib = null;
+async function ensureQR(){ if(QRLib!==null) return QRLib; try{ QRLib=(await import("https://esm.sh/qrcode@1.5.3")).default; }catch(e){ QRLib=false; } return QRLib; }
+function urlState(u){
+  try{ const x=new URL(u); const h=x.hostname;
+    if(x.protocol==="file:") return {ok:false,msg:"⚠ file:// can't open on a headset — serve over HTTPS."};
+    if(h==="localhost"||h==="127.0.0.1"||/^192\.168\./.test(h)||/^10\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h))
+      return {ok:false,msg:"⚠ Local address — a headset can't reach it. Paste an https:// tunnel or deployed link below."};
+    if(x.protocol!=="https:") return {ok:false,msg:"⚠ Not https — WebXR needs a secure origin in the headset."};
+    return {ok:true,msg:"✓ Reachable & secure — scan with the Quest Browser."};
+  }catch(e){ return {ok:false,msg:"⚠ Not a valid URL."}; }
+}
+async function drawQR(u){
+  const c=document.getElementById("qrcanvas"), note=document.getElementById("qrnote");
+  const st=urlState(u); note.textContent=st.msg; note.className="qrnote "+(st.ok?"ok":"warn");
+  const lib=await ensureQR();
+  const ctx=c.getContext("2d");
+  if(!lib){ ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height); ctx.fillStyle="#0b1020";ctx.font="13px sans-serif";ctx.textAlign="center";ctx.fillText("QR library offline —",110,104);ctx.fillText("copy the link instead",110,124); return; }
+  try{ await lib.toCanvas(c, u||" ", {width:220, margin:1, color:{dark:"#0b1020", light:"#ffffff"}}); }
+  catch(e){ ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height); }
+}
+// live cloudflared quick-tunnel for headset testing (ephemeral — regenerate when it dies)
+const PREFERRED_VR_URL = "https://sustainability-connectors-carrying-rrp.trycloudflare.com/eval-recipes/book-graph-3d.html";
+function openQR(){ const inp=document.getElementById("qrurl"); const pref=PREFERRED_VR_URL && urlState(PREFERRED_VR_URL).ok ? PREFERRED_VR_URL : location.href; inp.value=pref; document.getElementById("qrwrap").hidden=false; drawQR(inp.value); }
+function closeQR(){ document.getElementById("qrwrap").hidden=true; }
+document.getElementById("qr-open").addEventListener("click", e=>{ e.preventDefault(); openQR(); });
+document.getElementById("qr-close").addEventListener("click", closeQR);
+document.getElementById("qrwrap").addEventListener("click", e=>{ if(e.target.id==="qrwrap") closeQR(); });
+document.getElementById("qrurl").addEventListener("input", e=>drawQR(e.target.value.trim()));
+document.getElementById("qrcopy").addEventListener("click", async()=>{ const b=document.getElementById("qrcopy"); try{ await navigator.clipboard.writeText(document.getElementById("qrurl").value); const t=b.textContent; b.textContent="Copied ✓"; setTimeout(()=>b.textContent=t,1200);}catch(e){ b.textContent="Copy failed"; } });
+
+/* ───────── guided audio tour ───────── */
+const TOUR = [];
+Object.values(M).sort((a,b)=>a.num-b.num).forEach(m=>{
+  (conceptsOfModule["mod:"+m.id]||[]).slice().sort((a,b)=>(NODE[b].imp||0)-(NODE[a].imp||0)).forEach(c=>TOUR.push(c));
+});
+const tour = { playing:false, i:-1, narrate:true };
+const TOUR_GAP_MS = 3000;   // pause between finishing one node and gliding to the next
+let tourAdvTimer=null, tourAdvanced=false;
+const tourBar=document.getElementById("tourbar");
+const listWords=(a)=> a.length<=1 ? (a[0]||"") : a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+function tourText(id){
+  const n=NODE[id]; if(!n) return "";
+  const cat=(CATLABEL[n.cat]||n.cat||"").toLowerCase(); const mod=M[n.module];
+  let t=n.label+". ";
+  t+="A "+cat+" concept"+(mod?(" from module "+mod.num+", "+mod.title):"")+". ";
+  if(n.def) t+=n.def+" ";
+  const pre=uniq(relsOf[id].prereq).map(x=>NODE[x]&&NODE[x].label).filter(Boolean);
+  if(pre.length) t+="To learn this, you should first understand "+listWords(pre.slice(0,3))+". ";
+  const ls=(childLessons[id]||[]).map(l=>NODE[l]&&NODE[l].full).filter(Boolean);
+  if(ls.length) t+="It is taught in "+listWords(ls.slice(0,2))+".";
+  return t;
+}
+function tourLabel(){
+  const id=TOUR[tour.i]; const n=id&&NODE[id];
+  document.getElementById("t-label").textContent = n ? n.label : "Guided tour";
+  document.getElementById("t-prog").textContent = n ? ("Module "+(M[n.module]?M[n.module].num:"?")+" · "+(tour.i+1)+" / "+TOUR.length) : (TOUR.length+" concepts");
+  document.getElementById("t-play").textContent = tour.playing ? "⏸" : "▶";
+}
+function tourStopSpeak(){ try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){} }
+function tourClearTimer(){ if(tourAdvTimer){ clearTimeout(tourAdvTimer); tourAdvTimer=null; } }
+function tourGo(i){
+  tourClearTimer(); tourStopSpeak(); tourAdvanced=false;
+  if(i<0) i=0; if(i>=TOUR.length){ tourEnd(); return; }
+  tour.i=i; const id=TOUR[i];
+  focus(id); tourLabel();
+  const text=tourText(id);
+  const dwell=Math.max(5000, Math.min(16000, text.length*52));
+  const advance=()=>{ if(tourAdvanced) return; tourAdvanced=true; if(tour.playing){ document.getElementById("t-prog").textContent="… pausing before next concept …"; tourAdvTimer=setTimeout(()=>tourGo(tour.i+1), TOUR_GAP_MS); } };
+  if(tour.narrate && window.speechSynthesis && typeof SpeechSynthesisUtterance!=="undefined"){
+    try{ const u=new SpeechSynthesisUtterance(text); u.rate=1.0; u.pitch=1.02; u.volume=1.0;
+      u.onend=advance; u.onerror=advance; window.speechSynthesis.speak(u);
+      tourAdvTimer=setTimeout(advance, dwell+9000);     // safety net if onend never fires
+    }catch(e){ tourAdvTimer=setTimeout(advance, dwell); }
+  } else { tourAdvTimer=setTimeout(advance, dwell); }
+}
+function tourStart(){ tour.playing=true; tourBar.hidden=false; document.getElementById("vrhint").style.display="none"; tourGo(tour.i<0?0:tour.i); }
+function tourPlayPause(){
+  if(tour.playing){ tour.playing=false; tourClearTimer(); tourStopSpeak(); tourLabel(); }
+  else { tour.playing=true; tourGo(tour.i<0?0:tour.i); }
+}
+function tourEnd(){ tour.playing=false; tour.i=-1; tourClearTimer(); tourStopSpeak(); tourBar.hidden=true;
+  document.getElementById("vrhint").style.display=""; clearFocus(); }
+function tourNext(){ tourGo(tour.i+1); }
+function tourPrev(){ tourGo(Math.max(0,tour.i-1)); }
+function tourToggleNarr(){ tour.narrate=!tour.narrate; const b=document.getElementById("t-narr");
+  b.textContent=tour.narrate?"🔊":"🔇"; b.className=tour.narrate?"on":"off"; if(!tour.narrate) tourStopSpeak();
+  else if(tour.playing) tourGo(tour.i); }
+document.getElementById("tour-open").addEventListener("click", e=>{ e.preventDefault(); if(tourBar.hidden) tourStart(); else tourPlayPause(); });
+document.getElementById("t-play").addEventListener("click", tourPlayPause);
+document.getElementById("t-next").addEventListener("click", tourNext);
+document.getElementById("t-prev").addEventListener("click", tourPrev);
+document.getElementById("t-narr").addEventListener("click", tourToggleNarr);
+document.getElementById("t-stop").addEventListener("click", tourEnd);
+
+/* ───────── boot ───────── */
+computeShown(); applyVisibility(); renderCrumb();
+document.body.appendChild(VRButton.createButton(renderer));
+// give the sim a few ticks to spread out, then reveal + optional deep-link
+let warm=0; const warmId=setInterval(()=>{ if(++warm>40){ clearInterval(warmId); loadEl.style.display="none";
+  const h=decodeURIComponent(location.hash.slice(1)).trim(); if(h&&NODE[h]) setTimeout(()=>focus(h),300);
+} }, 16);
+
+// debug hook
+window.__G = { focus, clearFocus, computeShown, shown:()=>[...shown], NODE, DATA, Graph, renderer, camera, world, meshById, pickAt, controllerPick, fitWorldForXR, vrPanel, drawVRPanel, placeVRPanel, showVRPanel, hideVRPanel, vrpCanvas,
+  tour, TOUR, tourText, tourStart, tourEnd, tourNext, tourPrev, tourPlayPause, tourGo:(i)=>tourGo(i),
+  rig, snapTurn, applyLoco, updateLocomotion,
+  nearestLink, linkSentence, linkSentenceShort, nodeName, linkTip, linkTipVR, updateVRLinkTip, ray, srcId, tgtId, linkVis,
+  showLinkTip, hideLinkTip, updateLinkTipFromRay,
+  buildEdgeLabels, clearEdgeLabels, updateEdgeLabels, edgeLabelText, edgeLabelGroup, activeEdgeLabels:()=>activeEdgeLabels,
+  grab, beginGrab, updateGrab, onGripStart, onGripEnd, bothGripsHeld, ctrlPositions, controllers,
+  tele, teleArc, teleRing, beginTeleportAim, endTeleportAim, updateTeleportAim, teleportTo,
+  vignette, updateVignette, smoothMoving:()=>smoothMoving, vignetteOp:()=>vignetteOp };
+</script>
+</body>
+</html>

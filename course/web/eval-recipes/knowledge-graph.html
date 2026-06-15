@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Knowledge Graph · Eval &amp; Observability · AdaptLearn</title>
+<style>
+:root{
+  --bg0:#05070f; --bg1:#0a0f1f; --panel:rgba(15,21,38,0.82);
+  --line:rgba(120,140,190,0.18); --txt:#e6ecff; --muted:#8b97b8; --accent:#38bdf8;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg0);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;color:var(--txt);}
+canvas{display:block;position:fixed;inset:0;cursor:grab;}
+canvas.grabbing{cursor:grabbing;}
+.glow-bg{position:fixed;inset:0;z-index:-1;
+  background:
+    radial-gradient(900px 600px at 18% 12%, rgba(56,189,248,0.10), transparent 60%),
+    radial-gradient(800px 600px at 85% 80%, rgba(168,85,247,0.10), transparent 60%),
+    radial-gradient(700px 500px at 70% 20%, rgba(244,114,182,0.06), transparent 60%),
+    linear-gradient(180deg,#05070f,#080c18 60%,#05070f);}
+
+/* ── top bar ── */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;
+  gap:14px;padding:14px 20px;pointer-events:none;}
+.brand{pointer-events:auto;}
+.brand h1{margin:0;font-size:16px;font-weight:800;letter-spacing:-0.01em;
+  background:linear-gradient(90deg,#7dd3fc,#a78bfa,#f472b6);-webkit-background-clip:text;
+  background-clip:text;color:transparent;}
+.brand .sub{font-size:11px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;}
+.search{pointer-events:auto;margin-left:6px;position:relative;}
+.search input{width:240px;background:var(--panel);border:1px solid var(--line);color:var(--txt);
+  border-radius:999px;padding:9px 16px 9px 36px;font-size:13px;outline:none;backdrop-filter:blur(8px);}
+.search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,189,248,0.15);}
+.search .mag{position:absolute;left:13px;top:9px;opacity:.6;font-size:13px;}
+.spacer{flex:1;}
+.hud{pointer-events:auto;display:flex;gap:8px;}
+.hud .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:7px 12px;backdrop-filter:blur(8px);text-align:center;}
+.hud .stat b{display:block;font-size:16px;font-weight:800;line-height:1;}
+.hud .stat span{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.links{pointer-events:auto;display:flex;gap:6px;}
+.links a{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:8px 11px;font-size:12px;color:var(--txt);text-decoration:none;backdrop-filter:blur(8px);
+  transition:border-color .15s,color .15s;}
+.links a:hover{border-color:var(--accent);color:#7dd3fc;}
+
+/* ── legend / filters ── */
+.legend{position:fixed;left:20px;bottom:20px;z-index:30;width:236px;background:var(--panel);
+  border:1px solid var(--line);border-radius:14px;padding:14px;backdrop-filter:blur(10px);}
+.legend h3{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
+.legend .hint{font-size:10.5px;color:var(--muted);margin:0 0 10px;}
+.cat{display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:8px;cursor:pointer;
+  font-size:12px;user-select:none;transition:background .12s;}
+.cat:hover{background:rgba(255,255,255,0.04);}
+.cat.off{opacity:.32;}
+.cat .dot{width:11px;height:11px;border-radius:50%;flex:none;box-shadow:0 0 8px currentColor;}
+.cat .n{margin-left:auto;font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
+.edge-legend{margin-top:10px;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:5px;}
+.edge-legend .e{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--muted);}
+.edge-legend .ln{width:22px;height:0;border-top:2px solid;}
+
+/* ── tour ── */
+.tour{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:30;display:flex;
+  align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;
+  padding:7px 9px;backdrop-filter:blur(10px);}
+.tour button{background:rgba(255,255,255,0.06);border:1px solid var(--line);color:var(--txt);
+  width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;
+  justify-content:center;transition:background .12s,border-color .12s;}
+.tour button:hover{background:rgba(56,189,248,0.18);border-color:var(--accent);}
+.tour .play{width:auto;border-radius:999px;padding:0 16px;font-weight:700;font-size:12px;gap:6px;}
+.tour .label{font-size:11px;color:var(--muted);min-width:150px;text-align:center;}
+.tour .label b{color:var(--txt);}
+
+/* ── study panel ── */
+.panel{position:fixed;top:0;right:0;height:100%;width:392px;z-index:40;background:var(--panel);
+  border-left:1px solid var(--line);backdrop-filter:blur(16px);transform:translateX(100%);
+  transition:transform .32s cubic-bezier(.4,0,.2,1);overflow-y:auto;}
+.panel.open{transform:translateX(0);}
+.panel .ph{padding:60px 26px 18px;border-bottom:1px solid var(--line);position:relative;}
+.panel .close{position:absolute;top:18px;right:20px;background:none;border:none;color:var(--muted);
+  font-size:22px;cursor:pointer;line-height:1;}
+.panel .close:hover{color:var(--txt);}
+.panel .cat-pill{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
+.panel .cat-pill .dot{width:9px;height:9px;border-radius:50%;box-shadow:0 0 8px currentColor;}
+.panel h2{margin:0;font-size:23px;font-weight:800;letter-spacing:-0.02em;}
+.panel .meta{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;}
+.panel .tag{font-size:10.5px;border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--muted);}
+.panel .body{padding:20px 26px 40px;}
+.panel .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);
+  margin:18px 0 7px;font-weight:700;}
+.panel .lbl:first-child{margin-top:0;}
+.panel .measures{font-size:14.5px;line-height:1.6;color:#cfd8f5;}
+.panel .rel{display:flex;flex-direction:column;gap:5px;}
+.panel .rel a{display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfd8f5;text-decoration:none;
+  padding:7px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:.12s;}
+.panel .rel a:hover{border-color:var(--accent);color:#7dd3fc;background:rgba(56,189,248,0.06);}
+.panel .rel .d{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:0 0 7px currentColor;}
+.panel .none{font-size:12px;color:var(--muted);font-style:italic;}
+.panel .actions{display:grid;gap:8px;margin-top:6px;}
+.panel .actions a{text-align:center;text-decoration:none;font-size:13px;font-weight:700;padding:11px;
+  border-radius:10px;transition:.15s;}
+.panel .actions a.primary{background:linear-gradient(90deg,#0ea5e9,#6366f1);color:#fff;
+  box-shadow:0 6px 22px rgba(56,189,248,0.28);}
+.panel .actions a.primary:hover{filter:brightness(1.08);}
+.panel .actions a.ghost{background:rgba(255,255,255,0.05);border:1px solid var(--line);color:var(--txt);}
+.panel .actions a.ghost:hover{border-color:var(--accent);color:#7dd3fc;}
+
+.help{position:fixed;right:20px;bottom:20px;z-index:25;font-size:10.5px;color:var(--muted);
+  text-align:right;line-height:1.6;pointer-events:none;}
+@media(max-width:720px){.legend,.hud,.help{display:none;}.panel{width:100%;}}
+</style>
+</head>
+<body>
+<div class="glow-bg"></div>
+<canvas id="cv"></canvas>
+
+<div class="topbar">
+  <div class="brand">
+    <h1>Eval &amp; Observability — Knowledge Graph</h1>
+    <div class="sub">41 metrics · 9 clusters · interactive study map</div>
+  </div>
+  <div class="search">
+    <span class="mag">⌕</span>
+    <input id="search" type="text" placeholder="Search metrics…" autocomplete="off" />
+  </div>
+  <div class="spacer"></div>
+  <div class="hud">
+    <div class="stat"><b id="stat-n">41</b><span>Metrics</span></div>
+    <div class="stat"><b id="stat-e">0</b><span>Links</span></div>
+    <div class="stat"><b id="stat-l">6</b><span>Lessons</span></div>
+  </div>
+  <div class="links">
+    <a href="book-graph.html">Book Graph</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="playground.html">Playground</a>
+    <a href="knowledge-path.html">Path</a>
+    <a href="flow.html">Flow</a>
+  </div>
+</div>
+
+<aside class="legend">
+  <h3>Clusters · click to filter</h3>
+  <p class="hint">Hover a node to trace its dependencies · click to study.</p>
+  <div id="cats"></div>
+  <div class="edge-legend">
+    <div class="e"><span class="ln" style="border-color:#38bdf8"></span>feeds / derives</div>
+    <div class="e"><span class="ln" style="border-color:#a78bfa"></span>rolls up / gates</div>
+    <div class="e"><span class="ln" style="border-color:#64748b"></span>conceptual kin</div>
+    <div class="e"><span class="ln" style="border-color:#fbbf24;border-top-style:dashed"></span>feedback loop</div>
+  </div>
+</aside>
+
+<div class="tour">
+  <button id="tour-prev" title="Previous">‹</button>
+  <button id="tour-play" class="play"><span id="tour-icon">▶</span><span>Guided tour</span></button>
+  <button id="tour-next" title="Next">›</button>
+  <span class="label" id="tour-label">Beginner → Expert</span>
+</div>
+
+<aside class="panel" id="panel">
+  <div class="ph">
+    <button class="close" id="panel-close">×</button>
+    <div class="cat-pill" id="p-cat"><span class="dot"></span><span id="p-cat-t"></span></div>
+    <h2 id="p-title"></h2>
+    <div class="meta" id="p-meta"></div>
+  </div>
+  <div class="body">
+    <div class="lbl">What it measures</div>
+    <div class="measures" id="p-measures"></div>
+    <div class="lbl">Prerequisites — learn these first</div>
+    <div class="rel" id="p-prereq"></div>
+    <div class="lbl">Unlocks — what builds on it</div>
+    <div class="rel" id="p-unlocks"></div>
+    <div class="lbl">Study this metric</div>
+    <div class="actions" id="p-actions"></div>
+  </div>
+</aside>
+
+<div class="help">drag node · scroll to zoom · drag canvas to pan</div>
+
+<script src="lessons-data.js"></script>
+<script>
+"use strict";
+const LESSONS = window.LESSONS || {};
+
+/* ───────────────────────── data ───────────────────────── */
+const CATS = {
+  "Output correctness":        { c:"#38bdf8" },
+  "Behavior & tool use":       { c:"#34d399" },
+  "Cost & latency":            { c:"#fbbf24" },
+  "Safety & robustness":       { c:"#f87171" },
+  "Eval ops":                  { c:"#a78bfa" },
+  "Traces (obs)":              { c:"#22d3ee" },
+  "Metrics (obs)":             { c:"#2dd4bf" },
+  "Dashboards & alerts (obs)": { c:"#f472b6" },
+  "Trace sampling (obs)":      { c:"#c084fc" },
+};
+
+// id, title, category, complexity, measures
+const METRICS = [
+  ["regression-eval-set","Regression eval set","Output correctness","starter","Whether code or prompt changes silently break previously-passing cases."],
+  ["llm-judge-rubric","LLM-judge with rubric","Output correctness","intermediate","Subjective quality dimensions reduced to discrete scores via a judge model + rubric."],
+  ["citation-faithfulness","Citation faithfulness","Output correctness","intermediate","The fraction of model claims that are verifiable against the cited source span."],
+  ["exact-vs-semantic-match","Exact vs semantic match","Output correctness","starter","Output equivalence, with different tolerances for surface variation."],
+  ["schema-conformance","Schema conformance","Output correctness","starter","Rate at which raw model output validates against the declared schema before any retry/repair."],
+  ["calibration-ece","Calibration / ECE","Output correctness","intermediate","Expected Calibration Error — the gap between stated confidence and actual accuracy."],
+  ["multi-turn-coherence","Multi-turn coherence","Output correctness","advanced","Whether the agent maintains state, doesn't contradict itself, and tracks references across turns."],
+  ["pairwise-preference","Pairwise preference","Output correctness","intermediate","Which of two candidate outputs a (human or LLM) judge prefers, per query."],
+  ["tool-trajectory","Tool trajectory","Behavior & tool use","intermediate","Whether the sequence of tool calls matches expectations — order may vary, but key tools must fire."],
+  ["tool-argument-validity","Tool argument validity","Behavior & tool use","starter","Whether tool calls carry valid arguments against the declared input_schema."],
+  ["refusal-rate","Refusal / over-refusal","Behavior & tool use","intermediate","Two rates: over-refusals on benign queries, and under-refusals on truly unsafe queries."],
+  ["safety-guardrail-adherence","Safety guardrail adherence","Behavior & tool use","advanced","Whether the agent follows declared hard rules in every response."],
+  ["tool-failure-recovery","Tool failure recovery","Behavior & tool use","intermediate","Whether the agent gracefully handles tool failures instead of crashing or hallucinating."],
+  ["cost-per-task","Cost per task","Cost & latency","starter","Total API cost per logical task — input + output tokens, by model, net of cache savings."],
+  ["latency-percentiles","Latency p50/p95/p99","Cost & latency","starter","End-to-end response-time distribution from user input to final response."],
+  ["token-usage-attribution","Token usage attribution","Cost & latency","intermediate","Token breakdown by phase: system prompt, history, tool results, retrieval context, output."],
+  ["tail-latency-analysis","Tail latency analysis","Cost & latency","advanced","What's happening in the slow 1% — long agent loops, retries, slow tools, cold caches."],
+  ["red-team-injection","Red-team prompt-injection","Safety & robustness","advanced","Whether the agent follows attacker-injected instructions hidden in retrieved content."],
+  ["jailbreak-resistance","Jailbreak resistance","Safety & robustness","advanced","Whether known jailbreak techniques bypass safety prompting."],
+  ["pii-leakage","PII leakage","Safety & robustness","intermediate","Whether the agent inadvertently echoes, logs, or transmits PII outside intended boundaries."],
+  ["hallucination-rate","Hallucination rate","Safety & robustness","advanced","Fraction of factual claims in agent output that are not verifiable."],
+  ["eval-set-freshness","Eval set freshness","Eval ops","intermediate","How well the eval set still reflects the production traffic distribution."],
+  ["ci-eval-gate","CI eval gate","Eval ops","starter","Whether the regression eval still passes — and blocks merging if not."],
+  ["sample-size-power","Sample size & power","Eval ops","intermediate","Minimum number of eval cases needed to detect an effect of a given size at a given confidence."],
+  ["prompt-ab-eval","Prompt A/B eval","Eval ops","intermediate","Difference in the scoring metric between prompt A and prompt B over the same eval set."],
+  ["obs-trace-tree","Per-task trace tree","Traces (obs)","starter","Each task = one trace = a tree of spans (LLM calls, tools, memory reads). Replay the agent's 'mind' in 30s."],
+  ["obs-spans","Spans & attributes","Traces (obs)","starter","Each span carries latency_ms, cost_usd, tokens, model, prompt version, confidence, error type."],
+  ["obs-events","Events","Traces (obs)","starter","Point-in-time markers inside a span — tool returned, schema validated, reflection critique fired."],
+  ["obs-replay","Replay infrastructure","Traces (obs)","advanced","Re-run a stored trace with the same inputs but a new prompt/model to A/B changes off real traffic."],
+  ["obs-counters","Counters","Metrics (obs)","intermediate","Per agent/tool/task-type: invocations, successes, failures, count per error type."],
+  ["obs-histograms","Histograms","Metrics (obs)","intermediate","Distributions of latency, cost, tool-call count, and confidence — not just averages."],
+  ["obs-five-metrics","The 5 metrics that matter","Metrics (obs)","intermediate","Accuracy (7d), cost/task (daily), p95 latency (hourly), escalation rate (daily), calibration ECE (weekly)."],
+  ["obs-per-agent","Per-agent / per-tool breakdown","Metrics (obs)","intermediate","Attribute every metric to the agent, tool, and task type that produced it."],
+  ["obs-dashboards","4 dashboard widgets","Dashboards & alerts (obs)","intermediate","Accuracy, cost per task, p95 latency, calibration — the standing view of agent health."],
+  ["obs-alert-thresholds","Alert thresholds","Dashboards & alerts (obs)","intermediate","Set from history so the false-positive rate stays under ~1/month."],
+  ["obs-alert-fatigue","Alert-fatigue rule","Dashboards & alerts (obs)","advanced","Beyond ~3 unactioned alerts/week the team stops looking — thresholds too tight, or system unstable."],
+  ["obs-oncall-playbook","On-call playbook","Dashboards & alerts (obs)","advanced","Confirm → scope → recent changes → sample traces → hypothesis → rollback/fix → document."],
+  ["obs-sample-failures","Always sample failures","Trace sampling (obs)","starter","Failures, escalations, and high-confidence-but-overridden answers are always stored."],
+  ["obs-sample-routine","1% of routine successes","Trace sampling (obs)","intermediate","A statistical sample of healthy traffic keeps storage bounded."],
+  ["obs-sample-rare","100% of rare task types","Trace sampling (obs)","intermediate","Low-volume, high-importance task types are always sampled so you never lose the signal."],
+  ["obs-sample-anomalous-cost","Anomalous-cost capture","Trace sampling (obs)","advanced","Any trace costing more than 2× P95 is stored regardless of the sampling rate."],
+];
+
+// directed edges between metrics: [from, to, type]  type ∈ feeds|gates|kin|loop
+const RELS = [
+  // trace structure
+  ["obs-trace-tree","obs-spans","feeds"], ["obs-spans","obs-events","feeds"],
+  ["obs-trace-tree","obs-replay","feeds"],
+  // spans/events derive measurable metrics
+  ["obs-spans","latency-percentiles","feeds"], ["obs-spans","cost-per-task","feeds"],
+  ["obs-spans","token-usage-attribution","feeds"], ["obs-spans","calibration-ece","feeds"],
+  ["obs-spans","tool-trajectory","feeds"], ["obs-spans","tool-argument-validity","feeds"],
+  ["obs-spans","schema-conformance","feeds"], ["obs-events","tool-failure-recovery","feeds"],
+  ["obs-events","refusal-rate","feeds"],
+  // conceptual kin
+  ["pairwise-preference","llm-judge-rubric","kin"], ["citation-faithfulness","hallucination-rate","kin"],
+  ["red-team-injection","jailbreak-resistance","kin"], ["jailbreak-resistance","safety-guardrail-adherence","kin"],
+  ["red-team-injection","safety-guardrail-adherence","kin"], ["pii-leakage","safety-guardrail-adherence","kin"],
+  ["refusal-rate","safety-guardrail-adherence","kin"], ["tool-argument-validity","tool-trajectory","kin"],
+  ["tool-failure-recovery","tool-trajectory","kin"], ["schema-conformance","tool-argument-validity","kin"],
+  ["token-usage-attribution","cost-per-task","kin"], ["tail-latency-analysis","latency-percentiles","kin"],
+  ["multi-turn-coherence","regression-eval-set","kin"], ["exact-vs-semantic-match","llm-judge-rubric","kin"],
+  // rollups & gates
+  ["calibration-ece","obs-five-metrics","gates"], ["cost-per-task","obs-five-metrics","gates"],
+  ["latency-percentiles","obs-five-metrics","gates"], ["refusal-rate","obs-five-metrics","gates"],
+  ["llm-judge-rubric","obs-five-metrics","gates"],
+  ["calibration-ece","obs-dashboards","gates"], ["cost-per-task","obs-dashboards","gates"],
+  ["latency-percentiles","obs-dashboards","gates"], ["obs-per-agent","obs-dashboards","gates"],
+  ["obs-counters","obs-per-agent","gates"], ["obs-histograms","obs-per-agent","gates"],
+  ["schema-conformance","regression-eval-set","gates"], ["tool-trajectory","regression-eval-set","gates"],
+  ["exact-vs-semantic-match","regression-eval-set","gates"], ["llm-judge-rubric","regression-eval-set","gates"],
+  ["sample-size-power","regression-eval-set","gates"], ["sample-size-power","prompt-ab-eval","gates"],
+  ["regression-eval-set","ci-eval-gate","gates"], ["schema-conformance","ci-eval-gate","gates"],
+  ["regression-eval-set","prompt-ab-eval","gates"],
+  ["obs-five-metrics","obs-alert-thresholds","gates"], ["obs-histograms","obs-alert-thresholds","gates"],
+  ["obs-dashboards","obs-alert-thresholds","gates"],
+  // alerts & ops
+  ["obs-alert-thresholds","obs-alert-fatigue","feeds"], ["obs-alert-fatigue","obs-oncall-playbook","feeds"],
+  ["obs-dashboards","obs-oncall-playbook","feeds"],
+  ["obs-events","obs-sample-failures","feeds"], ["obs-spans","obs-sample-routine","feeds"],
+  ["obs-spans","obs-sample-rare","feeds"], ["cost-per-task","obs-sample-anomalous-cost","feeds"],
+  ["obs-oncall-playbook","obs-sample-failures","feeds"], ["obs-sample-routine","eval-set-freshness","feeds"],
+  // feedback loops
+  ["obs-oncall-playbook","regression-eval-set","loop"], ["eval-set-freshness","regression-eval-set","loop"],
+  ["prompt-ab-eval","llm-judge-rubric","loop"], ["obs-sample-failures","obs-replay","loop"],
+];
+
+// optimal study order for the guided tour (beginner → expert)
+const TOUR = [
+  "obs-trace-tree","obs-spans","obs-events","schema-conformance","exact-vs-semantic-match",
+  "cost-per-task","latency-percentiles","tool-argument-validity","tool-trajectory",
+  "regression-eval-set","ci-eval-gate","citation-faithfulness","llm-judge-rubric",
+  "sample-size-power","calibration-ece","pairwise-preference","prompt-ab-eval",
+  "token-usage-attribution","tail-latency-analysis","refusal-rate","tool-failure-recovery",
+  "multi-turn-coherence","safety-guardrail-adherence","pii-leakage","red-team-injection",
+  "jailbreak-resistance","hallucination-rate","obs-counters","obs-histograms","obs-per-agent",
+  "obs-five-metrics","obs-dashboards","obs-alert-thresholds","obs-alert-fatigue","obs-oncall-playbook",
+  "obs-sample-failures","obs-sample-routine","obs-sample-rare","obs-sample-anomalous-cost",
+  "obs-replay","eval-set-freshness",
+];
+
+const EDGE_COLOR = { feeds:"#38bdf8", gates:"#a78bfa", kin:"#64748b", loop:"#fbbf24" };
+const R_BY_CX = { starter:13, intermediate:15, advanced:17 };
+
+/* ───────────────────────── build node/edge model ───────────────────────── */
+const catList = Object.keys(CATS);
+const catIndex = Object.fromEntries(catList.map((c,i)=>[c,i]));
+const nodes = {};      // id -> node
+const order = [];      // metric ids in declaration order
+const W = window.innerWidth, H = window.innerHeight;
+
+METRICS.forEach((m, i) => {
+  const [id,t,cat,cx,measures] = m;
+  // seed positions in a loose ring per cluster
+  const ci = catIndex[cat];
+  const ang = (ci / catList.length) * Math.PI*2;
+  const rr = 230 + (i%5)*26;
+  nodes[id] = {
+    id, t, cat, cx, measures,
+    x: W/2 + Math.cos(ang)*rr + (Math.random()-0.5)*60,
+    y: H/2 + Math.sin(ang)*rr + (Math.random()-0.5)*60,
+    vx:0, vy:0, r: R_BY_CX[cx] || 14, hub:false,
+  };
+  order.push(id);
+});
+// cluster centroids (computed each frame) for gravity wells
+const catCentroid = {}; catList.forEach(c => catCentroid[c] = {x:W/2,y:H/2,n:0});
+
+// adjacency for highlighting + panel prereq/unlocks
+const outAdj = {}, inAdj = {}, neighbor = {};
+order.forEach(id => { outAdj[id]=[]; inAdj[id]=[]; neighbor[id]=new Set(); });
+const edges = RELS.filter(([a,b]) => nodes[a] && nodes[b]).map(([a,b,type]) => {
+  outAdj[a].push({to:b,type}); inAdj[b].push({from:a,type});
+  neighbor[a].add(b); neighbor[b].add(a);
+  return {a,b,type};
+});
+
+/* ───────────────────────── state ───────────────────────── */
+let cam = { x:0, y:0, k:1 };       // pan x/y, zoom k
+let alpha = 1;                      // simulation temperature
+const off = {};                     // category -> filtered out (bool)
+let selected = null, hovered = null, dragNode = null;
+let tourOn = false, tourIdx = -1, tourTimer = null, tourTarget = null;
+
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+let DPR = Math.min(window.devicePixelRatio || 1, 2);
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = window.innerWidth*DPR; cv.height = window.innerHeight*DPR;
+  cv.style.width = window.innerWidth+"px"; cv.style.height = window.innerHeight+"px";
+}
+resize();
+window.addEventListener("resize", resize);
+
+/* ───────────────────────── physics ───────────────────────── */
+function step(){
+  if (alpha < 0.02) { alpha = 0.02; }     // keep a faint life so drags settle
+  const REP = 5200, SPRING = 0.012, GRAV = 0.015, CLUSTER = 0.020, DAMP = 0.86;
+
+  // cluster centroids
+  catList.forEach(c => { catCentroid[c].x=0; catCentroid[c].y=0; catCentroid[c].n=0; });
+  order.forEach(id => { const n=nodes[id]; const c=catCentroid[n.cat]; c.x+=n.x; c.y+=n.y; c.n++; });
+  catList.forEach(c => { const cc=catCentroid[c]; if(cc.n){ cc.x/=cc.n; cc.y/=cc.n; } });
+
+  // repulsion (all pairs)
+  for (let i=0;i<order.length;i++){
+    const a = nodes[order[i]];
+    for (let j=i+1;j<order.length;j++){
+      const b = nodes[order[j]];
+      let dx = a.x-b.x, dy = a.y-b.y;
+      let d2 = dx*dx+dy*dy; if (d2<1) d2=1;
+      const d = Math.sqrt(d2);
+      const f = REP/d2;
+      const fx = (dx/d)*f, fy=(dy/d)*f;
+      a.vx += fx*alpha; a.vy += fy*alpha;
+      b.vx -= fx*alpha; b.vy -= fy*alpha;
+    }
+  }
+  // springs along edges
+  edges.forEach(e => {
+    const a=nodes[e.a], b=nodes[e.b];
+    let dx=b.x-a.x, dy=b.y-a.y; let d=Math.sqrt(dx*dx+dy*dy)||1;
+    const rest = e.type==="kin"?120:160;
+    const f = SPRING*(d-rest);
+    const fx=(dx/d)*f, fy=(dy/d)*f;
+    a.vx += fx*alpha; a.vy += fy*alpha;
+    b.vx -= fx*alpha; b.vy -= fy*alpha;
+  });
+  // cluster + center gravity
+  const cxw = window.innerWidth/2, cyw = window.innerHeight/2;
+  order.forEach(id => {
+    const n = nodes[id];
+    const cc = catCentroid[n.cat];
+    n.vx += (cc.x - n.x)*CLUSTER*alpha;
+    n.vy += (cc.y - n.y)*CLUSTER*alpha;
+    n.vx += (cxw - n.x)*GRAV*alpha*0.4;
+    n.vy += (cyw - n.y)*GRAV*alpha*0.4;
+  });
+  // integrate
+  order.forEach(id => {
+    const n = nodes[id];
+    if (n === dragNode) { n.vx=0; n.vy=0; return; }
+    n.vx *= DAMP; n.vy *= DAMP;
+    // clamp
+    const sp = Math.hypot(n.vx,n.vy); if (sp>30){ n.vx*=30/sp; n.vy*=30/sp; }
+    n.x += n.vx; n.y += n.vy;
+  });
+  alpha *= 0.992;
+}
+
+/* ───────────────────────── render ───────────────────────── */
+const world = (sx,sy)=>({ x:(sx-cam.x)/cam.k, y:(sy-cam.y)/cam.k });
+function visible(id){ return !off[nodes[id].cat]; }
+
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+  ctx.save();
+  ctx.translate(cam.x,cam.y); ctx.scale(cam.k,cam.k);
+
+  const focus = hovered || selected;
+  const lit = focus ? neighbor[focus] : null;
+
+  // edges
+  ctx.lineWidth = 1.2;
+  edges.forEach(e => {
+    const a=nodes[e.a], b=nodes[e.b];
+    if (!visible(e.a) || !visible(e.b)) return;
+    const involved = focus && (e.a===focus || e.b===focus);
+    let col = EDGE_COLOR[e.type];
+    ctx.save();
+    if (focus){
+      if (involved){ ctx.globalAlpha=0.95; ctx.lineWidth=2.1; }
+      else { ctx.globalAlpha=0.05; ctx.lineWidth=1; }
+    } else { ctx.globalAlpha=0.34; }
+    ctx.strokeStyle = col;
+    ctx.setLineDash(e.type==="loop" ? [6,5] : []);
+    // slight curve
+    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+    const nx=-(b.y-a.y), ny=(b.x-a.x); const len=Math.hypot(nx,ny)||1;
+    const bow=18; const cxp=mx+(nx/len)*bow, cyp=my+(ny/len)*bow;
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.quadraticCurveTo(cxp,cyp,b.x,b.y); ctx.stroke();
+    // arrowhead for involved
+    if (involved){
+      const ang=Math.atan2(b.y-cyp,b.x-cxp); const ah=7;
+      const ex=b.x-Math.cos(ang)*(b.r+2), ey=b.y-Math.sin(ang)*(b.r+2);
+      ctx.beginPath();
+      ctx.moveTo(ex,ey);
+      ctx.lineTo(ex-Math.cos(ang-0.4)*ah, ey-Math.sin(ang-0.4)*ah);
+      ctx.lineTo(ex-Math.cos(ang+0.4)*ah, ey-Math.sin(ang+0.4)*ah);
+      ctx.closePath(); ctx.fillStyle=col; ctx.fill();
+    }
+    ctx.restore();
+  });
+  ctx.setLineDash([]);
+
+  // nodes
+  order.forEach(id => {
+    const n = nodes[id];
+    if (!visible(id)) return;
+    const col = CATS[n.cat].c;
+    const isFocus = id===focus;
+    const dim = focus && !isFocus && !(lit && lit.has(id));
+    const isTour = tourOn && TOUR[tourIdx]===id;
+
+    ctx.save();
+    ctx.globalAlpha = dim ? 0.22 : 1;
+    // glow
+    const gr = n.r + (isFocus?16:9) + (isTour?10:0);
+    const g = ctx.createRadialGradient(n.x,n.y,1,n.x,n.y,gr);
+    g.addColorStop(0, col); g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.globalAlpha = dim?0.08:(isFocus?0.55:0.30);
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(n.x,n.y,gr,0,Math.PI*2); ctx.fill();
+    // core
+    ctx.globalAlpha = dim?0.32:1;
+    ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+    ctx.fillStyle = "#0a0f1f"; ctx.fill();
+    ctx.lineWidth = isFocus?3:2; ctx.strokeStyle = col; ctx.stroke();
+    // inner dot
+    ctx.beginPath(); ctx.arc(n.x,n.y,n.r*0.42,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+    // authored-lesson ring
+    if (LESSONS[id]){
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r+4,0,Math.PI*2);
+      ctx.lineWidth=1.4; ctx.strokeStyle="rgba(255,255,255,0.55)"; ctx.setLineDash([2,3]); ctx.stroke(); ctx.setLineDash([]);
+    }
+    // label (only when zoomed-in enough or focus/tour)
+    if (cam.k>0.75 || isFocus || isTour || (lit&&lit.has(id))){
+      ctx.globalAlpha = dim?0.3:1;
+      ctx.font = (isFocus?"700 ":"500 ")+"12px Inter, -apple-system, sans-serif";
+      ctx.textAlign="center"; ctx.textBaseline="top";
+      ctx.fillStyle = "rgba(8,12,24,0.85)";
+      const tw = ctx.measureText(n.t).width;
+      ctx.fillStyle = isFocus? "#ffffff" : "#c8d2f0";
+      ctx.fillText(n.t, n.x, n.y+n.r+5);
+    }
+    ctx.restore();
+  });
+
+  ctx.restore();
+}
+
+function frame(){ step(); draw(); requestAnimationFrame(frame); }
+requestAnimationFrame(frame);
+
+/* ───────────────────────── hit testing ───────────────────────── */
+function nodeAt(sx,sy){
+  const w = world(sx,sy);
+  let best=null, bd=1e9;
+  order.forEach(id=>{
+    if(!visible(id)) return;
+    const n=nodes[id]; const d=Math.hypot(n.x-w.x,n.y-w.y);
+    if (d < n.r+6 && d<bd){ bd=d; best=n; }
+  });
+  return best;
+}
+
+/* ───────────────────────── interaction ───────────────────────── */
+let down=false, moved=false, last={x:0,y:0}, downNode=null;
+cv.addEventListener("mousedown", e=>{
+  down=true; moved=false; last={x:e.clientX,y:e.clientY};
+  downNode = nodeAt(e.clientX,e.clientY);
+  if (downNode){ dragNode=downNode; alpha=Math.max(alpha,0.7); }
+  cv.classList.add("grabbing");
+});
+window.addEventListener("mousemove", e=>{
+  if (!down){
+    const n = nodeAt(e.clientX,e.clientY);
+    const id = n?n.id:null;
+    if (id!==hovered){ hovered=id; cv.style.cursor = id?"pointer":"grab"; }
+    return;
+  }
+  const dx=e.clientX-last.x, dy=e.clientY-last.y;
+  if (Math.abs(dx)+Math.abs(dy)>3) moved=true;
+  last={x:e.clientX,y:e.clientY};
+  if (dragNode){
+    const w=world(e.clientX,e.clientY); dragNode.x=w.x; dragNode.y=w.y; alpha=Math.max(alpha,0.6);
+  } else { cam.x+=dx; cam.y+=dy; }
+});
+window.addEventListener("mouseup", e=>{
+  cv.classList.remove("grabbing");
+  if (down && !moved && downNode){ select(downNode.id); stopTour(); }
+  down=false; dragNode=null;
+});
+cv.addEventListener("wheel", e=>{
+  e.preventDefault();
+  const f = e.deltaY<0 ? 1.12 : 1/1.12;
+  const nk = Math.min(2.6, Math.max(0.35, cam.k*f));
+  // zoom toward cursor
+  const wx=(e.clientX-cam.x)/cam.k, wy=(e.clientY-cam.y)/cam.k;
+  cam.k=nk; cam.x=e.clientX-wx*cam.k; cam.y=e.clientY-wy*cam.k;
+}, {passive:false});
+
+/* ───────────────────────── panel ───────────────────────── */
+function relRow(id, type){
+  const n=nodes[id]; const col=CATS[n.cat].c;
+  const tg = {feeds:"feeds",gates:"gates",kin:"kin",loop:"loop"}[type]||"";
+  return '<a data-go="'+id+'"><span class="d" style="color:'+col+'"></span><span>'+n.t+
+    '</span><span style="margin-left:auto;font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">'+tg+'</span></a>';
+}
+function recipeHref(id){ return id.startsWith("obs-") ? "../m08/lesson-8.3.html" : id+".html"; }
+
+function renderPanel(id){
+  const n = nodes[id]; const col = CATS[n.cat].c;
+  document.getElementById("p-cat-t").textContent = n.cat;
+  const dot = document.querySelector("#p-cat .dot"); dot.style.color=col; dot.style.background=col;
+  document.getElementById("p-title").textContent = n.t;
+  const meta = document.getElementById("p-meta");
+  const obs = id.startsWith("obs-");
+  meta.innerHTML = '<span class="tag">'+n.cx+'</span>'+
+    '<span class="tag">'+(obs?"observability":"eval")+'</span>'+
+    (LESSONS[id]?'<span class="tag" style="border-color:'+col+';color:'+col+'">full lesson ✦</span>':'');
+  document.getElementById("p-measures").textContent = n.measures;
+
+  const pre = inAdj[id]; const unl = outAdj[id];
+  document.getElementById("p-prereq").innerHTML = pre.length
+    ? pre.map(r=>relRow(r.from,r.type)).join("") : '<span class="none">Foundational — no prerequisites.</span>';
+  document.getElementById("p-unlocks").innerHTML = unl.length
+    ? unl.map(r=>relRow(r.to,r.type)).join("") : '<span class="none">Terminal — nothing depends on it yet.</span>';
+
+  const acts = [];
+  if (LESSONS[id]) acts.push('<a class="primary" href="lesson.html#'+id+'">Full worked lesson →</a>');
+  acts.push('<a class="ghost" href="agent-assessment.html#'+id+'">Metric card</a>');
+  acts.push('<a class="ghost" href="scripts/view.html#'+id+'" target="_blank" rel="noopener">Test script ↗</a>');
+  acts.push('<a class="ghost" href="'+recipeHref(id)+'">Recipe / topic page</a>');
+  document.getElementById("p-actions").innerHTML = acts.join("");
+
+  // wire prereq/unlock navigation
+  document.querySelectorAll("#p-prereq [data-go],#p-unlocks [data-go]").forEach(a=>{
+    a.addEventListener("click", ()=> select(a.getAttribute("data-go")));
+  });
+}
+function select(id){
+  if(!nodes[id]) return;
+  selected = id;
+  renderPanel(id);
+  document.getElementById("panel").classList.add("open");
+  centerOn(id);
+}
+function closePanel(){ selected=null; document.getElementById("panel").classList.remove("open"); }
+document.getElementById("panel-close").addEventListener("click", closePanel);
+
+function centerOn(id){
+  const n=nodes[id]; tourTarget={x:n.x,y:n.y}; animCam();
+}
+let camAnim=null;
+function animCam(){
+  if(camAnim) cancelAnimationFrame(camAnim);
+  const tick=()=>{
+    if(!tourTarget) return;
+    const panelW = document.getElementById("panel").classList.contains("open")?392:0;
+    const tx = (window.innerWidth-panelW)/2 - tourTarget.x*cam.k;
+    const ty = window.innerHeight/2 - tourTarget.y*cam.k;
+    cam.x += (tx-cam.x)*0.12; cam.y += (ty-cam.y)*0.12;
+    if (Math.hypot(tx-cam.x,ty-cam.y)>0.6) camAnim=requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+/* ───────────────────────── search ───────────────────────── */
+const searchEl = document.getElementById("search");
+searchEl.addEventListener("input", ()=>{
+  const q = searchEl.value.trim().toLowerCase();
+  if(!q){ hovered=null; return; }
+  const hit = order.find(id => nodes[id].t.toLowerCase().includes(q) || id.includes(q));
+  if(hit){ hovered=hit; }
+});
+searchEl.addEventListener("keydown", e=>{
+  if(e.key==="Enter"){
+    const q=searchEl.value.trim().toLowerCase();
+    const hit=order.find(id=>nodes[id].t.toLowerCase().includes(q)||id.includes(q));
+    if(hit){ select(hit); stopTour(); }
+  }
+});
+
+/* ───────────────────────── legend / filters ───────────────────────── */
+const catsEl = document.getElementById("cats");
+catList.forEach(c=>{
+  const count = order.filter(id=>nodes[id].cat===c).length;
+  const row=document.createElement("div"); row.className="cat"; row.dataset.cat=c;
+  row.innerHTML = '<span class="dot" style="color:'+CATS[c].c+';background:'+CATS[c].c+'"></span>'+
+    '<span>'+c.replace(" (obs)","")+'</span><span class="n">'+count+'</span>';
+  row.addEventListener("click", ()=>{
+    off[c]=!off[c]; row.classList.toggle("off", off[c]); alpha=Math.max(alpha,0.4);
+    document.getElementById("stat-n").textContent = order.filter(visible).length;
+  });
+  catsEl.appendChild(row);
+});
+
+/* ───────────────────────── tour ───────────────────────── */
+function tourGo(i){
+  tourIdx = (i+TOUR.length)%TOUR.length;
+  const id = TOUR[tourIdx];
+  // ensure visible
+  if(off[nodes[id].cat]){ off[nodes[id].cat]=false;
+    document.querySelector('.cat[data-cat="'+nodes[id].cat+'"]').classList.remove("off");
+    document.getElementById("stat-n").textContent = order.filter(visible).length; }
+  select(id);
+  document.getElementById("tour-label").innerHTML =
+    'Step <b>'+(tourIdx+1)+'</b> / '+TOUR.length+' · <b>'+nodes[id].t+'</b>';
+}
+function startTour(){
+  tourOn=true; document.getElementById("tour-icon").textContent="❚❚";
+  if(tourIdx<0) tourGo(0); else tourGo(tourIdx);
+  clearInterval(tourTimer);
+  tourTimer=setInterval(()=> tourGo(tourIdx+1), 3400);
+}
+function stopTour(){
+  tourOn=false; document.getElementById("tour-icon").textContent="▶";
+  clearInterval(tourTimer); tourTimer=null;
+}
+document.getElementById("tour-play").addEventListener("click", ()=> tourOn?stopTour():startTour());
+document.getElementById("tour-next").addEventListener("click", ()=>{ tourGo(tourIdx+1); if(tourOn){clearInterval(tourTimer);tourTimer=setInterval(()=>tourGo(tourIdx+1),3400);} });
+document.getElementById("tour-prev").addEventListener("click", ()=>{ tourGo(tourIdx-1); if(tourOn){clearInterval(tourTimer);tourTimer=setInterval(()=>tourGo(tourIdx+1),3400);} });
+
+/* ───────────────────────── init ───────────────────────── */
+document.getElementById("stat-e").textContent = edges.length;
+document.getElementById("stat-l").textContent = Object.keys(LESSONS).length;
+document.getElementById("stat-n").textContent = order.length;
+// deep link: #<id>
+const h = decodeURIComponent(location.hash.slice(1)).trim();
+if (h && nodes[h]) setTimeout(()=>select(h), 400);
+window.addEventListener("keydown", e=>{ if(e.key==="Escape"){ closePanel(); stopTour(); }});
+</script>
+</body>
+</html>

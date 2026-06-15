@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Strategy · Problem → Solution Graph 3D / VR</title>
+<style>
+:root{
+  --bg0:#05070f; --panel:rgba(15,21,38,0.88); --line:rgba(120,140,190,0.18);
+  --txt:#e6ecff; --muted:#8b97b8; --faint:#5d6b8e; --accent:#38bdf8;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg0);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;color:var(--txt);}
+#cv3d{position:fixed;inset:0;}
+.overlay{position:fixed;inset:0;z-index:20;pointer-events:none;}
+.overlay *{pointer-events:auto;}
+
+/* top bar */
+.topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:14px;padding:14px 18px;pointer-events:none;flex-wrap:wrap;}
+.brand{pointer-events:auto;}
+.brand h1{margin:0;font-size:15px;font-weight:800;letter-spacing:-0.01em;
+  background:linear-gradient(90deg,#fcd34d,#a78bfa,#7dd3fc);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.brand .sub{font-size:10.5px;color:var(--muted);letter-spacing:.13em;text-transform:uppercase;}
+.spacer{flex:1;}
+.hud{pointer-events:auto;display:flex;gap:8px;}
+.hud .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 11px;backdrop-filter:blur(8px);text-align:center;}
+.hud .stat b{display:block;font-size:15px;font-weight:800;line-height:1;}
+.hud .stat span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.vrbtnwrap{pointer-events:auto;}
+button.vr-button-placeholder{display:none;}
+.openvr{pointer-events:auto;display:inline-flex;align-items:center;gap:5px;background:rgba(167,139,250,0.15);
+  border:1px solid rgba(167,139,250,0.45);color:#c4b5fd;border-radius:10px;padding:7px 13px;font-size:12px;font-weight:700;
+  text-decoration:none;backdrop-filter:blur(8px);white-space:nowrap;cursor:pointer;}
+.openvr:hover{background:rgba(167,139,250,0.26);color:#ddd6fe;}
+
+/* QR "open in VR" modal */
+.qrwrap{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(3,5,12,0.72);backdrop-filter:blur(4px);}
+.qrwrap[hidden]{display:none;}
+.qrcard{position:relative;width:340px;max-width:92vw;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;backdrop-filter:blur(16px);box-shadow:0 24px 70px rgba(0,0,0,0.55);}
+.qrcard h3{margin:0 0 6px;font-size:16px;font-weight:800;}
+.qrcard .qrsub{margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.5;}
+.qrcard .qrsub b{color:#c4b5fd;}
+.qrx{position:absolute;top:11px;right:14px;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;}
+.qrx:hover{color:var(--txt);}
+#qrcanvas{display:block;margin:0 auto;border-radius:10px;background:#fff;padding:8px;width:220px;height:220px;}
+.qrnote{margin:12px 0 0;font-size:11.5px;text-align:center;line-height:1.45;}
+.qrnote.ok{color:#34d399;}
+.qrnote.warn{color:#fbbf24;}
+.qrlbl{display:block;margin:14px 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;}
+.qrrow{display:flex;gap:7px;}
+.qrrow input{flex:1;min-width:0;background:rgba(255,255,255,0.05);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;font-size:12px;outline:none;font-family:ui-monospace,Menlo,monospace;}
+.qrrow input:focus{border-color:var(--accent);}
+.qrbtn{background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.4);color:#7dd3fc;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.qrbtn:hover{background:rgba(56,189,248,0.24);}
+.qrtip{margin:12px 0 0;font-size:11px;color:var(--faint);line-height:1.5;}
+.qrtip code{background:rgba(255,255,255,0.06);border-radius:4px;padding:1px 5px;color:#cfd8f5;font-size:10.5px;}
+
+/* walkthrough launcher button */
+.toolbtn{pointer-events:auto;display:inline-flex;align-items:center;gap:5px;background:rgba(252,211,77,0.15);
+  border:1px solid rgba(252,211,77,0.45);color:#fcd34d;border-radius:10px;padding:7px 13px;font-size:12px;font-weight:700;
+  text-decoration:none;backdrop-filter:blur(8px);white-space:nowrap;cursor:pointer;}
+.toolbtn:hover{background:rgba(252,211,77,0.26);color:#fde68a;}
+/* start-here guide */
+.guidewrap{position:fixed;inset:0;z-index:62;display:flex;align-items:flex-start;justify-content:center;padding-top:88px;background:rgba(3,5,12,0.55);backdrop-filter:blur(3px);}
+.guidewrap[hidden]{display:none;}
+.guidecard{position:relative;width:460px;max-width:94vw;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 22px;backdrop-filter:blur(16px);box-shadow:0 24px 70px rgba(0,0,0,0.55);}
+.guidecard h3{margin:0 0 4px;font-size:16px;font-weight:800;}
+.guidecard .gsub{margin:0 0 15px;font-size:12.5px;color:var(--muted);line-height:1.5;}
+.guidelist{list-style:none;margin:0 0 16px;padding:0;counter-reset:g;display:flex;flex-direction:column;gap:12px;}
+.guidelist li{counter-increment:g;position:relative;padding-left:40px;font-size:13px;line-height:1.5;color:#dce5fb;}
+.guidelist li:before{content:counter(g);position:absolute;left:0;top:-1px;width:26px;height:26px;border-radius:50%;background:rgba(56,189,248,0.16);border:1px solid var(--accent);color:#afe3ff;font-size:12.5px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.guidelist li b{color:#fff;}
+.guiderow{display:flex;gap:9px;}
+.guidebtn{background:rgba(56,189,248,0.16);border:1px solid rgba(56,189,248,0.45);color:#afe3ff;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;}
+.guidebtn:hover{background:rgba(56,189,248,0.28);}
+.guidebtn.ghost{background:transparent;border-color:var(--line);color:var(--muted);}
+/* what-if options dock */
+.optdock{position:absolute;top:108px;left:18px;width:268px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  padding:13px 14px;backdrop-filter:blur(10px);box-shadow:0 18px 50px rgba(0,0,0,0.5);pointer-events:auto;display:none;}
+.optdock.show{display:block;}
+.optdock h3{margin:0 0 3px;font-size:12.5px;font-weight:800;color:#fff;}
+.optdock .osub{margin:0 0 11px;font-size:10.5px;color:var(--muted);line-height:1.45;}
+.optbtn{display:block;width:100%;text-align:left;background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:11px;
+  padding:10px 12px;margin-bottom:9px;cursor:pointer;color:var(--txt);transition:.15s;}
+.optbtn:hover{background:rgba(56,189,248,0.10);border-color:rgba(56,189,248,0.4);}
+.optbtn.active{background:rgba(56,189,248,0.16);border-color:var(--accent);}
+.optbtn b{display:block;font-size:12.5px;font-weight:800;margin-bottom:2px;}
+.optbtn small{font-size:10.5px;color:var(--muted);line-height:1.4;}
+.optclear{width:100%;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:9px;padding:7px;font-size:11px;font-weight:700;cursor:pointer;}
+.optclear:hover{color:var(--txt);border-color:rgba(255,255,255,0.3);}
+.optkey{display:flex;gap:12px;margin:4px 0 11px;font-size:10px;color:var(--muted);}
+.optkey span{display:flex;align-items:center;gap:4px;}
+.optkey i{font-style:normal;font-weight:800;}
+.imrow{display:flex;gap:9px;align-items:flex-start;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:12px;line-height:1.45;}
+.imrow:hover{background:rgba(120,140,190,0.10);}
+.imrow .imk{font-weight:800;font-size:13px;line-height:1.2;flex:none;width:14px;text-align:center;}
+.imrow .imn b{color:#eaf0ff;}
+.imrow .imnote{color:var(--muted);}
+.imrow .imwhytog{margin-left:auto;font-size:10px;font-weight:700;color:var(--accent);white-space:nowrap;align-self:flex-start;}
+.imwhy{margin:-1px 0 7px 31px;padding:6px 0 4px;border-left:2px solid rgba(120,140,190,0.25);}
+.imwhy[hidden]{display:none;}
+.imwhy ol{margin:0;padding-left:0;list-style:none;counter-reset:wc;}
+.imwhy li{counter-increment:wc;position:relative;padding:3px 0 3px 23px;font-size:11px;color:#c2cdec;line-height:1.45;}
+.imwhy li:before{content:counter(wc);position:absolute;left:0;top:3px;width:15px;height:15px;border-radius:50%;background:#16203a;border:1px solid var(--line);color:var(--muted);font-size:8.5px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.imwhy li:last-child{color:#dbe6ff;font-weight:600;}
+
+/* scenario chooser modal */
+.scnwrap{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(3,5,12,0.72);backdrop-filter:blur(4px);}
+.scnwrap[hidden]{display:none;}
+.scncard{position:relative;width:460px;max-width:94vw;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;backdrop-filter:blur(16px);box-shadow:0 24px 70px rgba(0,0,0,0.55);}
+.scncard h3{margin:0 0 6px;font-size:16px;font-weight:800;}
+.scncard .qrsub{margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.5;}
+.scnlist{display:flex;flex-direction:column;gap:11px;}
+.scnopt{display:flex;gap:13px;align-items:flex-start;text-align:left;background:rgba(255,255,255,0.04);border:1px solid var(--line);
+  border-radius:13px;padding:14px 15px;cursor:pointer;transition:.15s;color:var(--txt);}
+.scnopt:hover{background:rgba(252,211,77,0.10);border-color:rgba(252,211,77,0.45);transform:translateY(-1px);}
+.scnemoji{font-size:26px;line-height:1;flex-shrink:0;}
+.scntxt{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.scntxt b{font-size:14px;font-weight:800;}
+.scntxt small{font-size:10.5px;color:#fcd34d;text-transform:uppercase;letter-spacing:.07em;font-weight:700;}
+.scntxt em{font-style:normal;font-size:12px;color:var(--muted);line-height:1.5;margin-top:2px;}
+
+/* walkthrough dock — docked to the RIGHT so the graph in the centre stays unobstructed */
+.tourdock{position:absolute;top:108px;right:18px;width:min(372px,calc(100% - 36px));max-height:calc(100% - 132px);overflow-y:auto;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;backdrop-filter:blur(10px);
+  box-shadow:0 18px 50px rgba(0,0,0,0.5);pointer-events:auto;display:none;}
+.tourdock.show{display:block;}
+.tdstory{font-size:11.5px;line-height:1.55;color:#cdd6f0;background:rgba(252,211,77,0.07);border:1px solid rgba(252,211,77,0.22);
+  border-radius:10px;padding:9px 11px;margin-bottom:11px;}
+.tdstory b{color:#fcd34d;}
+.tourdock .tdhead{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.tdscn{font-size:12.5px;font-weight:800;color:#fcd34d;}
+.tdstep{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-left:auto;}
+.tdaudio{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:var(--muted);font-size:10.5px;font-weight:700;cursor:pointer;border-radius:8px;padding:4px 9px;line-height:1;white-space:nowrap;}
+.tdaudio:hover{color:var(--txt);border-color:rgba(255,255,255,0.25);}
+.tdaudio.on{color:#fcd34d;border-color:rgba(252,211,77,0.5);background:rgba(252,211,77,0.08);}
+.tdx{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;}
+.tdx:hover{color:var(--txt);}
+.tdcallout{min-height:60px;}
+.tcflow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.tcflow .ar{color:var(--accent);font-size:15px;}
+.tcflow .chipnode{padding:3px 9px;border-radius:8px;font-size:12px;font-weight:700;border:1px solid transparent;}
+.tcverb{padding:2px 9px;border-radius:7px;font-size:11px;font-weight:700;border:1px solid transparent;}
+.tcsent{margin:0 0 8px;font-size:13px;line-height:1.5;color:#e6ecff;}
+.tcsent b{color:#fff;}
+.tcmeta{font-size:11.5px;color:var(--muted);margin-bottom:2px;line-height:1.6;}
+.tcmeta code{background:rgba(255,255,255,0.07);border-radius:4px;padding:1px 5px;color:#cfd8f5;font-size:10.5px;}
+.tcnext{margin-top:6px;padding-top:7px;border-top:1px solid rgba(255,255,255,0.08);font-size:11.5px;color:#9aa6c8;line-height:1.5;}
+.tcnext b{color:#cdd6f5;}
+.tdctrls{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.tdbar{flex:1 1 100%;height:6px;background:#0a0e1c;border-radius:999px;overflow:hidden;margin:7px 0 0;}
+.tdbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#fcd34d,#a78bfa);transition:width .12s linear;}
+
+/* mode selector */
+.modebar{position:absolute;top:60px;left:50%;transform:translateX(-50%);display:flex;gap:0;background:var(--panel);
+  border:1px solid var(--line);border-radius:12px;overflow:hidden;backdrop-filter:blur(8px);pointer-events:auto;}
+.modebar button{background:transparent;border:none;color:var(--muted);padding:9px 16px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:96px;border-right:1px solid var(--line);transition:.15s;}
+.modebar button:last-child{border-right:none;}
+.modebar button .em{font-size:15px;}
+.modebar button small{font-size:9.5px;color:var(--faint);font-weight:500;letter-spacing:.02em;}
+.modebar button.active{color:#fff;background:rgba(56,189,248,0.16);}
+.modebar button.active small{color:#9fd5f5;}
+.modebar button:hover:not(.active){color:#cdd8f5;}
+
+/* inspector panel */
+.panel{position:absolute;top:108px;right:18px;width:340px;max-height:calc(100% - 200px);overflow-y:auto;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 18px;backdrop-filter:blur(10px);
+  pointer-events:auto;display:none;box-shadow:0 18px 50px rgba(0,0,0,0.5);}
+.panel.show{display:block;}
+.panel .ptag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:3px 8px;border-radius:999px;margin-bottom:8px;}
+.panel h2{margin:2px 0 2px;font-size:17px;font-weight:800;letter-spacing:-0.01em;}
+.panel .kind{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;}
+.panel p{margin:8px 0;font-size:13px;line-height:1.5;color:#cdd6f0;}
+.panel .flow{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin:6px 0 10px;flex-wrap:wrap;}
+.panel .flow .ar{color:var(--accent);font-size:15px;}
+.panel .chipnode{padding:3px 9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid transparent;}
+.kv{display:grid;grid-template-columns:84px 1fr;gap:5px 10px;font-size:12px;margin:10px 0;}
+.kv .k{color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-size:10px;padding-top:1px;}
+.kv .v{color:#dde6fb;}
+.kv .v.bad{color:#fca5a5;}
+.code{background:#0a0e1c;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:11.5px;line-height:1.45;color:#a8e0ff;white-space:pre-wrap;word-break:break-word;margin:8px 0;max-height:170px;overflow:auto;}
+.hops{margin:10px 0 2px;}
+.hops .hl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;}
+.hops ol{margin:0;padding-left:0;list-style:none;counter-reset:h;}
+.hops li{counter-increment:h;position:relative;padding:5px 0 5px 26px;font-size:12px;color:#d4ddf5;border-left:2px solid var(--line);margin-left:8px;}
+.hops li:before{content:counter(h);position:absolute;left:-11px;top:4px;width:18px;height:18px;border-radius:50%;
+  background:#16203a;border:1px solid var(--accent);color:var(--accent);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.relrow{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12.5px;}
+.relrow:hover{background:rgba(120,140,190,0.1);}
+.relrow .dot{width:9px;height:9px;border-radius:50%;flex:none;}
+.relrow .vrb{color:var(--muted);font-size:11px;margin-left:auto;}
+.phead{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:14px 0 4px;}
+.closex{position:absolute;top:12px;right:12px;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;}
+.closex:hover{color:#fff;}
+
+/* trace dock */
+.tracedock{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:min(760px,calc(100% - 40px));
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;backdrop-filter:blur(10px);
+  pointer-events:auto;display:none;box-shadow:0 18px 50px rgba(0,0,0,0.5);}
+.tracedock.show{display:block;}
+.tracedock .trow{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+.tracedock select{background:#0a0e1c;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 10px;font-size:12.5px;outline:none;}
+.tracedock .tbtn,.tourdock .tbtn{background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.4);color:#9fd5f5;border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;}
+.tracedock .tbtn:hover,.tourdock .tbtn:hover{background:rgba(56,189,248,0.24);}
+.tracedock .tbtn.ghost,.tourdock .tbtn.ghost{background:transparent;border-color:var(--line);color:var(--muted);}
+.tracedock .step{flex:1;font-size:12px;color:#cdd6f0;}
+.tracedock .step b{color:#fff;}
+.tracebar{height:6px;background:#0a0e1c;border-radius:999px;overflow:hidden;}
+.tracebar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#34d399,#22d3ee);transition:width .12s linear;}
+
+/* legend */
+.legend{position:absolute;left:18px;bottom:18px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:11px 13px;backdrop-filter:blur(8px);pointer-events:auto;font-size:11.5px;max-width:230px;}
+.legend h3{margin:0 0 7px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;}
+.legend .lg{display:flex;align-items:center;gap:7px;margin:3px 0;color:#cdd6f0;}
+.legend .lg .sw{width:11px;height:11px;border-radius:3px;flex:none;}
+.legend .lg .sw.round{border-radius:50%;}
+.legend .cols{display:flex;gap:16px;}
+.legend .hint{margin-top:8px;color:var(--faint);font-size:10.5px;line-height:1.4;}
+
+/* loading */
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg0);z-index:50;flex-direction:column;gap:14px;}
+#loading .spin{width:40px;height:40px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:s 0.9s linear infinite;}
+#loadmsg{color:var(--muted);font-size:13px;}
+.err{color:#fca5a5;font-size:13px;max-width:480px;text-align:center;line-height:1.5;padding:0 20px;}
+@keyframes s{to{transform:rotate(360deg);}}
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+<canvas id="cv3d"></canvas>
+
+<div id="loading"><div class="spin"></div><div id="loadmsg">Loading 3D engine…</div></div>
+
+<div class="overlay">
+  <div class="topbar">
+    <div class="brand"><h1>AI Strategy · Problem → Solution 3D</h1><div class="sub">How to find the right AI strategy for your organization</div></div>
+    <div class="spacer"></div>
+    <div class="hud">
+      <div class="stat"><b id="s-comp">0</b><span>nodes</span></div>
+      <div class="stat"><b id="s-conn">0</b><span>relations</span></div>
+    </div>
+    <button id="guide-open" class="toolbtn" title="How to navigate this graph">❔ Start here</button>
+    <button id="opt-open" class="toolbtn" title="Try a strategic option and see its impact across the graph">🧪 What-if options</button>
+    <button id="scn-open" class="toolbtn" title="Play a guided, narrated walkthrough of a scenario">🎬 Walkthrough</button>
+    <a id="qr-open" class="openvr" href="#" title="Open this 3D graph on a VR headset">📱 Open in VR</a>
+    <div class="vrbtnwrap" id="vrbtnwrap"></div>
+  </div>
+
+  <div class="modebar" id="modebar">
+    <button data-mode="inspect" class="active"><span class="em">🔍</span>Inspect<small>node detail + links</small></button>
+    <button data-mode="explode"><span class="em">💥</span>Explode<small>unfold the steps</small></button>
+    <button data-mode="trace"><span class="em">📡</span>Trace<small>walk problem→solution</small></button>
+  </div>
+
+  <div class="panel" id="panel"><span class="closex" id="panel-close">×</span><div id="panel-body"></div></div>
+
+  <div class="optdock" id="optdock">
+    <h3>🧪 What-if: strategic options</h3>
+    <p class="osub">Pick an option — the nodes it impacts light up, and the panel lists the effects.</p>
+    <div class="optkey">
+      <span><i style="color:#34d399">▲</i> helps</span>
+      <span><i style="color:#f87171">▼</i> strains</span>
+      <span><i style="color:#fbbf24">◆</i> mixed</span>
+    </div>
+    <div id="optlist"></div>
+    <button class="optclear" id="opt-clear">Clear / show full map</button>
+  </div>
+
+  <div class="tracedock" id="tracedock">
+    <div class="trow">
+      <select id="trace-pick"></select>
+      <button class="tbtn" id="trace-play">▶ Play</button>
+      <button class="tbtn ghost" id="trace-step">Step ›</button>
+      <button class="tbtn ghost" id="trace-reset">Reset</button>
+    </div>
+    <div class="trow"><div class="step" id="trace-step-label">Pick a walkthrough and press Play — the packet follows the path from problem to solution, link by link.</div></div>
+    <div class="tracebar"><i id="trace-prog"></i></div>
+  </div>
+
+  <div class="legend" id="legend">
+    <div class="cols">
+      <div>
+        <h3>Problem domain</h3>
+        <div class="lg"><span class="sw round" style="background:#f59e0b"></span>Problem</div>
+        <div class="lg"><span class="sw round" style="background:#38bdf8"></span>Sub-problem</div>
+        <div class="lg"><span class="sw round" style="background:#f472b6"></span>Constraint</div>
+        <div class="lg"><span class="sw round" style="background:#fbbf24"></span>Requirement</div>
+        <div class="lg"><span class="sw round" style="background:#22d3ee"></span>Success criteria</div>
+        <div class="lg"><span class="sw round" style="background:#f87171"></span>Risk / pitfall</div>
+      </div>
+      <div>
+        <h3>Solution domain</h3>
+        <div class="lg"><span class="sw round" style="background:#34d399"></span>Approach</div>
+        <div class="lg"><span class="sw round" style="background:#a78bfa"></span>Initiative</div>
+        <div class="lg"><span class="sw round" style="background:#c4b5fd"></span>Capability</div>
+        <div class="lg"><span class="sw round" style="background:#7dd3fc"></span>Process</div>
+        <div class="lg"><span class="sw round" style="background:#fcd34d"></span>Role</div>
+        <div class="lg"><span class="sw round" style="background:#4ade80"></span>Metric</div>
+        <div class="lg"><span class="sw round" style="background:#94a3b8"></span>Alternative</div>
+        <div class="lg"><span class="sw round" style="background:#fb923c"></span>Trade-off</div>
+      </div>
+    </div>
+    <div class="hint"><b>Green / gold</b> links are <b>bridges</b> (solution → problem): addresses · satisfies · mitigates · meets. Click a node for detail; a sub-problem with no bridge in = a gap.</div>
+  </div>
+
+  <div class="tourdock" id="tourdock">
+    <div class="tdhead">
+      <span class="tdscn" id="td-scn">Scenario</span>
+      <span class="tdstep" id="td-step">Step 1 / 1</span>
+      <button class="tdaudio on" id="td-audio" title="Toggle audio narration">🔊 Narration</button>
+      <button class="tdx" id="td-exit" title="Exit walkthrough">✕</button>
+    </div>
+    <div class="tdstory" id="td-story" hidden></div>
+    <div class="tdcallout" id="td-callout"></div>
+    <div class="tdctrls">
+      <button class="tbtn ghost" id="td-prev">‹ Prev</button>
+      <button class="tbtn" id="td-play">⏸ Pause</button>
+      <button class="tbtn ghost" id="td-next">Next ›</button>
+      <button class="tbtn ghost" id="td-restart">↺ Restart</button>
+      <div class="tdbar"><i id="td-prog"></i></div>
+    </div>
+  </div>
+
+  <div class="guidewrap" id="guidewrap">
+    <div class="guidecard">
+      <button class="qrx" id="guide-close" aria-label="Close">×</button>
+      <h3>Start here — finding the right AI strategy</h3>
+      <p class="gsub">This is a 3D map: a <b>problem</b> broken into questions (left/amber side) bridged to a <b>solution</b> (right/green side). Navigate it in four steps.</p>
+      <ol class="guidelist">
+        <li><b>Follow the numbers.</b> Every node is numbered in reading order: <b>1–20</b> frame the problem (node <b>1</b> is the problem; the six questions are <b>2→7</b>), and <b>21–41</b> build the solution. Start at <b>1</b>.</li>
+        <li><b>Watch the approach.</b> Press <b>🎬 Walkthrough → "Approach"</b> for a narrated tour of those six questions and their constraints, criteria, and pitfalls.</li>
+        <li><b>Map to the solution.</b> Run <b>"Map problem → solution"</b> — each question lights up the component that answers it across a <b>green/gold bridge</b>.</li>
+        <li><b>Pressure-test & explore.</b> Run <b>"De-risk"</b>, then <b>click any node</b> for detail (Inspect / Explode / Trace), or <b>📱 Open in VR</b>.</li>
+      </ol>
+      <div class="guiderow">
+        <button class="guidebtn" id="guide-start">▶ Start the Approach walkthrough</button>
+        <button class="guidebtn ghost" id="guide-explore">Explore on my own</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scnwrap" id="scnwrap" hidden>
+    <div class="scncard">
+      <button class="qrx" id="scn-close" aria-label="Close">×</button>
+      <h3>Choose a walkthrough</h3>
+      <p class="qrsub">Tour the problem breakdown, map each question to the solution that answers it, or see how the strategy beats the classic pitfalls. The camera flies to each step and a callout explains the move.</p>
+      <div class="scnlist" id="scnlist"></div>
+    </div>
+  </div>
+
+  <div class="qrwrap" id="qrwrap" hidden>
+    <div class="qrcard">
+      <button class="qrx" id="qr-close" aria-label="Close">×</button>
+      <h3>Open on a VR headset</h3>
+      <p class="qrsub">Scan with the <b>Quest Browser</b> (or your phone), open the page, then tap <b>ENTER VR</b>.</p>
+      <canvas id="qrcanvas" width="220" height="220"></canvas>
+      <div class="qrnote" id="qrnote"></div>
+      <label class="qrlbl" for="qrurl">URL to encode</label>
+      <div class="qrrow">
+        <input id="qrurl" type="text" spellcheck="false" autocomplete="off" />
+        <button id="qrcopy" class="qrbtn">Copy</button>
+      </div>
+      <p class="qrtip">A headset can't reach <code>localhost</code> or a <code>192.168.*</code> LAN address. Serve over HTTPS first — e.g. <code>cloudflared tunnel --url http://localhost:4181</code> — then paste that <code>https://…</code> link above and the code updates.</p>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://esm.sh/three@0.160.0",
+    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
+    "three-forcegraph": "https://esm.sh/three-forcegraph@1.41.4?external=three",
+    "three-spritetext": "https://esm.sh/three-spritetext@1.8.2?external=three"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { VRButton } from "three/addons/webxr/VRButton.js";
+import ThreeForceGraph from "three-forcegraph";
+import SpriteText from "three-spritetext";
+
+const loadEl = document.getElementById("loading");
+const fail = (msg)=>{ loadEl.innerHTML = '<div class="err">⚠ '+msg+'</div>'; };
+
+/* ═══════════════ PROBLEM → SOLUTION GRAPH — "Finding the right AI strategy for your organization" ═══════════════ */
+// Two domains: PROBLEM (how to approach it) and SOLUTION (what to build), joined by BRIDGE edges.
+const KIND_COL = {
+  // problem domain
+  problem:"#f59e0b", subproblem:"#38bdf8", constraint:"#f472b6", requirement:"#fbbf24", criteria:"#22d3ee", risk:"#f87171",
+  // solution domain
+  approach:"#34d399", alternative:"#94a3b8", tradeoff:"#fb923c", initiative:"#a78bfa", capability:"#c4b5fd", process:"#7dd3fc", role:"#fcd34d", metric:"#4ade80" };
+const KIND_LABEL = {
+  problem:"Problem", subproblem:"Sub-problem", constraint:"Constraint", requirement:"Requirement", criteria:"Success criteria", risk:"Risk / pitfall",
+  approach:"Approach", alternative:"Alternative", tradeoff:"Trade-off", initiative:"Initiative", capability:"Capability", process:"Process", role:"Role", metric:"Metric" };
+const EDGE_COL = {
+  decomposes:"#38bdf8", constrains:"#f472b6", requires:"#fbbf24", measures:"#22d3ee", raises:"#f87171",
+  composedof:"#a78bfa", implements:"#c4b5fd", uses:"#7dd3fc", alternative:"#94a3b8", tradeoff:"#fb923c",
+  addresses:"#34d399", satisfies:"#4ade80", mitigates:"#2dd4bf", meets:"#fcd34d" };
+const EDGE_VERB = {
+  decomposes:"breaks down into", constrains:"is constrained by", requires:"requires", measures:"is measured by", raises:"risks",
+  composedof:"is composed of", implements:"implements", uses:"uses", alternative:"is an alternative to", tradeoff:"trades off",
+  addresses:"addresses", satisfies:"satisfies", mitigates:"mitigates", meets:"meets" };
+
+const N = (id,kind,label,role,extra={})=>({id,kind,label,role,...extra});
+const NODES = [
+  /* ═════ PROBLEM DOMAIN — how to approach it ═════ */
+  N("p:root","problem","Find the right AI strategy for our org","The decision to frame: not 'should we do AI?' but 'what is the right AI strategy for THIS organization?' — given our goals, constraints, and appetite for risk.",{imp:5}),
+  // the questions you must answer
+  N("p:where-value","subproblem","1 · Where will AI create real value?","Which business problems, processes, or products would AI move the needle on — and how much? Separating signal from hype.",{imp:4,step:1}),
+  N("p:readiness","subproblem","2 · Are we ready? (data, talent, tech)","Do we have the data quality, platforms, and skills to execute — or are there foundational gaps to close first?",{imp:4,step:2}),
+  N("p:buildbuy","subproblem","3 · Build, buy, or partner?","For each use case, do we build in-house, buy a product, or partner — and what should stay proprietary?",{imp:3,step:3}),
+  N("p:governance","subproblem","4 · How do we govern risk and trust?","How do we deploy AI safely — managing accuracy, bias, security, and compliance — without grinding innovation to a halt?",{imp:4,step:4}),
+  N("p:operating","subproblem","5 · How do we operate and scale it?","What operating model, platform, and funding turn pilots into durable, enterprise-wide capability?",{imp:3,step:5}),
+  N("p:people","subproblem","6 · How do we bring people along?","How do we reskill the workforce, redesign roles, and earn adoption rather than resistance?",{imp:3,step:6}),
+  // constraints (hard limits)
+  N("c:budget","constraint","Budget and ROI pressure","Finite investment and an expectation of measurable return on a realistic horizon.",{imp:3}),
+  N("c:regulation","constraint","Regulatory and compliance limits","Sector and regional rules (e.g. EU AI Act) bound what is permissible and demand provable controls.",{imp:3}),
+  N("c:legacy","constraint","Legacy systems and data silos","Fragmented, low-quality, siloed data and aging systems slow everything down.",{imp:2}),
+  N("c:talent","constraint","Scarce AI talent","Few people have deep, current AI experience; you cannot simply hire your way out.",{imp:2}),
+  // requirements (must-haves)
+  N("q:align","requirement","Tied to business objectives","Every initiative must map to a real business goal, not technology for its own sake.",{imp:3}),
+  N("q:trust","requirement","Trustworthy and safe by design","Outcomes must be safe, fair, auditable, and reconstructable — trust before speed.",{imp:3}),
+  N("q:scalable","requirement","Scales beyond pilots","The approach must move from proofs-of-concept to production at enterprise scale.",{imp:3}),
+  // success criteria
+  N("m:value","criteria","Measurable value / ROI","Success shows up as captured value: cost saved, revenue gained, time-to-market cut.",{imp:3}),
+  N("m:adoption","criteria","Real adoption by staff","People actually use it in daily work — usage and behaviour change, not shelfware.",{imp:2}),
+  N("m:riskctl","criteria","Risk under control / auditable","Incidents are rare and contained; every decision can be inspected and explained.",{imp:2}),
+  // risks / pitfalls
+  N("k:pilot","risk","Pilot purgatory","Endless proofs-of-concept that never reach production or scale.",{imp:3}),
+  N("k:hype","risk","Chasing hype, not value","Doing AI to look modern, on problems where it adds little real value.",{imp:2}),
+  N("k:shadow","risk","Shadow AI / ungoverned use","Teams adopt tools without approval, creating unseen risk and inconsistency.",{imp:2}),
+
+  /* ═════ SOLUTION DOMAIN — what to build ═════ */
+  N("s:approach","approach","Value-led, governed, federated AI strategy","The recommended path: prioritize by value, build on a shared governed platform, and run a federated operating model with central guardrails — not a single big bet.",{imp:5}),
+  // alternatives + trade-offs
+  N("alt:topdown","alternative","Alt: Centralized top-down mandate","One central team owns and builds everything — strong control, but slow and detached from the business.",{imp:2}),
+  N("alt:bottomup","alternative","Alt: Let teams self-serve","Every team does its own thing — fast and local, but inconsistent and ungoverned.",{imp:2}),
+  N("alt:waitsee","alternative","Alt: Wait and see","Delay until the tech settles — low cost now, but cedes ground and learning to competitors.",{imp:2}),
+  N("t:speedctl","tradeoff","Trade-off: speed vs control","The core tension: move fast and risk chaos, or control tightly and risk stalling. The federated model splits the difference.",{imp:2}),
+  N("t:buildbuy","tradeoff","Trade-off: differentiation vs time-to-value","Build for proprietary advantage, or buy for speed. Differentiating use cases justify building; the rest, buy.",{imp:2}),
+  // initiatives / capabilities / processes / roles / metrics
+  N("i:portfolio","initiative","Use-case portfolio and prioritization","A managed, ranked portfolio of candidate use cases scored on value and feasibility — the engine of a value-led strategy.",{imp:4}),
+  N("i:valuefx","capability","Value and ROI scoring framework","A consistent way to estimate and compare the value, cost, and risk of each candidate use case.",{imp:3}),
+  N("i:datafound","initiative","Data foundation and governance","Trusted, accessible, well-governed data — the prerequisite for almost every use case.",{imp:4}),
+  N("i:platform","initiative","Shared AI platform / MLOps","A common platform for building, deploying, and monitoring models and agents — so teams don't reinvent plumbing.",{imp:3}),
+  N("i:govprod","initiative","AI governance as a product","Make safe scaling repeatable: a standing governance capability, not a one-off committee — centralized policy, federated execution.",{imp:4}),
+  N("i:guardrails","capability","Guardrails, risk tiers and monitoring","Unbypassable controls, autonomy tiered by risk, and real-time monitoring of accuracy, bias, and misuse.",{imp:3}),
+  N("i:bbrubric","process","Build / Buy / Partner rubric","A repeatable decision rule for each use case: build the differentiating few, buy the rest, partner where it accelerates.",{imp:3}),
+  N("i:talent","initiative","Talent: hire and upskill to AI-native","A blended plan — targeted hiring plus broad upskilling — to close the skills gap and grow internal capability.",{imp:3}),
+  N("i:opmodel","initiative","Federated operating model + CoE","Central Center of Excellence sets standards and platforms; business units own and run their use cases.",{imp:4}),
+  N("i:change","process","Change management and adoption","Communication, role redesign, and incentives that turn AI from a threat into a tool people choose to use.",{imp:3}),
+  N("i:pilotscale","process","Pilot-to-scale playbook (stage gates)","Clear stage gates and a path to production so good pilots graduate and weak ones stop — killing pilot purgatory.",{imp:3}),
+  N("ro:sponsor","role","Exec sponsor + use-case owners","Named, accountable owners — an executive sponsor for the strategy and an owner for every use case.",{imp:2}),
+  N("ro:coe","role","AI Center of Excellence","The central team that curates standards, platform, and guardrails and enables the federated units.",{imp:2}),
+  N("me:roi","metric","Portfolio ROI dashboard","A live view of value captured across the use-case portfolio — proof the strategy pays off.",{imp:2}),
+  N("me:adopt","metric","Adoption and usage metrics","Active users, usage depth, and behaviour change — proof people actually use what was built.",{imp:2}),
+];
+
+/* ── global flow numbering: prefix every node label with its place in the logical sequence ──
+   Phase 1 (1–20) frames the PROBLEM; Phase 2 (21–41) builds the SOLUTION. */
+const SEQ = [
+  // Phase 1 — understand the problem
+  "p:root","p:where-value","p:readiness","p:buildbuy","p:governance","p:operating","p:people",
+  "q:align","q:trust","q:scalable","c:budget","c:regulation","c:legacy","c:talent",
+  "m:value","m:adoption","m:riskctl","k:pilot","k:hype","k:shadow",
+  // Phase 2 — design the solution
+  "s:approach","alt:topdown","alt:bottomup","alt:waitsee","t:speedctl","t:buildbuy",
+  "i:portfolio","i:valuefx","i:datafound","i:platform","i:govprod","i:guardrails","i:bbrubric",
+  "i:opmodel","i:pilotscale","i:talent","i:change","ro:sponsor","ro:coe","me:roi","me:adopt"
+];
+const seqOf = {}; SEQ.forEach((id,i)=>{ seqOf[id]=i+1; });
+NODES.forEach(n=>{ const k=seqOf[n.id]; if(k){ n.step=k; n.label = k+" · " + String(n.label).replace(/^\d+\s*·\s*/,""); } });
+
+// E(source,target,type, {channel,payload,sample,dir,sync,trigger,latency,volume,onError,hops})
+const LINKS = [];
+const E = (source,target,type,m={})=>{ LINKS.push({ source, target, type, key:source+"→"+target+"#"+type, ...m }); };
+
+/* ═════ PROBLEM DOMAIN edges ═════ */
+// decompose the problem into the questions you must answer
+E("p:root","p:where-value","decomposes",{payload:"first, find where AI actually creates value",sync:"structural",trigger:"start from value, not technology",hops:["scan the business for high-value problems"]});
+E("p:root","p:readiness","decomposes",{payload:"then, gauge whether you can execute",sync:"structural",trigger:"data, talent, and tech readiness",hops:["assess foundations honestly"]});
+E("p:root","p:buildbuy","decomposes",{payload:"then decide how to source each capability",sync:"structural",trigger:"build, buy, or partner",hops:["sourcing decision per use case"]});
+E("p:root","p:governance","decomposes",{payload:"then, how to deploy it safely",sync:"structural",trigger:"risk and trust",hops:["govern without grinding to a halt"]});
+E("p:root","p:operating","decomposes",{payload:"then, how to run and scale it",sync:"structural",trigger:"operating model and platform",hops:["turn pilots into capability"]});
+E("p:root","p:people","decomposes",{payload:"and, how to bring people along",sync:"structural",trigger:"adoption and reskilling",hops:["earn adoption, not resistance"]});
+// constraints
+E("p:buildbuy","c:budget","constrains",{payload:"sourcing choices are bounded by budget and ROI",sync:"hard",trigger:"finite investment, real return expected",hops:["spend where value is clearest"]});
+E("p:operating","c:budget","constrains",{payload:"the operating model must fit the budget",sync:"hard",trigger:"funding shapes how far you can scale",hops:["fund the platform sustainably"]});
+E("p:governance","c:regulation","constrains",{payload:"governance must satisfy sector and regional rules",sync:"hard",trigger:"e.g. the EU AI Act demands provable controls",hops:["map rules to controls"]});
+E("p:readiness","c:legacy","constrains",{payload:"readiness is dragged down by legacy and silos",sync:"hard",trigger:"fragmented, low-quality data slows everything",hops:["fix foundations first"]});
+E("p:readiness","c:talent","constrains",{payload:"readiness is limited by scarce AI talent",sync:"hard",trigger:"you cannot simply hire your way out",hops:["grow capability internally"]});
+E("p:people","c:talent","constrains",{payload:"the people problem is the talent problem",sync:"hard",trigger:"skills gap across the workforce",hops:["reskill broadly"]});
+// requirements (must-haves)
+E("p:where-value","q:align","requires",{payload:"value selection must tie to business objectives",sync:"must-have",trigger:"no technology for its own sake",hops:["map each use case to a goal"]});
+E("p:governance","q:trust","requires",{payload:"deployment must be trustworthy and safe by design",sync:"must-have",trigger:"trust before speed",hops:["safe, fair, auditable, reconstructable"]});
+E("p:operating","q:scalable","requires",{payload:"the approach must scale beyond pilots",sync:"must-have",trigger:"production at enterprise scale",hops:["pilot to production path"]});
+// success criteria
+E("p:root","m:value","measures",{payload:"success is measurable captured value",sync:"criterion",trigger:"cost saved, revenue gained, time cut",hops:["track ROI"]});
+E("p:root","m:adoption","measures",{payload:"success is real adoption by staff",sync:"criterion",trigger:"used in daily work, not shelfware",hops:["track usage + behaviour change"]});
+E("p:root","m:riskctl","measures",{payload:"success is risk under control and auditable",sync:"criterion",trigger:"rare, contained incidents",hops:["every decision inspectable"]});
+// risks / pitfalls
+E("p:operating","k:pilot","raises",{payload:"weak operating models leave you stuck in pilots",sync:"high",trigger:"endless proofs-of-concept",hops:["nothing reaches production"]});
+E("p:where-value","k:hype","raises",{payload:"poor value selection means chasing hype",sync:"medium",trigger:"AI to look modern, not to add value",hops:["effort on low-value problems"]});
+E("p:governance","k:shadow","raises",{payload:"weak governance breeds shadow AI",sync:"medium",trigger:"ungoverned tools spread unseen risk",hops:["teams go around the rules"]});
+
+/* ═════ SOLUTION DOMAIN edges ═════ */
+// the recommended approach is composed of initiatives
+E("s:approach","i:portfolio","composedof",{payload:"a managed, ranked use-case portfolio",sync:"core",trigger:"value-led prioritization",hops:["score + sequence use cases"]});
+E("s:approach","i:datafound","composedof",{payload:"a trusted data foundation",sync:"core",trigger:"the prerequisite for almost everything",hops:["govern and open up data"]});
+E("s:approach","i:govprod","composedof",{payload:"governance run as a product",sync:"core",trigger:"repeatable safe scaling",hops:["standing capability, not a committee"]});
+E("s:approach","i:opmodel","composedof",{payload:"a federated operating model",sync:"core",trigger:"central standards, local execution",hops:["CoE + business-unit owners"]});
+E("s:approach","i:talent","composedof",{payload:"a hire-plus-upskill talent plan",sync:"core",trigger:"close the skills gap",hops:["grow AI-native people"]});
+E("s:approach","i:change","composedof",{payload:"deliberate change management",sync:"core",trigger:"earn adoption",hops:["communicate, redesign roles, incentivise"]});
+// internal structure of the solution
+E("i:portfolio","i:valuefx","uses",{payload:"the portfolio runs on a value/ROI scoring framework",sync:"supports",trigger:"compare value, cost, and risk consistently",hops:["score every candidate"]});
+E("i:portfolio","i:bbrubric","uses",{payload:"and a build/buy/partner rubric per use case",sync:"supports",trigger:"decide sourcing case by case",hops:["build few, buy most"]});
+E("i:datafound","i:platform","composedof",{payload:"a shared AI platform sits on the data foundation",sync:"supports",trigger:"common build/deploy/monitor plumbing",hops:["don't reinvent MLOps"]});
+E("i:govprod","i:guardrails","composedof",{payload:"governance is enforced through guardrails + monitoring",sync:"supports",trigger:"unbypassable controls, tiered by risk",hops:["monitor accuracy, bias, misuse"]});
+E("i:opmodel","i:pilotscale","composedof",{payload:"the operating model includes a pilot-to-scale playbook",sync:"supports",trigger:"stage gates to production",hops:["graduate good pilots, stop weak ones"]});
+E("i:opmodel","ro:coe","composedof",{payload:"a Center of Excellence anchors the federation",sync:"supports",trigger:"central standards + enablement",hops:["CoE curates platform and guardrails"]});
+E("i:opmodel","ro:sponsor","composedof",{payload:"named exec sponsor + use-case owners",sync:"supports",trigger:"accountable ownership",hops:["someone owns every use case"]});
+E("i:pilotscale","i:platform","uses",{payload:"the scale playbook runs on the shared platform",sync:"supports",trigger:"deploy and monitor in one place",hops:["production-grade by default"]});
+E("i:change","i:talent","uses",{payload:"change management leans on the upskilling plan",sync:"supports",trigger:"people need new skills to adopt",hops:["train into the new roles"]});
+E("i:valuefx","me:roi","implements",{payload:"the value framework is realised as a portfolio ROI dashboard",sync:"supports",trigger:"make value visible",hops:["live value tracking"]});
+E("i:change","me:adopt","implements",{payload:"adoption is tracked with usage metrics",sync:"supports",trigger:"prove people use it",hops:["active users, depth, behaviour change"]});
+// alternatives + trade-offs (why this approach)
+E("alt:topdown","s:approach","alternative",{payload:"centralized top-down is the controlling alternative",sync:"rejected",trigger:"strong control but slow and detached",hops:["central team owns everything"]});
+E("alt:bottomup","s:approach","alternative",{payload:"pure bottom-up is the fast-but-chaotic alternative",sync:"rejected",trigger:"local speed, no consistency",hops:["every team does its own thing"]});
+E("alt:waitsee","s:approach","alternative",{payload:"wait-and-see is the do-nothing alternative",sync:"rejected",trigger:"cheap now, cedes ground later",hops:["delay and fall behind"]});
+E("s:approach","t:speedctl","tradeoff",{payload:"the federated model balances speed against control",sync:"balance",trigger:"central guardrails + local autonomy",hops:["fast where safe, controlled where risky"]});
+E("alt:topdown","t:speedctl","tradeoff",{payload:"top-down chooses control over speed",sync:"balance",trigger:"the opposite trade",hops:["control wins, speed loses"]});
+E("i:bbrubric","t:buildbuy","tradeoff",{payload:"the rubric resolves differentiation vs time-to-value",sync:"balance",trigger:"build the few, buy the rest",hops:["build only what differentiates"]});
+
+/* ═════ BRIDGE edges — solution → problem (the mapping you asked for) ═════ */
+E("i:portfolio","p:where-value","addresses",{payload:"the use-case portfolio answers 'where will AI create value?'",sync:"bridge",trigger:"value-led selection",hops:["rank candidates by value"]});
+E("i:portfolio","k:hype","mitigates",{payload:"scoring by value kills hype-chasing",sync:"bridge",trigger:"value, not novelty",hops:["low-value ideas drop out"]});
+E("i:valuefx","q:align","satisfies",{payload:"the scoring framework forces alignment to objectives",sync:"bridge",trigger:"every use case maps to a goal",hops:["no orphan projects"]});
+E("i:valuefx","m:value","meets",{payload:"and gives you measurable value to track",sync:"bridge",trigger:"hits the ROI criterion",hops:["value made explicit"]});
+E("i:datafound","p:readiness","addresses",{payload:"the data foundation answers 'are we ready?'",sync:"bridge",trigger:"fixes the data half of readiness",hops:["trusted, accessible data"]});
+E("i:platform","p:operating","addresses",{payload:"the shared platform answers 'how do we operate it?'",sync:"bridge",trigger:"common build/deploy/run",hops:["operational backbone"]});
+E("i:bbrubric","p:buildbuy","addresses",{payload:"the rubric answers 'build, buy, or partner?'",sync:"bridge",trigger:"a repeatable sourcing rule",hops:["decide per use case"]});
+E("i:govprod","p:governance","addresses",{payload:"governance-as-a-product answers 'how do we govern risk?'",sync:"bridge",trigger:"repeatable, not bespoke",hops:["central policy, federated execution"]});
+E("i:govprod","q:trust","satisfies",{payload:"and delivers trustworthy-by-design",sync:"bridge",trigger:"meets the trust requirement",hops:["safe, fair, auditable"]});
+E("i:guardrails","k:shadow","mitigates",{payload:"unbypassable guardrails stop shadow AI",sync:"bridge",trigger:"no going around the rules",hops:["controlled, monitored use"]});
+E("i:guardrails","m:riskctl","meets",{payload:"and keep risk controlled and auditable",sync:"bridge",trigger:"hits the risk criterion",hops:["monitored in real time"]});
+E("i:talent","p:people","addresses",{payload:"the talent plan answers 'how do we bring people along?'",sync:"bridge",trigger:"hire + upskill",hops:["grow AI-native staff"]});
+E("i:talent","c:talent","mitigates",{payload:"and eases the scarce-talent constraint",sync:"bridge",trigger:"build capability internally",hops:["upskill beats hiring alone"]});
+E("i:opmodel","p:operating","addresses",{payload:"the federated operating model answers 'how do we operate and scale it?'",sync:"bridge",trigger:"central standards, local delivery",hops:["CoE + business-unit owners"]});
+E("i:govprod","c:regulation","mitigates",{payload:"governance-as-a-product turns regulation into provable controls",sync:"bridge",trigger:"eases the compliance constraint",hops:["map rules to enforced guardrails"]});
+E("i:datafound","c:legacy","mitigates",{payload:"the data foundation tackles legacy systems and silos",sync:"bridge",trigger:"eases the legacy/data constraint",hops:["govern + unify fragmented data"]});
+E("i:portfolio","c:budget","mitigates",{payload:"value-led prioritization focuses scarce budget on what pays off",sync:"bridge",trigger:"eases the budget/ROI constraint",hops:["fund the highest-value use cases first"]});
+E("i:opmodel","q:scalable","satisfies",{payload:"the federated model makes the strategy scale",sync:"bridge",trigger:"meets the scalability requirement",hops:["central platform, local delivery"]});
+E("i:opmodel","k:pilot","mitigates",{payload:"and breaks pilot purgatory",sync:"bridge",trigger:"a path to production",hops:["operating model that scales"]});
+E("i:pilotscale","k:pilot","mitigates",{payload:"stage gates graduate good pilots to production",sync:"bridge",trigger:"directly kills pilot purgatory",hops:["gate, then scale"]});
+E("i:change","p:people","addresses",{payload:"change management also answers the people question",sync:"bridge",trigger:"adoption by design",hops:["redesign roles, incentivise use"]});
+E("i:change","m:adoption","meets",{payload:"and delivers real adoption",sync:"bridge",trigger:"hits the adoption criterion",hops:["behaviour change, not shelfware"]});
+E("me:roi","m:value","meets",{payload:"the ROI dashboard evidences captured value",sync:"bridge",trigger:"proof for the value criterion",hops:["live portfolio value"]});
+E("me:adopt","m:adoption","meets",{payload:"usage metrics evidence adoption",sync:"bridge",trigger:"proof for the adoption criterion",hops:["active, deep usage"]});
+
+/* traces = ordered lists of edge keys; the packet rides each step in turn */
+const TRACES = [
+  // 1 — walk the problem decomposition
+  { id:"approach", label:"Approach: break the problem down", steps:[
+    "p:root→p:where-value#decomposes","p:root→p:readiness#decomposes","p:root→p:buildbuy#decomposes",
+    "p:root→p:governance#decomposes","p:root→p:operating#decomposes","p:root→p:people#decomposes",
+    "p:where-value→q:align#requires","p:governance→c:regulation#constrains","p:operating→k:pilot#raises",
+    "p:root→m:value#measures"
+  ]},
+  // 2 — cross the bridge: each problem mapped to the solution that answers it
+  { id:"map", label:"Map problem → solution", steps:[
+    "s:approach→i:portfolio#composedof","i:portfolio→p:where-value#addresses","i:datafound→p:readiness#addresses",
+    "i:bbrubric→p:buildbuy#addresses","i:govprod→p:governance#addresses","i:opmodel→p:operating#addresses",
+    "i:talent→p:people#addresses","i:govprod→q:trust#satisfies","i:opmodel→q:scalable#satisfies",
+    "i:valuefx→m:value#meets"
+  ]},
+  // 3 — how the solution kills the big risks
+  { id:"derisk", label:"De-risk: solutions vs the big pitfalls", steps:[
+    "i:opmodel→k:pilot#mitigates","i:pilotscale→k:pilot#mitigates","i:portfolio→k:hype#mitigates",
+    "i:guardrails→k:shadow#mitigates","i:talent→c:talent#mitigates","i:guardrails→m:riskctl#meets"
+  ]}
+];
+
+/* ═══════════════ build graph data ═══════════════ */
+const DATA = { nodes: NODES.map(n=>({...n, val: (n.imp>=5?30 : n.imp===4?18 : n.imp===3?11 : n.imp===2?7 : 6) })),
+               links: LINKS.map(l=>({...l})) };
+const NODE = Object.fromEntries(DATA.nodes.map(n=>[n.id,n]));
+const linkByKey = Object.fromEntries(DATA.links.map(l=>[l.key,l]));
+const srcId = (l)=> typeof l.source==="object" ? l.source.id : l.source;
+const tgtId = (l)=> typeof l.target==="object" ? l.target.id : l.target;
+const nodeName = (id)=> (NODE[id]?NODE[id].label:id);
+
+document.getElementById("s-comp").textContent = DATA.nodes.length;
+document.getElementById("s-conn").textContent = DATA.links.length;
+
+/* adjacency for highlight */
+const adj = {}; DATA.nodes.forEach(n=>adj[n.id]=new Set());
+DATA.links.forEach(l=>{ adj[srcId(l)].add(tgtId(l)); adj[tgtId(l)].add(srcId(l)); });
+
+/* ═══════════════ three.js scene ═══════════════ */
+const canvas = document.getElementById("cv3d");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05070f);
+scene.fog = new THREE.FogExp2(0x05070f, 0.0016);
+
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 6000);
+camera.position.set(0, 20, 300);
+const rig = new THREE.Group(); rig.add(camera); scene.add(rig);
+
+scene.add(new THREE.AmbientLight(0x8aa0d0, 1.6));
+const dlight = new THREE.DirectionalLight(0xffffff, 1.0); dlight.position.set(1,1,1); scene.add(dlight);
+camera.add(new THREE.PointLight(0x6688ff, 0.5, 0, 2));
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.1; controls.rotateSpeed = 0.75;
+
+const world = new THREE.Group(); scene.add(world);
+const fxGroup = new THREE.Group(); world.add(fxGroup);   // beads, packet, explode overlay
+
+/* ── node visuals: distinct geometry per kind ── */
+const meshById = {};
+function nodeGeo(kind, r){
+  switch(kind){
+    // problem domain
+    case "problem":    return new THREE.TorusKnotGeometry(r*0.7, r*0.24, 80, 12);   // the problem hub
+    case "subproblem": return new THREE.IcosahedronGeometry(r,0);
+    case "constraint": return new THREE.BoxGeometry(r*1.6, r*1.6, r*1.6);           // a hard wall
+    case "requirement":return new THREE.OctahedronGeometry(r,0);
+    case "criteria":   return new THREE.CylinderGeometry(r*0.9, r*0.9, r*1.4, 16);  // a measure
+    case "risk":       return new THREE.TetrahedronGeometry(r*1.3,0);               // sharp + dangerous
+    // solution domain
+    case "approach":   return new THREE.DodecahedronGeometry(r,0);                  // the solution hub
+    case "alternative":return new THREE.ConeGeometry(r*0.95, r*1.9, 6);             // a road not taken
+    case "tradeoff":   return new THREE.TorusGeometry(r*0.8, r*0.3, 12, 24);        // a balance
+    case "initiative": return new THREE.IcosahedronGeometry(r,0);
+    case "capability": return new THREE.SphereGeometry(r*0.95, 18, 14);
+    case "process":    return new THREE.CylinderGeometry(r*0.8, r*0.8, r*1.5, 12);
+    case "role":       return new THREE.SphereGeometry(r*0.85, 12, 10);
+    case "metric":     return new THREE.BoxGeometry(r*1.4, r*1.4, r*1.4);
+    default:           return new THREE.BoxGeometry(r*1.5, r*1.5, r*1.5);
+  }
+}
+function makeNode(node){
+  const g = new THREE.Group();
+  const col = KIND_COL[node.kind] || "#8b97b8";
+  const r = node.imp>=5?8.5 : node.imp===4?6 : node.imp===3?4.6 : node.imp===2?3.7 : 3.2;
+  const mat = new THREE.MeshStandardMaterial({ color:col, emissive:col, emissiveIntensity:0.5, roughness:0.42, metalness:0.18 });
+  const mesh = new THREE.Mesh(nodeGeo(node.kind, r), mat);
+  mesh.userData.nodeId = node.id; g.add(mesh);
+  // clean name (number is shown separately as a badge)
+  const cleanName = String(node.label).replace(/^\d+\s*·\s*/,"");
+  const sprite = new SpriteText(cleanName, node.imp>=4?5.2 : node.imp===3?4.2 : 3.6, "#dbe4ff");
+  sprite.fontFace = "Inter, sans-serif"; sprite.fontWeight = node.imp>=4?"700":"500";
+  sprite.position.set(0, r+3.2, 0); sprite.material.depthWrite = false;
+  g.add(sprite);
+  // bright numbered badge above the node so the sequence is unmistakable
+  let badge=null;
+  if(node.step){
+    badge = new SpriteText(String(node.step), node.imp>=4?4.4:3.6, "#0b1020");
+    badge.fontFace="Inter, sans-serif"; badge.fontWeight="800";
+    badge.backgroundColor=col; badge.padding=2.2; badge.borderRadius=8;
+    badge.borderColor="#0b1020"; badge.borderWidth=0.6;
+    badge.material.depthWrite=false;
+    badge.position.set(0, r+7.6, 0);
+    g.add(badge);
+  }
+  g.userData = { nodeId:node.id, mesh, mat, sprite, badge, baseEmissive:0.5, baseHex:col, r };
+  meshById[node.id] = g;
+  return g;
+}
+
+/* ── force graph ── */
+const SELECTED = { link:null };
+const Graph = new ThreeForceGraph()
+  .graphData(DATA)
+  .numDimensions(3)
+  .nodeThreeObject(makeNode)
+  .nodeThreeObjectExtend(false)
+  .linkColor(l => EDGE_COL[l.type] || "#3b4a66")
+  .linkWidth(l => l===SELECTED.link ? 2.6 : (l.type==="backed-by"?0.4:0.9))
+  .linkOpacity(0.5)
+  .linkDirectionalParticles(l => l===SELECTED.link ? 6 : (l.type==="backed-by"?0:2))
+  .linkDirectionalParticleWidth(l => l===SELECTED.link ? 2.6 : 1.3)
+  .linkDirectionalParticleSpeed(l => l===SELECTED.link ? 0.02 : 0.008);
+Graph.d3Force("link").distance(l => l.type==="backed-by"?14 : l.type==="deliver"||l.type==="dispatch"||l.type==="result"?40 : 30);
+Graph.d3Force("charge").strength(-220);
+world.add(Graph);
+
+function refreshLinkStyles(){ Graph.linkWidth(Graph.linkWidth()).linkDirectionalParticles(Graph.linkDirectionalParticles()).linkDirectionalParticleWidth(Graph.linkDirectionalParticleWidth()).linkDirectionalParticleSpeed(Graph.linkDirectionalParticleSpeed()); }
+
+/* ═══════════════ highlight / dim ═══════════════ */
+function setDim(activeIds /* Set or null */){
+  for(const n of DATA.nodes){
+    const g = meshById[n.id]; if(!g) continue;
+    const on = !activeIds || activeIds.has(n.id);
+    g.userData.mat.emissiveIntensity = on ? g.userData.baseEmissive : 0.08;
+    g.userData.mat.opacity = on ? 1 : 0.25; g.userData.mat.transparent = !on;
+    if(g.userData.sprite) g.userData.sprite.visible = on;
+    if(g.userData.badge) g.userData.badge.visible = on;
+  }
+}
+function clearDim(){ setDim(null); }
+
+/* ═══════════════ panels ═══════════════ */
+const panel = document.getElementById("panel"), panelBody = document.getElementById("panel-body");
+const esc = (s)=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function showPanel(html){ panelBody.innerHTML = html; panel.classList.add("show"); }
+function hidePanel(){ panel.classList.remove("show"); }
+document.getElementById("panel-close").addEventListener("click", ()=>{ hidePanel(); clearSelectionSoft(); });
+
+function nodeChip(id){ const c = KIND_COL[NODE[id]?.kind]||"#8b97b8"; return '<span class="chipnode" data-node="'+esc(id)+'" style="background:'+c+'22;color:'+c+';border-color:'+c+'55">'+esc(nodeName(id))+'</span>'; }
+
+function renderNodePanel(id){
+  const n = NODE[id]; if(!n) return;
+  const out = DATA.links.filter(l=>srcId(l)===id), inc = DATA.links.filter(l=>tgtId(l)===id);
+  const rel = (l,dir)=>{ const other = dir==="out"?tgtId(l):srcId(l); const c=EDGE_COL[l.type]||"#8b97b8";
+    return '<div class="relrow" data-link="'+esc(l.key)+'"><span class="dot" style="background:'+c+'"></span><span>'+esc(nodeName(other))+'</span><span class="vrb">'+esc(dir==="out"?EDGE_VERB[l.type]:("← "+EDGE_VERB[l.type]))+'</span></div>'; };
+  let h = '<span class="ptag" style="background:'+KIND_COL[n.kind]+'22;color:'+KIND_COL[n.kind]+'">'+esc(KIND_LABEL[n.kind]||n.kind)+'</span>';
+  h += '<h2>'+esc(n.label)+'</h2><div class="kind">'+esc(n.id)+'</div>';
+  h += '<p>'+esc(n.role)+'</p>';
+  if(out.length){ h += '<div class="phead">Outgoing ('+out.length+')</div>'+out.map(l=>rel(l,"out")).join(''); }
+  if(inc.length){ h += '<div class="phead">Incoming ('+inc.length+')</div>'+inc.map(l=>rel(l,"in")).join(''); }
+  showPanel(h);
+}
+
+function renderEdgePanel(l){
+  const c = EDGE_COL[l.type]||"#8b97b8";
+  let h = '<span class="ptag" style="background:'+c+'22;color:'+c+'">'+esc(l.type)+'</span>';
+  h += '<div class="flow">'+nodeChip(srcId(l))+'<span class="ar">→</span>'+nodeChip(tgtId(l))+'</div>';
+  h += '<p><b>'+esc(nodeName(srcId(l)))+'</b> '+esc(EDGE_VERB[l.type]||l.type)+' <b>'+esc(nodeName(tgtId(l)))+'</b>.</p>';
+  h += '<div class="kv">';
+  const row=(k,v,bad)=> v?('<div class="k">'+esc(k)+'</div><div class="v'+(bad?' bad':'')+'">'+esc(v)+'</div>'):'';
+  h += row("Channel",l.channel)+row("Payload",l.payload)+row("Direction",l.dir)+row("Mode",l.sync)+row("Trigger",l.trigger)+row("Latency",l.latency)+row("Volume",l.volume)+row("On error",l.onError,true);
+  h += '</div>';
+  if(l.sample) h += '<div class="phead">Sample message</div><div class="code">'+esc(JSON.stringify(l.sample,null,2))+'</div>';
+  if(l.hops&&l.hops.length){ h += '<div class="hops"><div class="hl">How it connects · '+l.hops.length+' steps</div><ol>'+l.hops.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol></div>'; }
+  showPanel(h);
+}
+
+/* delegate clicks inside the panel (chips + relation rows) */
+panelBody.addEventListener("click",(e)=>{
+  const ln = e.target.closest("[data-link]"); if(ln){ const l=linkByKey[ln.getAttribute("data-link")]; if(l) selectLink(l); return; }
+  const nd = e.target.closest("[data-node]"); if(nd){ selectNode(nd.getAttribute("data-node")); }
+});
+
+/* ═══════════════ selection orchestration ═══════════════ */
+let mode = "inspect";
+function clearSelectionSoft(){ SELECTED.link=null; refreshLinkStyles(); clearExplode(); clearDim(); }
+function clearSelection(){ clearOption(); hidePanel(); clearSelectionSoft(); stopTrace(); }
+
+function selectNode(id){
+  clearOption();
+  SELECTED.link=null; refreshLinkStyles(); clearExplode();
+  const keep = new Set([id, ...adj[id]]); setDim(keep);
+  renderNodePanel(id);
+  const g = meshById[id]; if(g){ g.getWorldPosition(_tmp); flyTo(_tmp); }
+}
+
+function selectLink(l){
+  clearOption();
+  SELECTED.link=l; refreshLinkStyles();
+  const keep = new Set([srcId(l), tgtId(l)]); setDim(keep);
+  renderEdgePanel(l);
+  // frame the edge
+  const a=meshById[srcId(l)], b=meshById[tgtId(l)];
+  if(a&&b){ a.getWorldPosition(_a); b.getWorldPosition(_b); _tmp.addVectors(_a,_b).multiplyScalar(0.5); flyTo(_tmp); }
+  if(mode==="explode") buildExplode(l);
+  else clearExplode();
+  if(mode==="trace") startTraceForLink(l);
+}
+
+/* ═══════════════ EXPLODE mode: unfold the hops along a bowed arc ═══════════════ */
+let exploadeObjs = [];
+function clearExplode(){ for(const o of exploadeObjs){ fxGroup.remove(o); if(o.material){ if(o.material.map)o.material.map.dispose(); o.material.dispose(); } if(o.geometry)o.geometry.dispose(); } exploadeObjs=[]; }
+const _a=new THREE.Vector3(), _b=new THREE.Vector3(), _mid=new THREE.Vector3(), _tmp=new THREE.Vector3(), _up=new THREE.Vector3(0,1,0), _per=new THREE.Vector3();
+function buildExplode(l){
+  clearExplode();
+  const a=meshById[srcId(l)], b=meshById[tgtId(l)]; if(!a||!b) return;
+  a.getWorldPosition(_a); b.getWorldPosition(_b);
+  const hops = l.hops && l.hops.length ? l.hops : [EDGE_VERB[l.type]||l.type];
+  const dirv = new THREE.Vector3().subVectors(_b,_a);
+  const len = dirv.length(); _per.copy(dirv).normalize().cross(_up); if(_per.lengthSq()<1e-4) _per.set(1,0,0); _per.normalize();
+  const bow = Math.min(len*0.35, 26);
+  const n = hops.length;
+  // place a labelled bead per hop along a bowed arc from a→b
+  for(let i=0;i<n;i++){
+    const t = (i+1)/(n+1);
+    const base = _a.clone().lerp(_b, t);
+    const lift = Math.sin(t*Math.PI)*bow;
+    base.addScaledVector(_per, lift);
+    const bead = new THREE.Mesh(new THREE.SphereGeometry(1.5,14,14),
+      new THREE.MeshStandardMaterial({ color:0x38bdf8, emissive:0x38bdf8, emissiveIntensity:0.7 }));
+    bead.position.copy(base); fxGroup.add(bead); exploadeObjs.push(bead);
+    const st = new SpriteText((i+1)+". "+hops[i], 3.2, "#cfe0ff");
+    st.fontFace="Inter, sans-serif"; st.backgroundColor="rgba(8,12,24,0.9)"; st.padding=2; st.borderRadius=3;
+    st.borderColor="#38bdf8"; st.borderWidth=0.6; st.material.depthWrite=false; st.material.depthTest=false; st.renderOrder=999;
+    st.position.copy(base).add(new THREE.Vector3(0,4,0)); fxGroup.add(st); exploadeObjs.push(st);
+  }
+  // a faint guide line through the beads
+  const pts=[_a.clone()]; for(let i=0;i<n;i++){ const t=(i+1)/(n+1); const p=_a.clone().lerp(_b,t).addScaledVector(_per,Math.sin(t*Math.PI)*bow); pts.push(p);} pts.push(_b.clone());
+  const guide = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color:0x38bdf8, transparent:true, opacity:0.5 }));
+  fxGroup.add(guide); exploadeObjs.push(guide);
+}
+
+/* ═══════════════ TRACE mode: a packet rides the real path ═══════════════ */
+const packet = new THREE.Mesh(new THREE.SphereGeometry(2.4,18,18),
+  new THREE.MeshStandardMaterial({ color:0x34d399, emissive:0x34d399, emissiveIntensity:1.1 }));
+packet.visible=false; fxGroup.add(packet);
+const packetGlow = new THREE.Mesh(new THREE.SphereGeometry(4.2,16,16),
+  new THREE.MeshBasicMaterial({ color:0x34d399, transparent:true, opacity:0.22 }));
+packet.add(packetGlow);
+const trace = { active:false, playing:false, def:null, step:0, t:0, visited:new Set(), speed:0.9 };
+
+function traceEdges(def){ return def.steps.map(k=>linkByKey[k]).filter(Boolean); }
+function loadTrace(def){ stopTrace(); trace.def=def; trace.step=0; trace.t=0; trace.visited=new Set(); trace.active=true; setDim(new Set()); updateTraceUI(); }
+function startTraceForLink(l){ const def = TRACES.find(t=>t.steps.includes(l.key)) || TRACES[0]; tracePick.value=def.id; loadTrace(def); playTrace(); }
+function playTrace(){ if(!trace.def) loadTrace(TRACES[0]); trace.active=true; trace.playing=true; packet.visible=true; updateTraceBtn(); }
+function pauseTrace(){ trace.playing=false; updateTraceBtn(); }
+function stopTrace(){ trace.playing=false; trace.active=false; packet.visible=false; trace.step=0; trace.t=0; trace.visited=new Set(); clearDim(); updateTraceUI(); }
+function stepTrace(){ // advance one whole edge
+  if(!trace.def) loadTrace(TRACES[0]);
+  const edges=traceEdges(trace.def); if(trace.step>=edges.length){ return; }
+  markVisited(edges[trace.step]); trace.step++; trace.t=0;
+  if(trace.step>=edges.length){ snapPacketEnd(edges[edges.length-1]); }
+  trace.playing=false; updateTraceUI(); updateTraceBtn();
+}
+function markVisited(l){ if(l){ trace.visited.add(l.id||l.key); highlightVisited(); } }
+function highlightVisited(){
+  const ids=new Set(); for(const k of trace.visited){ const l=linkByKey[k]; if(l){ ids.add(srcId(l)); ids.add(tgtId(l)); } }
+  setDim(ids.size?ids:new Set());
+}
+function snapPacketEnd(l){ const b=meshById[tgtId(l)]; if(b){ b.getWorldPosition(_tmp); packet.position.copy(_tmp);} }
+
+function updateTrace(dt){
+  if(!trace.active||!trace.playing||!trace.def) return;
+  const edges=traceEdges(trace.def);
+  if(trace.step>=edges.length){ trace.playing=false; updateTraceBtn(); return; }
+  const l=edges[trace.step]; const a=meshById[srcId(l)], b=meshById[tgtId(l)];
+  if(!a||!b){ trace.step++; trace.t=0; return; }
+  a.getWorldPosition(_a); b.getWorldPosition(_b);
+  const dist=Math.max(_a.distanceTo(_b),1);
+  trace.t += dt*60*trace.speed/dist;
+  if(trace.t>=1){ trace.t=0; markVisited(l); trace.step++; updateTraceUI(); if(trace.step>=edges.length){ packet.position.copy(_b); trace.playing=false; updateTraceBtn(); return; } }
+  else { packet.position.copy(_a).lerp(_b, trace.t); }
+  // gently follow
+  if(trace.step<edges.length){ _mid.copy(packet.position); }
+}
+
+/* trace UI */
+const tracedock=document.getElementById("tracedock"), tracePick=document.getElementById("trace-pick");
+const tracePlay=document.getElementById("trace-play"), traceStepLbl=document.getElementById("trace-step-label"), traceProg=document.getElementById("trace-prog");
+TRACES.forEach(t=>{ const o=document.createElement("option"); o.value=t.id; o.textContent=t.label; tracePick.appendChild(o); });
+function updateTraceBtn(){ tracePlay.textContent = trace.playing ? "⏸ Pause" : "▶ Play"; }
+function updateTraceUI(){
+  if(!trace.def){ traceStepLbl.textContent="Pick a trace and press Play."; traceProg.style.width="0%"; return; }
+  const edges=traceEdges(trace.def); const i=Math.min(trace.step, edges.length-1); const l=edges[i];
+  traceProg.style.width = Math.round(100*trace.step/edges.length)+"%";
+  if(trace.step>=edges.length){ traceStepLbl.innerHTML="✓ Trace complete — "+edges.length+" hops through the mesh."; }
+  else if(l){ traceStepLbl.innerHTML='<b>'+(trace.step+1)+'/'+edges.length+'</b> &nbsp; '+esc(nodeName(srcId(l)))+' <span style="color:#34d399">'+esc(EDGE_VERB[l.type]||l.type)+'</span> '+esc(nodeName(tgtId(l))); }
+}
+tracePick.addEventListener("change",()=>{ const d=TRACES.find(t=>t.id===tracePick.value); if(d){ loadTrace(d); } });
+tracePlay.addEventListener("click",()=>{ if(trace.playing) pauseTrace(); else playTrace(); });
+document.getElementById("trace-step").addEventListener("click", stepTrace);
+document.getElementById("trace-reset").addEventListener("click", ()=>{ const d=trace.def||TRACES[0]; loadTrace(d); });
+
+/* ═══════════════ mode selector ═══════════════ */
+const modebar=document.getElementById("modebar");
+modebar.addEventListener("click",(e)=>{ const b=e.target.closest("button[data-mode]"); if(!b) return;
+  if(tour.active) exitTour();
+  mode=b.getAttribute("data-mode");
+  [...modebar.querySelectorAll("button")].forEach(x=>x.classList.toggle("active", x===b));
+  tracedock.classList.toggle("show", mode==="trace");
+  clearExplode();
+  if(mode!=="trace") stopTrace();
+  if(mode==="trace"){ if(!trace.def) loadTrace(TRACES[0]); }
+  // re-apply current selection under the new mode
+  if(SELECTED.link) selectLink(SELECTED.link);
+});
+
+/* ═══════════════ picking (desktop) ═══════════════ */
+const ray = new THREE.Raycaster(); const ndc = new THREE.Vector2();
+const _la=new THREE.Vector3(), _lb=new THREE.Vector3(), _lpr=new THREE.Vector3(), _lps=new THREE.Vector3();
+function pickNode(cx,cy){
+  ndc.set((cx/window.innerWidth)*2-1, -(cy/window.innerHeight)*2+1);
+  ray.setFromCamera(ndc, camera);
+  const hits=ray.intersectObjects(Graph.children, true);
+  for(const h of hits){ let o=h.object; while(o){ if(o.userData&&o.userData.nodeId) return o.userData.nodeId; o=o.parent; } }
+  return null;
+}
+function nearestLink(cx,cy){
+  ndc.set((cx/window.innerWidth)*2-1, -(cy/window.innerHeight)*2+1);
+  ray.setFromCamera(ndc,camera);
+  let best=null,bestD=Infinity,bestPt=null;
+  for(const l of DATA.links){
+    const a=meshById[srcId(l)], b=meshById[tgtId(l)]; if(!a||!b) continue;
+    a.getWorldPosition(_la); b.getWorldPosition(_lb);
+    const d2=ray.ray.distanceSqToSegment(_la,_lb,_lpr,_lps);
+    if(d2<bestD){ bestD=d2; best=l; bestPt=_lps.clone(); }
+  }
+  if(!best) return null;
+  // gate by screen-space distance to the click
+  const sp=bestPt.clone().project(camera);
+  const sx=(sp.x+1)/2*window.innerWidth, sy=(-sp.y+1)/2*window.innerHeight;
+  if(Math.hypot(sx-cx, sy-cy) > 22) return null;
+  return best;
+}
+let downXY=null;
+canvas.addEventListener("pointerdown",(e)=>{ downXY=[e.clientX,e.clientY]; });
+canvas.addEventListener("pointerup",(e)=>{
+  if(!downXY) return; const moved=Math.hypot(e.clientX-downXY[0], e.clientY-downXY[1]); downXY=null;
+  if(moved>6) return;                          // drag = orbit, not a click
+  if(tour.active) return;                       // walkthrough owns the stage
+  const nid=pickNode(e.clientX,e.clientY);
+  if(nid){ selectNode(nid); return; }
+  const l=nearestLink(e.clientX,e.clientY);
+  if(l){ selectLink(l); return; }
+  clearSelection();
+});
+
+/* ═══════════════ desktop camera fly-to ═══════════════ */
+let flyTarget=null;
+function flyTo(p){ if(renderer.xr.isPresenting) return; flyTarget=p.clone(); }
+
+/* ═══════════════ VR scaffolding (rig + controllers + minimal locomotion) ═══════════════ */
+const XR_TARGET=new THREE.Vector3(0,1.5,-2.4), XR_SPAN=3.0;
+function fitWorldForXR(){
+  const box=new THREE.Box3(), v=new THREE.Vector3();
+  DATA.nodes.forEach(n=>{ if(n.x==null)return; box.expandByPoint(v.set(n.x,n.y,n.z)); });
+  const size=new THREE.Vector3(); box.getSize(size); const ctr=new THREE.Vector3(); box.getCenter(ctr);
+  const s=XR_SPAN/(Math.max(size.x,size.y,size.z)||1);
+  world.scale.setScalar(s); world.position.copy(XR_TARGET).sub(ctr.multiplyScalar(s));
+}
+function makeController(i){
+  const ctrl=renderer.xr.getController(i);
+  const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-1)]), new THREE.LineBasicMaterial({color:0x38bdf8}));
+  line.scale.z=5; ctrl.add(line);
+  ctrl.addEventListener("selectstart", ()=>{ const r=controllerPick(ctrl); if(r&&r.node) selectNode(r.node); else if(r&&r.link) selectLink(r.link); });
+  ctrl.addEventListener("squeezestart", ()=>{ clearSelection(); });
+  scene.add(ctrl); return ctrl;
+}
+const tmpM=new THREE.Matrix4();
+function controllerPick(ctrl){
+  tmpM.identity().extractRotation(ctrl.matrixWorld);
+  ray.ray.origin.setFromMatrixPosition(ctrl.matrixWorld);
+  ray.ray.direction.set(0,0,-1).applyMatrix4(tmpM);
+  const hits=ray.intersectObjects(Graph.children,true);
+  for(const h of hits){ let o=h.object; while(o){ if(o.userData&&o.userData.nodeId) return {node:o.userData.nodeId}; o=o.parent; } }
+  let best=null,bestD=Infinity;
+  for(const l of DATA.links){ const a=meshById[srcId(l)],b=meshById[tgtId(l)]; if(!a||!b)continue; a.getWorldPosition(_la); b.getWorldPosition(_lb); const d2=ray.ray.distanceSqToSegment(_la,_lb,_lpr,_lps); if(d2<bestD){bestD=d2;best=l;} }
+  if(best && Math.sqrt(bestD) < 0.18) return {link:best};
+  return null;
+}
+const controllers=[makeController(0),makeController(1)];
+const xrClock=new THREE.Clock(), xrUP=new THREE.Vector3(0,1,0), DEAD=0.18;
+const _fwd=new THREE.Vector3(), _right=new THREE.Vector3(), _mv=new THREE.Vector3(), _camW=new THREE.Vector3(), _snapQ=new THREE.Quaternion();
+let snapArmed=true;
+function updateLoco(dt){
+  const s=renderer.xr.getSession(); if(!s) return; let mx=0,mz=0,tx=0,fy=0;
+  for(const src of s.inputSources){ if(!src.gamepad)continue; const ax=src.gamepad.axes||[]; const x=ax.length>=4?ax[2]:(ax[0]||0), y=ax.length>=4?ax[3]:(ax[1]||0);
+    const X=Math.abs(x)>DEAD?x:0, Y=Math.abs(y)>DEAD?y:0; if(src.handedness==="right"){tx=X;fy=Y;} else {mx=X;mz=Y;} }
+  if(mx||mz){ camera.getWorldDirection(_fwd); _fwd.y=0; if(_fwd.lengthSq()<1e-4)_fwd.set(0,0,-1); _fwd.normalize(); _right.crossVectors(_fwd,xrUP).normalize();
+    _mv.set(0,0,0).addScaledVector(_fwd,-mz*2.2*dt).addScaledVector(_right,mx*2.2*dt); rig.position.add(_mv); }
+  if(fy) rig.position.y += -fy*1.6*dt;
+  if(Math.abs(tx)>0.6){ if(snapArmed){ camera.getWorldPosition(_camW); _snapQ.setFromAxisAngle(xrUP, tx>0?-Math.PI/6:Math.PI/6); rig.position.sub(_camW).applyQuaternion(_snapQ).add(_camW); rig.quaternion.premultiply(_snapQ); snapArmed=false; } }
+  else if(Math.abs(tx)<0.3) snapArmed=true;
+}
+renderer.xr.addEventListener("sessionstart", ()=>{ if(tour.active) exitTour(); controls.enabled=false; rig.position.set(0,0,0); rig.quaternion.identity(); snapArmed=true; xrClock.getDelta(); fitWorldForXR(); document.querySelector(".overlay").style.display="none"; });
+renderer.xr.addEventListener("sessionend", ()=>{ controls.enabled=true; rig.position.set(0,0,0); rig.quaternion.identity(); world.scale.setScalar(1); world.position.set(0,0,0); document.querySelector(".overlay").style.display=""; });
+
+/* VR button */
+try{ const vb=VRButton.createButton(renderer); vb.style.position="static"; vb.style.transform="none"; vb.style.margin="0";
+  document.getElementById("vrbtnwrap").appendChild(vb); }catch(e){}
+
+/* ═══════════════ render loop ═══════════════ */
+let warm=0;
+renderer.setAnimationLoop(()=>{
+  Graph.tickFrame();
+  if(renderer.xr.isPresenting){ const dt=Math.min(xrClock.getDelta(),0.1); updateLoco(dt); }
+  const _dt = renderer.xr.isPresenting ? 0.016 : Math.min(clock.getDelta(),0.05);
+  if(tour.active) updateTour(_dt); else updateTrace(_dt);
+  if(packet.visible){ packetGlow.material.opacity = 0.18 + 0.12*Math.sin(performance.now()*0.006); }
+  if(flyTarget && !renderer.xr.isPresenting){
+    controls.target.lerp(flyTarget,0.08);
+    const dir2=camera.position.clone().sub(controls.target).normalize();
+    const want=flyTarget.clone().add(dir2.multiplyScalar(120));
+    camera.position.lerp(want,0.06);
+    if(camera.position.distanceTo(want)<1.5) flyTarget=null;
+  }
+  controls.update();
+  renderer.render(scene,camera);
+});
+const clock=new THREE.Clock();
+
+window.addEventListener("resize", ()=>{ camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth,window.innerHeight); });
+window.addEventListener("keydown",(e)=>{ if(e.key==="Escape"){ if(!document.getElementById("guidewrap").hidden) document.getElementById("guidewrap").hidden=true; else if(!document.getElementById("qrwrap").hidden) closeQR(); else if(!document.getElementById("scnwrap").hidden) closeScenarios(); else if(tour.active) exitTour(); else clearSelection(); }
+  else if(tour.active){ if(e.key==="ArrowRight"){ nextTour(); } else if(e.key==="ArrowLeft"){ prevTour(); } else if(e.key===" "){ e.preventDefault(); tour.playing?pauseTour():playTour(); } } });
+
+/* let the layout settle, then reveal */
+setTimeout(()=>{ loadEl.classList.add("hidden"); }, 600);
+
+/* ───────── QR: open on a headset ───────── */
+let QRLib = null;
+async function ensureQR(){ if(QRLib!==null) return QRLib; try{ QRLib=(await import("https://esm.sh/qrcode@1.5.3")).default; }catch(e){ QRLib=false; } return QRLib; }
+function urlState(u){
+  try{ const x=new URL(u); const h=x.hostname;
+    if(x.protocol==="file:") return {ok:false,msg:"⚠ file:// can't open on a headset — serve over HTTPS."};
+    if(h==="localhost"||h==="127.0.0.1"||/^192\.168\./.test(h)||/^10\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h))
+      return {ok:false,msg:"⚠ Local address — a headset can't reach it. Paste an https:// tunnel or deployed link below."};
+    if(x.protocol!=="https:") return {ok:false,msg:"⚠ Not https — WebXR needs a secure origin in the headset."};
+    return {ok:true,msg:"✓ Reachable & secure — scan with the Quest Browser."};
+  }catch(e){ return {ok:false,msg:"⚠ Not a valid URL."}; }
+}
+async function drawQR(u){
+  const c=document.getElementById("qrcanvas"), note=document.getElementById("qrnote");
+  const st=urlState(u); note.textContent=st.msg; note.className="qrnote "+(st.ok?"ok":"warn");
+  const lib=await ensureQR();
+  const ctx=c.getContext("2d");
+  if(!lib){ ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height); ctx.fillStyle="#0b1020";ctx.font="13px sans-serif";ctx.textAlign="center";ctx.fillText("QR library offline —",110,104);ctx.fillText("copy the link instead",110,124); return; }
+  try{ await lib.toCanvas(c, u||" ", {width:220, margin:1, color:{dark:"#0b1020", light:"#ffffff"}}); }
+  catch(e){ ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height); }
+}
+// live cloudflared quick-tunnel for headset testing (ephemeral — regenerate when it dies)
+const PREFERRED_VR_URL = "https://message-notes-newbie-priced.trycloudflare.com/eval-recipes/problem-solution-graph-3d.html";
+function openQR(){ const inp=document.getElementById("qrurl"); const pref=PREFERRED_VR_URL && urlState(PREFERRED_VR_URL).ok ? PREFERRED_VR_URL : location.href; inp.value=pref; document.getElementById("qrwrap").hidden=false; drawQR(inp.value); }
+function closeQR(){ document.getElementById("qrwrap").hidden=true; }
+document.getElementById("qr-open").addEventListener("click", e=>{ e.preventDefault(); openQR(); });
+document.getElementById("qr-close").addEventListener("click", closeQR);
+document.getElementById("qrwrap").addEventListener("click", e=>{ if(e.target.id==="qrwrap") closeQR(); });
+document.getElementById("qrurl").addEventListener("input", e=>drawQR(e.target.value.trim()));
+document.getElementById("qrcopy").addEventListener("click", async()=>{ const b=document.getElementById("qrcopy"); try{ await navigator.clipboard.writeText(document.getElementById("qrurl").value); const t=b.textContent; b.textContent="Copied ✓"; setTimeout(()=>b.textContent=t,1200);}catch(e){ b.textContent="Copy failed"; } });
+
+/* ═══════════════ GUIDED WALKTHROUGH (scenarios) ═══════════════ */
+const SCENARIOS = [
+  { id:"approach", emoji:"🧭", title:"Approach: break the problem down", traceId:"approach",
+    tagline:"the six questions a good AI strategy must answer",
+    intro:'Before picking tools, frame the problem. This walkthrough decomposes "find the right AI strategy" into the six questions you must answer — value, readiness, sourcing, governance, operating, people — and shows the constraints, must-haves, and pitfalls around them.',
+    spokenIntro:'How do you find the right AI strategy for your organization? Start by framing the problem, not the technology. This walkthrough breaks the question into six parts: where AI creates real value, whether you are ready, whether to build or buy, how to govern risk, how to operate and scale, and how to bring people along. Around them sit your hard constraints, your must-haves, and the pitfalls to avoid.',
+    story:'<b>Frame the problem first.</b> "The right AI strategy" decomposes into six sub-questions — <b>value, readiness, build-or-buy, governance, operating model, and people</b> — bounded by constraints like budget and regulation, judged against criteria like ROI and adoption, and threatened by pitfalls like pilot purgatory.',
+    chapters:[
+      { at:0, label:'The six questions', story:'<b>Decompose.</b> A good strategy answers six questions in order: where will AI create <b>value</b>, are we <b>ready</b>, do we <b>build or buy</b>, how do we <b>govern</b> risk, how do we <b>operate and scale</b>, and how do we bring <b>people</b> along.' },
+      { at:6, label:'Constraints, must-haves, pitfalls', story:'<b>Bound it.</b> Each question is shaped by hard <b>constraints</b> (budget, regulation, legacy, talent), must satisfy <b>requirements</b> (tied to objectives, trustworthy, scalable), is judged by <b>criteria</b> (value, adoption, risk control) — and carries <b>pitfalls</b> like pilot purgatory and shadow AI.' },
+    ] },
+  { id:"map", emoji:"🌉", title:"Map problem → solution", traceId:"map",
+    tagline:"cross the bridge from each question to its answer",
+    intro:'Now connect the two graphs. For each problem sub-question, the camera flies across the bridge to the solution component that addresses it — and shows how the recommended approach satisfies the must-haves.',
+    spokenIntro:'Now we connect the problem to the solution. The recommended strategy is value-led, governed, and federated. Watch the bridge edges: each sub-question of the problem is answered by a specific component of the solution. The use-case portfolio addresses where value lives, the data foundation addresses readiness, governance-as-a-product addresses risk, and the federated operating model lets it all scale.',
+    story:'<b>Bridge the graphs.</b> The recommended approach — <b>value-led, governed, federated</b> — is composed of initiatives, and each one <b>addresses</b> a problem sub-question or <b>satisfies</b> a must-have. Watch the bridge edges cross from solution to problem.',
+    chapters:[
+      { at:0, label:'A component for each question', story:'<b>Address each question.</b> Use-case <b>portfolio</b> → where value lives. <b>Data foundation</b> → readiness. <b>Build/buy rubric</b> → sourcing. <b>Governance-as-a-product</b> → risk. <b>Federated operating model</b> → scale. <b>Talent plan</b> → people.' },
+      { at:7, label:'…and satisfy the must-haves', story:'<b>Meet the bar.</b> The same components <b>satisfy</b> the requirements — trustworthy-by-design and scalable-beyond-pilots — and the value framework <b>meets</b> the measurable-ROI criterion. Any sub-question with no incoming bridge edge is a gap in the strategy.' },
+    ] },
+  { id:"derisk", emoji:"🛡️", title:"De-risk: solutions vs the big pitfalls", traceId:"derisk",
+    tagline:"how the strategy kills the classic failure modes",
+    intro:'Most AI strategies die the same way. This short walkthrough shows how specific solution components mitigate the classic pitfalls — pilot purgatory, hype-chasing, shadow AI — and keep risk auditable.',
+    spokenIntro:'Most AI strategies fail in predictable ways. Here is how this one defends itself. The federated operating model and a pilot-to-scale playbook break pilot purgatory. Scoring use cases by value kills hype-chasing. Unbypassable guardrails stop shadow AI and keep risk under control.',
+    story:'<b>Kill the failure modes.</b> A strategy is only as good as the risks it survives. Watch how the <b>operating model</b> and <b>pilot-to-scale playbook</b> beat <b>pilot purgatory</b>, the <b>portfolio</b> beats <b>hype</b>, and <b>guardrails</b> stop <b>shadow AI</b> while keeping risk auditable.',
+    chapters:[
+      { at:0, label:'Mitigate the pitfalls', story:'<b>Defend the strategy.</b> Each solution component <b>mitigates</b> a classic pitfall and eases a hard constraint — turning known failure modes into managed risks.' },
+    ] },
+];
+
+// speed: slow glide between nodes · readDwell: pause at a node when narration is OFF
+const tour = { active:false, playing:false, scn:null, edges:[], i:0, t:0, phase:"travel", hold:0, readDwell:1.7, speed:0.3,
+               visited:new Set(), audio:true, speaking:false, narrationDone:false, utter:null, speakTO:0, keepAlive:0 };
+const td = (id)=>document.getElementById(id);
+
+/* ---- narration (Web Speech API, self-contained, no network) ---- */
+const synth = ("speechSynthesis" in window) ? window.speechSynthesis : null;
+let pickedVoice = null;
+function pickVoice(){ if(!synth) return null; if(pickedVoice) return pickedVoice; const vs=synth.getVoices()||[];
+  pickedVoice = vs.find(v=>/^en[-_]?(us|gb)/i.test(v.lang) && /female|samantha|zira|aria|google|natural/i.test(v.name))
+             || vs.find(v=>/^en/i.test(v.lang)) || vs[0] || null; return pickedVoice; }
+if(synth) try{ synth.onvoiceschanged=()=>{ pickedVoice=null; pickVoice(); }; }catch(e){}
+function cap(s){ s=String(s||""); return s.charAt(0).toUpperCase()+s.slice(1); }
+function _stripNum(s){ return String(s==null?"":s).replace(/^\d+\s*·\s*/,""); }   // drop the "N · " prefix when speaking
+function _flat(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ").trim(); }
+function spokenStep(l, sameSrc){ const v=EDGE_VERB[l.type]||l.type; const tgt=_stripNum(nodeName(tgtId(l)));
+  // when consecutive steps share a source, don't repeat the source — say "Also …"
+  let s = sameSrc ? ("Also "+v+" "+tgt+". ") : (_stripNum(nodeName(srcId(l)))+" "+v+" "+tgt+". ");
+  // add the trigger only if it isn't just restating the target name
+  if(l.trigger){ const tl=_flat(l.trigger), gl=_flat(tgt); if(tl && gl.indexOf(tl)<0 && tl.indexOf(gl)<0) s+=cap(l.trigger)+". "; }
+  return s; }
+// brief progression cue only — no verbatim repeat of the upcoming hop (the callout shows it visually)
+function spokenNext(i){ const e=tour.edges; if(i+1<e.length){ return "Next, step "+(i+2)+" of "+e.length+"."; } return "That is the final step. The walkthrough is complete."; }
+function chapterAt(i){ const ch=tour.scn&&tour.scn.chapters; return ch ? (ch.find(c=>c.at===i)||null) : null; }
+function activeChapter(i){ const ch=tour.scn&&tour.scn.chapters; if(!ch||!ch.length) return null; let cur=null; for(const c of ch){ if(c.at<=i) cur=c; } return cur; }
+function spokenPrefix(i){ let p=""; if(i===0 && tour.scn && tour.scn.spokenIntro) p+=tour.scn.spokenIntro+" "; const c=chapterAt(i); if(c && i!==0) p+=c.label.replace(/·/g," — ")+". "; return p; }
+function renderStory(i){ const el=td("td-story"); if(!el) return; const scn=tour.scn; const c=activeChapter(i); const html = c ? c.story : (scn&&scn.story ? scn.story : ""); if(html){ el.innerHTML=html; el.hidden=false; } else { el.hidden=true; } }
+function cancelSpeech(){ if(synth){ try{ synth.cancel(); }catch(e){} } clearTimeout(tour.speakTO); clearInterval(tour.keepAlive); tour.speaking=false; }
+function armSpeakFallback(ms){ clearTimeout(tour.speakTO); tour.speakTO=setTimeout(()=>{ tour.speaking=false; tour.narrationDone=true; }, ms); }
+function speakStep(i){
+  tour.narrationDone=false; tour.speaking=false;
+  if(!tour.audio || !synth){ tour.narrationDone=true; return; }   // no audio → arrival uses the timed readDwell
+  try{ synth.cancel(); }catch(e){}
+  const sameSrc = i>0 && srcId(tour.edges[i-1])===srcId(tour.edges[i]);
+  const text = spokenPrefix(i) + spokenStep(tour.edges[i], sameSrc) + " " + spokenNext(i);
+  const u = new SpeechSynthesisUtterance(text);
+  const v = pickVoice(); if(v) u.voice=v;
+  u.rate=0.98; u.pitch=1.0; u.volume=1.0; u.lang="en-US";
+  tour.utter=u; tour.speaking=true;
+  u.onend  =()=>{ if(tour.utter===u){ tour.speaking=false; tour.narrationDone=true; clearTimeout(tour.speakTO); clearInterval(tour.keepAlive); } };
+  u.onerror=()=>{ if(tour.utter===u){ tour.speaking=false; tour.narrationDone=true; clearTimeout(tour.speakTO); clearInterval(tour.keepAlive); } };
+  armSpeakFallback(Math.min(60000, 2000 + text.length*80));   // safety net so the tour never stalls (generous: long intros)
+  synth.speak(u);
+  // Chrome/Chromium stops speech synthesis ~15s in and may never fire onend — pause+resume resets that watchdog.
+  clearInterval(tour.keepAlive);
+  tour.keepAlive = setInterval(()=>{ if(!tour.speaking){ clearInterval(tour.keepAlive); return; } if(!tour.playing) return; try{ synth.pause(); synth.resume(); }catch(e){} }, 9000);
+}
+function syncAudioBtn(){ const b=td("td-audio"); if(!b) return; b.classList.toggle("on", tour.audio); b.textContent = tour.audio ? "🔊 Narration" : "🔇 Narration"; }
+function setAudio(on){ tour.audio=!!on; syncAudioBtn();
+  if(!tour.audio){ cancelSpeech(); }
+  else if(tour.active && tour.playing && tour.phase!=="done" && !tour.narrationDone){ speakStep(tour.i); }
+}
+
+/* build the chooser cards */
+(function buildScenarioList(){
+  const list = td("scnlist");
+  SCENARIOS.forEach(s=>{
+    const def = TRACES.find(t=>t.id===s.traceId); const n = def?def.steps.length:0;
+    const b = document.createElement("button");
+    b.className="scnopt"; b.setAttribute("data-scn", s.id);
+    b.innerHTML = '<span class="scnemoji">'+s.emoji+'</span><span class="scntxt"><b>'+esc(s.title)+'</b><small>'+n+' steps · '+esc(s.tagline)+'</small><em>'+esc(s.intro)+'</em></span>';
+    list.appendChild(b);
+  });
+  list.addEventListener("click",(e)=>{ const b=e.target.closest("button[data-scn]"); if(b) startTour(b.getAttribute("data-scn")); });
+})();
+
+function openScenarios(){ td("scnwrap").hidden=false; }
+function closeScenarios(){ td("scnwrap").hidden=true; }
+
+function startTour(scnId){
+  const scn = SCENARIOS.find(s=>s.id===scnId); if(!scn) return;
+  closeScenarios();
+  // take over the stage
+  clearOption(); hidePanel(); stopTrace(); clearExplode(); SELECTED.link=null; cancelSpeech();
+  tracedock.classList.remove("show");
+  const def = TRACES.find(t=>t.id===scn.traceId);
+  tour.scn=scn; tour.edges=traceEdges(def); tour.visited=new Set();
+  tour.active=true; tour.playing=true;
+  packet.visible=true;
+  td("tourdock").classList.add("show");
+  td("td-scn").textContent = scn.emoji+"  "+scn.title;
+  syncAudioBtn();
+  gotoTourStep(0);   // first speak() rides the scenario-card click → satisfies the audio gesture gate
+}
+
+function gotoTourStep(i){
+  const edges=tour.edges; if(!edges.length){ return; }
+  if(i>=edges.length){ finishTour(); return; }
+  if(i<0) i=0;
+  tour.i=i; tour.t=0; tour.hold=0;
+  const l=edges[i];
+  // light the path travelled so far + the current edge's endpoints
+  tour.visited=new Set();
+  for(let k=0;k<i;k++){ const e=edges[k]; tour.visited.add(srcId(e)); tour.visited.add(tgtId(e)); }
+  tour.visited.add(srcId(l)); tour.visited.add(tgtId(l));
+  setDim(tour.visited);
+  SELECTED.link=l; refreshLinkStyles();
+  const a=meshById[srcId(l)], b=meshById[tgtId(l)];
+  if(a&&b){ a.getWorldPosition(_a); b.getWorldPosition(_b);
+    if(tour.playing){ packet.position.copy(_a); tour.phase="travel"; }       // glide from source
+    else { packet.position.copy(_b); tour.phase="arrive"; }                   // paused: show the hop completed
+    _tmp.addVectors(_a,_b).multiplyScalar(0.5); flyTo(_tmp); }
+  else { tour.phase="arrive"; }
+  renderStory(i);
+  renderTourCallout(i,l);
+  speakStep(i);    // narration begins exactly as the move begins → no gap between move and audio
+  syncTourUI();
+}
+
+function finishTour(){
+  cancelSpeech();
+  tour.phase="done"; tour.playing=false; tour.i=tour.edges.length;
+  const all=new Set(); tour.edges.forEach(e=>{ all.add(srcId(e)); all.add(tgtId(e)); });
+  tour.visited=all; setDim(all); SELECTED.link=null; refreshLinkStyles();
+  const comps=all.size, n=tour.edges.length;
+  if(tour.scn && tour.scn.story){ const el=td("td-story"); if(el){ el.innerHTML=tour.scn.story; el.hidden=false; } }
+  td("td-callout").innerHTML = '<p class="tcsent">✓ <b>Walkthrough complete.</b> You followed <b>'+n+'</b> links across <b>'+comps+'</b> nodes of the problem→solution map.</p><div class="tcmeta">↺ <b>Replay</b> · ‹ <b>Prev</b> to step back · ✕ to exit · 🔍 click any node for detail, or run <b>Map problem → solution</b> to cross the bridges.</div>';
+  syncTourUI();
+}
+
+function nextTour(){ if(tour.phase==="done") return; gotoTourStep(tour.i+1); }
+function prevTour(){ if(tour.phase==="done"){ gotoTourStep(tour.edges.length-1); return; } gotoTourStep(tour.i-1); }
+function playTour(){ if(!tour.active) return; tour.playing=true;
+  if(tour.phase==="done"){ gotoTourStep(0); }
+  else if(tour.audio && synth){ if(tour.speaking){ try{ synth.resume(); }catch(e){} armSpeakFallback(10000); } else if(!tour.narrationDone){ speakStep(tour.i); } }
+  syncTourUI(); }
+function pauseTour(){ tour.playing=false; if(synth){ try{ synth.pause(); }catch(e){} } clearTimeout(tour.speakTO); syncTourUI(); }
+function exitTour(){
+  cancelSpeech();
+  tour.active=false; tour.playing=false; tour.scn=null; tour.edges=[]; tour.phase="travel";
+  packet.visible=false; SELECTED.link=null; refreshLinkStyles(); clearDim(); hidePanel();
+  td("tourdock").classList.remove("show");
+}
+
+function syncTourUI(){
+  const play=td("td-play");
+  if(tour.phase==="done"){ play.textContent="↺ Replay"; td("td-step").textContent="✓ "+tour.edges.length+" steps"; }
+  else { play.textContent = tour.playing ? "⏸ Pause" : "▶ Play"; td("td-step").textContent="Step "+(tour.i+1)+" / "+tour.edges.length; }
+  td("td-prog").style.width = tourProgress()+"%";
+}
+function tourProgress(){
+  if(!tour.edges.length) return 0;
+  if(tour.phase==="done") return 100;
+  const within = (tour.phase==="arrive") ? 1 : Math.min(tour.t,1);
+  return Math.round(100*(tour.i+within)/tour.edges.length);
+}
+
+function renderTourCallout(i,l){
+  const c=EDGE_COL[l.type]||"#8b97b8";
+  const src=nodeName(srcId(l)), tgt=nodeName(tgtId(l)), verb=EDGE_VERB[l.type]||l.type;
+  let h='<div class="tcflow">'+nodeChip(srcId(l))+'<span class="ar">→</span>'+nodeChip(tgtId(l))
+       +'<span class="tcverb" style="background:'+c+'22;color:'+c+';border-color:'+c+'55">'+esc(verb)+'</span></div>';
+  h+='<p class="tcsent"><b>'+esc(src)+'</b> '+esc(verb)+' <b>'+esc(tgt)+'</b>'+(l.trigger?(' — '+esc(l.trigger)):'')+'.</p>';
+  const bits=[]; if(l.payload) bits.push('Carries <code>'+esc(l.payload)+'</code>'); if(l.channel) bits.push('via '+esc(l.channel)); if(l.sync) bits.push(esc(l.sync));
+  if(bits.length) h+='<div class="tcmeta">'+bits.join(' · ')+'</div>';
+  const hops = l.hops&&l.hops.length ? l.hops : [verb];
+  h+='<div class="hops"><ol>'+hops.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol></div>';
+  const nx = (i+1<tour.edges.length) ? tour.edges[i+1] : null;
+  if(nx) h+='<div class="tcnext">Up next → <b>'+esc(nodeName(srcId(nx)))+'</b> '+esc(EDGE_VERB[nx.type]||nx.type)+' <b>'+esc(nodeName(tgtId(nx)))+'</b></div>';
+  td("td-callout").innerHTML=h;
+}
+
+function updateTour(dt){
+  if(!tour.active || tour.phase==="done") return;
+  if(!tour.playing) return;                         // paused → freeze packet + narration, no auto-advance
+  const l=tour.edges[tour.i]; if(!l) return;
+  const a=meshById[srcId(l)], b=meshById[tgtId(l)];
+  if(!a||!b){ advanceAfterStep(); return; }
+  a.getWorldPosition(_a); b.getWorldPosition(_b);
+  if(tour.phase==="travel"){
+    const dist=Math.max(_a.distanceTo(_b),1);
+    tour.t += dt*60*tour.speed/dist;
+    if(tour.t>=1){ tour.t=1; packet.position.copy(_b); tour.phase="arrive"; tour.hold=0; }
+    else packet.position.copy(_a).lerp(_b,tour.t);
+  } else if(tour.phase==="arrive"){
+    packet.position.copy(_b);                        // hold at the node …
+    let ready;
+    if(tour.audio && synth) ready = tour.narrationDone;          // … until narration (incl. "next" cue) finishes
+    else { tour.hold += dt; ready = tour.hold >= tour.readDwell; } // … or a fixed read-pause when muted
+    if(ready){ advanceAfterStep(); return; }          // then immediately start the next move (no gap)
+  }
+  td("td-prog").style.width = tourProgress()+"%";
+}
+function advanceAfterStep(){ if(tour.i+1<tour.edges.length){ gotoTourStep(tour.i+1); } else { finishTour(); } }
+
+/* wire walkthrough controls */
+td("scn-open").addEventListener("click", openScenarios);
+td("scn-close").addEventListener("click", closeScenarios);
+td("scnwrap").addEventListener("click", e=>{ if(e.target.id==="scnwrap") closeScenarios(); });
+td("td-exit").addEventListener("click", exitTour);
+td("td-prev").addEventListener("click", prevTour);
+td("td-next").addEventListener("click", nextTour);
+td("td-restart").addEventListener("click", ()=>{ if(tour.active){ tour.playing=true; gotoTourStep(0); } });
+td("td-play").addEventListener("click", ()=>{ if(tour.playing) pauseTour(); else playTour(); });
+td("td-audio").addEventListener("click", ()=>setAudio(!tour.audio));
+syncAudioBtn();
+
+/* start-here guide */
+function closeGuide(){ td("guidewrap").hidden=true; }
+td("guide-open").addEventListener("click", ()=>{ td("guidewrap").hidden=false; });
+td("guide-close").addEventListener("click", closeGuide);
+td("guide-explore").addEventListener("click", closeGuide);
+td("guide-start").addEventListener("click", ()=>{ closeGuide(); startTour("approach"); });
+td("guidewrap").addEventListener("click", e=>{ if(e.target.id==="guidewrap") closeGuide(); });
+
+/* ═══════════════ WHAT-IF OPTIONS — pick a strategic option, see its impact across the graph ═══════════════ */
+const OPT_COL = { "+":"#34d399", "-":"#f87171", "~":"#fbbf24" };
+const OPT_MARK = { "+":"▲", "-":"▼", "~":"◆" };
+const OPTIONS = [
+  { id:"buy", emoji:"🛒", label:"Option A · Buy & partner first", tag:"accelerate with vendors; build only the differentiating few",
+    summary:"Lean on vendors and partners to move fast. You trade some differentiation and control for speed and lower build risk.",
+    impacts:[
+      {node:"m:value",effect:"+",note:"Faster time-to-value — ROI in months, not years.",
+        why:["Vendors ship working products on day one.","You integrate, instead of engineering from scratch.","So value is captured in months, not years."]},
+      {node:"k:pilot",effect:"+",note:"Less pilot purgatory — proven products deploy quickly.",
+        why:["You deploy proven, production-grade products.","Fewer bespoke builds means fewer pilots that stall.","So the path from pilot to production is shorter."]},
+      {node:"c:talent",effect:"+",note:"Eases the talent crunch — vendors bring the builders.",
+        why:["The vendor's engineers built and maintain the product.","You need integrators, not a deep research bench.","So the scarce-AI-talent constraint eases."]},
+      {node:"c:budget",effect:"+",note:"Lower upfront build cost (watch recurring licence fees).",
+        why:["No large build team or R&D spend upfront.","You pay subscription or usage fees instead.","So initial cost is lower — but recurring fees add up."]},
+      {node:"p:buildbuy",effect:"+",note:"Answers build/buy decisively: buy the commodity, partner for the rest.",
+        why:["A buy-first rule is simple to apply.","Buy commodity capabilities; partner where it accelerates.","So the build/buy/partner question is settled."]},
+      {node:"t:buildbuy",effect:"-",note:"Sacrifices proprietary differentiation — you run what everyone runs.",
+        why:["You run the same products as competitors.","Little of the capability is proprietary to you.","So your differentiation erodes."]},
+      {node:"i:datafound",effect:"-",note:"Weaker data ownership — your data may train someone else's edge.",
+        why:["Your data flows through vendor systems.","It can improve the vendor's shared model.","So you weaken ownership of your data advantage."]},
+      {node:"q:scalable",effect:"-",note:"Scale is capped by the vendor's roadmap, not yours.",
+        why:["Capabilities are bounded by what the vendor exposes.","You cannot extend past their roadmap.","So your scaling is capped by the vendor, not you."]},
+      {node:"c:regulation",effect:"~",note:"Compliance now spans third parties — more vendor due diligence.",
+        why:["Vendors sit inside your compliance perimeter.","Each needs due diligence, contracts, and audits.","So compliance work now spans third parties."]},
+      {node:"i:govprod",effect:"~",note:"Governance must extend to vendor and MCP gateways.",
+        why:["Agents reach tools and data through vendor gateways.","Those external paths still need policy and monitoring.","So governance must extend to cover them."]},
+      {node:"k:shadow",effect:"~",note:"Easy procurement can fuel shadow AI unless it is gated.",
+        why:["Buying tools is easy and decentralized.","Teams can procure without IT or security approval.","So shadow AI grows unless procurement is gated."]},
+    ]},
+  { id:"build", emoji:"🏗️", label:"Option B · Build in-house first", tag:"invest in a proprietary platform and capability",
+    summary:"Invest in building your own platform and capability. You gain control and differentiation, but pay in talent, budget, and time.",
+    impacts:[
+      {node:"t:buildbuy",effect:"+",note:"Maximises proprietary differentiation — your AI becomes a moat.",
+        why:["You design capabilities no competitor has.","The models and IP are yours alone.","So differentiation becomes a durable moat."]},
+      {node:"i:datafound",effect:"+",note:"Strong data ownership and a reusable foundation.",
+        why:["Models train on your own governed data.","Nothing leaks into a vendor's shared edge.","So you keep strong, reusable data ownership."]},
+      {node:"i:platform",effect:"+",note:"A shared platform you control end-to-end.",
+        why:["You build the build/deploy/monitor stack yourself.","Every team runs on infrastructure you control.","So you own an end-to-end platform."]},
+      {node:"q:scalable",effect:"+",note:"You own scaling — no vendor ceiling.",
+        why:["There is no external ceiling on capacity or features.","You extend the platform as demand grows.","So scaling is yours to control."]},
+      {node:"q:trust",effect:"+",note:"Full control of safety, auditability, and IP.",
+        why:["You control the code, data, and guardrails.","Safety and audit are designed in, not assumed.","So trust and IP stay fully in your hands."]},
+      {node:"i:govprod",effect:"+",note:"Governance is native, not bolted onto vendors.",
+        why:["Governance is part of your own platform.","No need to bolt controls onto third parties.","So governance is native and consistent."]},
+      {node:"c:talent",effect:"-",note:"Heavy demand on scarce AI talent — the binding constraint.",
+        why:["Building needs scarce ML and AI engineers.","You must hire and retain a deep bench.","So the binding talent constraint is strained hardest here."]},
+      {node:"c:budget",effect:"-",note:"Higher upfront investment and a longer payback.",
+        why:["Up-front R&D, platform, and team costs are large.","Returns arrive only after you ship.","So investment is higher and payback is longer."]},
+      {node:"m:value",effect:"-",note:"Slower time-to-value — value lands later.",
+        why:["Designing and engineering takes months to years.","Nothing ships until the platform is ready.","So value lands later — a real time-to-value trade-off."]},
+      {node:"k:pilot",effect:"-",note:"Greater pilot-purgatory risk if the platform overruns.",
+        why:["Large build programs can overrun and drift.","Pilots may never graduate if scope balloons.","So the risk of pilot purgatory rises."]},
+      {node:"i:change",effect:"~",note:"Bigger change effort — new skills and roles to build internally.",
+        why:["New roles, skills, and ways of working appear.","People must adopt an internally-built platform.","So the change-management effort is larger."]},
+    ]},
+];
+let optSel=null, optMarkers=[];
+const _ov=new THREE.Vector3();
+function clearOptionMarkers(){ optMarkers.forEach(o=>{ fxGroup.remove(o); if(o.material){ if(o.material.map)o.material.map.dispose(); o.material.dispose(); } }); optMarkers=[]; }
+function clearOption(){
+  if(!optSel && !optMarkers.length) return;
+  optSel=null; clearOptionMarkers();
+  for(const n of DATA.nodes){ const g=meshById[n.id]; if(g) g.userData.mat.emissive.set(g.userData.baseHex); }
+  clearDim();
+  [...document.querySelectorAll(".optbtn")].forEach(x=>x.classList.remove("active"));
+}
+function addImpactMarker(g, effect){
+  const m=new SpriteText(OPT_MARK[effect], 5.5, OPT_COL[effect]); m.fontWeight="800";
+  m.material.depthWrite=false; m.material.depthTest=false; m.renderOrder=998;
+  g.getWorldPosition(_ov); m.position.copy(_ov).add(new THREE.Vector3(0,(g.userData.r||4)+12.5,0));
+  fxGroup.add(m); optMarkers.push(m);
+}
+function selectOption(id){
+  const opt=OPTIONS.find(o=>o.id===id); if(!opt) return;
+  if(tour.active) exitTour();
+  SELECTED.link=null; refreshLinkStyles(); clearExplode(); clearOptionMarkers();
+  optSel=opt;
+  [...document.querySelectorAll(".optbtn")].forEach(x=>x.classList.toggle("active", x.getAttribute("data-opt")===id));
+  const eff={}; opt.impacts.forEach(im=>eff[im.node]=im.effect);
+  const focus=new THREE.Vector3(); let cnt=0;
+  for(const n of DATA.nodes){ const g=meshById[n.id]; if(!g) continue; const e=eff[n.id];
+    if(e){ g.userData.mat.emissive.set(OPT_COL[e]); g.userData.mat.emissiveIntensity=1.15; g.userData.mat.opacity=1; g.userData.mat.transparent=false;
+      if(g.userData.sprite) g.userData.sprite.visible=true; if(g.userData.badge) g.userData.badge.visible=true;
+      addImpactMarker(g,e); g.getWorldPosition(_ov); focus.add(_ov); cnt++; }
+    else { g.userData.mat.emissive.set(g.userData.baseHex); g.userData.mat.emissiveIntensity=0.04; g.userData.mat.opacity=0.10; g.userData.mat.transparent=true;
+      if(g.userData.sprite) g.userData.sprite.visible=false; if(g.userData.badge) g.userData.badge.visible=false; }
+  }
+  if(cnt){ focus.multiplyScalar(1/cnt); flyTo(focus); }
+  renderOptionPanel(opt);
+}
+function renderOptionPanel(opt){
+  const ord={"+":0,"~":1,"-":2};
+  const ims=opt.impacts.slice().sort((a,b)=>ord[a.effect]-ord[b.effect]);
+  const pos=opt.impacts.filter(i=>i.effect==="+").length, neg=opt.impacts.filter(i=>i.effect==="-").length, mix=opt.impacts.filter(i=>i.effect==="~").length;
+  let h='<span class="ptag" style="background:rgba(56,189,248,0.18);color:#7dd3fc">What-if option</span>';
+  h+='<h2>'+esc(opt.label)+'</h2><div class="kind">'+esc(opt.tag)+'</div>';
+  h+='<p>'+esc(opt.summary)+'</p>';
+  h+='<div class="kv"><div class="k">Impact</div><div class="v"><span style="color:#34d399">▲ '+pos+' help</span> · <span style="color:#f87171">▼ '+neg+' strain</span> · <span style="color:#fbbf24">◆ '+mix+' mixed</span></div></div>';
+  h+='<div class="phead">Affected nodes ('+opt.impacts.length+') — click a row for the reasoning</div>';
+  ims.forEach(im=>{ const c=OPT_COL[im.effect]; const nm=NODE[im.node];
+    h+='<div class="imrow" data-focus="'+esc(im.node)+'"><span class="imk" style="color:'+c+'">'+OPT_MARK[im.effect]+'</span><span class="imn"><b>'+esc(nm?nm.label:im.node)+'</b> — <span class="imnote">'+esc(im.note)+'</span></span><span class="imwhytog">why ▾</span></div>';
+    if(im.why&&im.why.length){ h+='<div class="imwhy" hidden><ol>'+im.why.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol></div>'; }
+  });
+  showPanel(h);
+}
+(function buildOptionsUI(){
+  const list=document.getElementById("optlist");
+  OPTIONS.forEach(o=>{ const b=document.createElement("button"); b.className="optbtn"; b.setAttribute("data-opt",o.id);
+    b.innerHTML='<b>'+esc(o.emoji+" "+o.label)+'</b><small>'+esc(o.tag)+'</small>'; list.appendChild(b); });
+  list.addEventListener("click",e=>{ const b=e.target.closest("button[data-opt]"); if(b) selectOption(b.getAttribute("data-opt")); });
+})();
+document.getElementById("opt-open").addEventListener("click", ()=>{ document.getElementById("optdock").classList.toggle("show"); });
+document.getElementById("opt-clear").addEventListener("click", clearOption);
+// clicking an impact row reveals the reasoning chain AND flies to that node (overlay stays)
+document.getElementById("panel-body").addEventListener("click",(e)=>{ const row=e.target.closest(".imrow[data-focus]"); if(!row) return;
+  const w=row.nextElementSibling; if(w && w.classList.contains("imwhy")){ w.hidden=!w.hidden; const tog=row.querySelector(".imwhytog"); if(tog) tog.textContent = w.hidden ? "why ▾" : "why ▴"; }
+  const g=meshById[row.getAttribute("data-focus")]; if(g){ g.getWorldPosition(_tmp); flyTo(_tmp); } });
+
+/* ═══════════════ debug hook ═══════════════ */
+window.__A = { DATA, NODE, linkByKey, TRACES, Graph, camera, world, rig, renderer, meshById,
+  mode:()=>mode, setMode:(m)=>{ mode=m; }, selectNode, selectLink, clearSelection,
+  selected:()=>SELECTED.link, srcId, tgtId, nodeName,
+  buildExplode, clearExplode, explodeCount:()=>exploadeObjs.length,
+  trace, loadTrace, playTrace, pauseTrace, stopTrace, stepTrace, traceEdges, packet,
+  pickNode, nearestLink, controllerPick, controllers,
+  SCENARIOS, tour, openScenarios, closeScenarios, startTour, gotoTourStep, nextTour, prevTour, playTour, pauseTour, exitTour, finishTour, updateTour,
+  OPTIONS, selectOption, clearOption, optState:()=>({sel:optSel&&optSel.id, markers:optMarkers.length}) };
+</script>
+</body>
+</html>

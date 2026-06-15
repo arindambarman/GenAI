@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mastery tracker · Eval & Observability · AdaptLearn</title>
+<script src="lessons-data.js"></script>
+<style>
+  :root{
+    --bg0:#05070f; --bg1:#0a0f1f; --panel:rgba(15,21,38,0.86); --panel2:rgba(20,28,48,0.7);
+    --border:rgba(120,150,210,0.18); --border2:rgba(120,150,210,0.32);
+    --txt:#e6ecf7; --muted:#8b9bc0; --faint:#5d6b8e;
+    --accent:#38bdf8; --good:#34d399; --warn:#fbbf24; --bad:#f87171; --violet:#a78bfa;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1100px 700px at 12% -8%, rgba(56,189,248,0.10), transparent 60%),
+      radial-gradient(1000px 700px at 100% 0%, rgba(167,139,250,0.10), transparent 55%),
+      radial-gradient(900px 800px at 50% 120%, rgba(52,211,153,0.08), transparent 60%),
+      var(--bg0);
+    color:var(--txt);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    min-height:100vh;
+  }
+  a{color:inherit;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px 80px;}
+
+  /* topnav */
+  .topnav{display:flex;align-items:center;gap:18px;padding:16px 22px;max-width:1180px;margin:0 auto;
+    flex-wrap:wrap;}
+  .brand{font-weight:800;letter-spacing:.02em;font-size:15px;}
+  .brand .dot{color:var(--accent);}
+  .topnav .links{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;}
+  .topnav .links a{font-size:13px;text-decoration:none;color:var(--muted);padding:6px 12px;border-radius:999px;
+    border:1px solid transparent;transition:.15s;font-weight:600;}
+  .topnav .links a:hover{color:var(--txt);border-color:var(--border2);background:var(--panel2);}
+  .topnav .links a.active{color:#06121f;background:var(--accent);}
+
+  /* hero */
+  .hero{display:grid;grid-template-columns:300px 1fr;gap:26px;margin-top:10px;
+    background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:26px;
+    backdrop-filter:blur(8px);}
+  @media(max-width:780px){.hero{grid-template-columns:1fr;}}
+  .ringbox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+  .ring{position:relative;width:200px;height:200px;}
+  .ring svg{transform:rotate(-90deg);}
+  .ring .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .ring .pct{font-size:42px;font-weight:800;line-height:1;}
+  .ring .sub{font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:.04em;text-transform:uppercase;}
+  .ringcap{font-size:13px;color:var(--muted);text-align:center;max-width:240px;}
+
+  .herotitle{font-size:24px;font-weight:800;margin:0 0 4px;}
+  .herolead{color:var(--muted);font-size:14px;margin:0 0 18px;max-width:620px;line-height:1.55;}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  @media(max-width:620px){.tiles{grid-template-columns:repeat(2,1fr);}}
+  .tile{background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:14px;}
+  .tile .n{font-size:26px;font-weight:800;}
+  .tile .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+  .tile.s .n{color:var(--accent);}
+  .tile.p .n{color:var(--warn);}
+  .tile.m .n{color:var(--good);}
+  .tile.r .n{color:var(--violet);}
+
+  .nextrow{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px;}
+  @media(max-width:620px){.nextrow{grid-template-columns:1fr;}}
+  .nextcard{background:linear-gradient(135deg,rgba(56,189,248,0.12),rgba(167,139,250,0.10));
+    border:1px solid var(--border2);border-radius:14px;padding:16px;}
+  .nextcard .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;}
+  .nextcard h3{margin:6px 0 4px;font-size:17px;}
+  .nextcard p{margin:0 0 12px;font-size:12.5px;color:var(--muted);line-height:1.5;}
+  .btn{display:inline-block;text-decoration:none;font-weight:700;font-size:13px;padding:8px 14px;border-radius:10px;
+    border:1px solid var(--border2);background:var(--panel2);color:var(--txt);cursor:pointer;transition:.15s;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn.primary{background:var(--accent);color:#06121f;border-color:var(--accent);}
+  .btn.primary:hover{filter:brightness(1.08);color:#06121f;}
+  .duelist{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;}
+  .duelist li{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;
+    background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:7px 10px;}
+  .duelist .due-study{font-size:11px;color:var(--violet);text-decoration:none;font-weight:700;border:1px solid var(--border2);
+    padding:3px 9px;border-radius:999px;}
+  .duelist .due-study:hover{border-color:var(--violet);}
+  .emptyhint{font-size:12.5px;color:var(--muted);}
+
+  /* category rollup */
+  .secttitle{display:flex;align-items:baseline;gap:10px;margin:34px 0 14px;}
+  .secttitle h2{font-size:17px;margin:0;font-weight:800;}
+  .secttitle span{font-size:12.5px;color:var(--muted);}
+  .cats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  @media(max-width:780px){.cats{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:520px){.cats{grid-template-columns:1fr;}}
+  .catcard{background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:13px 15px;cursor:pointer;
+    transition:.15s;}
+  .catcard:hover{border-color:var(--border2);transform:translateY(-2px);}
+  .catcard.activef{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;}
+  .catcard .top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;}
+  .catcard .nm{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .catcard .swatch{width:10px;height:10px;border-radius:3px;flex:0 0 auto;}
+  .catcard .frac{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .bar{height:7px;border-radius:99px;background:rgba(255,255,255,0.07);overflow:hidden;display:flex;}
+  .bar .fill{height:100%;}
+
+  /* controls */
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:30px 0 16px;}
+  .search{flex:1;min-width:200px;background:var(--panel2);border:1px solid var(--border);border-radius:11px;
+    padding:10px 14px;color:var(--txt);font-size:14px;}
+  .search::placeholder{color:var(--faint);}
+  .filters{display:flex;gap:6px;flex-wrap:wrap;}
+  .filters button{background:var(--panel2);border:1px solid var(--border);color:var(--muted);font-size:12.5px;
+    font-weight:600;padding:7px 13px;border-radius:999px;cursor:pointer;transition:.15s;}
+  .filters button:hover{color:var(--txt);border-color:var(--border2);}
+  .filters button.on{color:#06121f;background:var(--accent);border-color:var(--accent);}
+
+  /* grid */
+  .catgroup{margin-top:24px;}
+  .catgroup h3{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
+    margin:0 0 12px;display:flex;align-items:center;gap:9px;}
+  .catgroup h3 .swatch{width:11px;height:11px;border-radius:3px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px;}
+  .chip{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:15px;display:flex;
+    flex-direction:column;gap:10px;transition:.15s;position:relative;overflow:hidden;}
+  .chip::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cc,#38bdf8);opacity:.0;transition:.15s;}
+  .chip:hover{border-color:var(--border2);}
+  .chip:hover::before{opacity:.9;}
+  .chip.lvl3{border-color:rgba(52,211,153,0.4);}
+  .chip.lvl3::before{opacity:.9;background:var(--good);}
+  .chip .row1{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+  .chip .ttl{font-size:14.5px;font-weight:700;line-height:1.25;}
+  .chip .cx{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:3px;}
+  .statepill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap;
+    border:1px solid var(--border2);}
+  .statepill.l0{color:var(--faint);}
+  .statepill.l1{color:var(--accent);border-color:rgba(56,189,248,.4);}
+  .statepill.l2{color:var(--warn);border-color:rgba(251,191,36,.4);}
+  .statepill.l3{color:var(--good);border-color:rgba(52,211,153,.45);background:rgba(52,211,153,.08);}
+  .chip .measure{font-size:12px;color:var(--muted);line-height:1.45;}
+  .meter{display:flex;gap:4px;}
+  .meter .seg{flex:1;height:5px;border-radius:99px;background:rgba(255,255,255,0.08);}
+  .meter .seg.on{background:var(--cc,#38bdf8);}
+  .meter .seg.gold{background:var(--good);}
+  .chip .signals{display:flex;gap:6px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);}
+  .chip .signals span{border:1px solid var(--border);border-radius:999px;padding:2px 8px;}
+  .chip .signals span.on{color:var(--txt);border-color:var(--border2);}
+  .chip .signals span.applied.on{color:var(--good);border-color:rgba(52,211,153,.4);}
+  .chip .acts{display:flex;gap:8px;align-items:center;margin-top:2px;flex-wrap:wrap;}
+  .chip .acts .btn{font-size:12px;padding:6px 11px;}
+  .chip .mastered-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;
+    margin-left:auto;user-select:none;}
+  .chip .mastered-toggle input{accent-color:var(--good);width:15px;height:15px;cursor:pointer;}
+
+  /* recall modal */
+  .overlay{position:fixed;inset:0;background:rgba(3,6,15,0.72);backdrop-filter:blur(4px);display:none;
+    align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--border2);border-radius:18px;padding:24px;max-width:520px;width:100%;
+    box-shadow:0 30px 80px rgba(0,0,0,.5);}
+  .modal .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700;}
+  .modal h3{margin:8px 0 4px;font-size:20px;}
+  .modal .qm{font-size:13px;color:var(--muted);margin:0 0 16px;}
+  .modal .prompt{font-size:15px;line-height:1.5;background:var(--panel2);border:1px solid var(--border);border-radius:12px;
+    padding:15px;margin-bottom:14px;}
+  .modal .answer{font-size:14px;line-height:1.55;background:rgba(52,211,153,0.07);border:1px solid rgba(52,211,153,0.3);
+    border-radius:12px;padding:15px;margin-bottom:16px;display:none;}
+  .modal .answer.show{display:block;}
+  .modal .answer .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--good);font-weight:700;margin-bottom:6px;}
+  .modal .btns{display:flex;gap:10px;flex-wrap:wrap;}
+  .modal .btns .grow{flex:1;text-align:center;}
+  .modal .close{float:right;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;border:none;background:none;}
+  .modal .close:hover{color:var(--txt);}
+
+  .footnote{margin-top:40px;font-size:12px;color:var(--faint);text-align:center;}
+  .footnote a{color:var(--muted);}
+  .reset{background:none;border:none;color:var(--faint);font-size:12px;cursor:pointer;text-decoration:underline;}
+  .reset:hover{color:var(--bad);}
+</style>
+</head>
+<body>
+  <nav class="topnav">
+    <span class="brand">Apex<span class="dot">·</span>Mastery</span>
+    <div class="links">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="knowledge-graph.html">Graph</a>
+      <a href="playground.html">Playground</a>
+      <a href="incident-simulator.html">Incidents</a>
+      <a href="eval-studio.html">Studio</a>
+      <a href="trace-explorer.html">Traces</a>
+      <a href="tutor.html">Tutor</a>
+      <a href="my-sessions.html">My Sessions</a>
+      <a href="mastery.html" class="active">Mastery</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="journey.html">Journey</a>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <section class="hero">
+      <div class="ringbox">
+        <div class="ring">
+          <svg width="200" height="200" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="86" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="16"/>
+            <circle id="ringfill" cx="100" cy="100" r="86" fill="none" stroke="url(#grad)" stroke-width="16"
+              stroke-linecap="round" stroke-dasharray="540" stroke-dashoffset="540"/>
+            <defs>
+              <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#38bdf8"/>
+                <stop offset="55%" stop-color="#a78bfa"/>
+                <stop offset="100%" stop-color="#34d399"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="center">
+            <div class="pct" id="ringpct">0%</div>
+            <div class="sub">mastery</div>
+          </div>
+        </div>
+        <div class="ringcap" id="ringcap">Study lessons, resolve incidents, and pass recall checks to grow each metric to mastery.</div>
+      </div>
+
+      <div>
+        <h1 class="herotitle">Your eval &amp; observability mastery</h1>
+        <p class="herolead">All 41 metrics across 9 areas, tracked across every experience: a metric levels up as you
+          <strong>study</strong> its lesson, <strong>apply</strong> it to resolve an incident, and pass an
+          <strong>active-recall</strong> check. Reviews are scheduled with spaced repetition so mastery sticks.</p>
+        <div class="tiles">
+          <div class="tile s"><div class="n" id="t-studied">0</div><div class="l">Studied</div></div>
+          <div class="tile p"><div class="n" id="t-practiced">0</div><div class="l">Practiced</div></div>
+          <div class="tile m"><div class="n" id="t-mastered">0</div><div class="l">Mastered</div></div>
+          <div class="tile r"><div class="n" id="t-due">0</div><div class="l">Reviews due</div></div>
+        </div>
+        <div class="nextrow">
+          <div class="nextcard">
+            <div class="k">Recommended next</div>
+            <div id="next-body"></div>
+          </div>
+          <div class="nextcard">
+            <div class="k">Reviews due</div>
+            <ul class="duelist" id="due-body"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="secttitle"><h2>Mastery by area</h2><span>click an area to filter the grid below</span></div>
+    <div class="cats" id="cats"></div>
+
+    <div class="controls">
+      <input class="search" id="search" placeholder="Search metrics…" />
+      <div class="filters" id="filters">
+        <button data-f="all" class="on">All</button>
+        <button data-f="notstarted">Not started</button>
+        <button data-f="inprogress">In progress</button>
+        <button data-f="mastered">Mastered</button>
+        <button data-f="due">Review due</button>
+      </div>
+    </div>
+    <div id="gridhost"></div>
+
+    <div class="footnote">
+      Progress is stored locally in your browser.
+      <button class="reset" id="reset">Reset all progress</button>
+    </div>
+  </div>
+
+  <!-- recall modal -->
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <button class="close" id="m-close">×</button>
+      <div class="k">Active recall</div>
+      <h3 id="m-title"></h3>
+      <p class="qm" id="m-cat"></p>
+      <div class="prompt" id="m-prompt"></div>
+      <div class="answer" id="m-answer">
+        <div class="lbl">Acceptance threshold / key</div>
+        <div id="m-answer-text"></div>
+      </div>
+      <div class="btns" id="m-btns"></div>
+    </div>
+  </div>
+
+<script>
+const LESSONS = window.LESSONS || {};
+
+const CATS = {
+  "Output correctness":        "#38bdf8",
+  "Behavior & tool use":       "#34d399",
+  "Cost & latency":            "#fbbf24",
+  "Safety & robustness":       "#f87171",
+  "Eval ops":                  "#a78bfa",
+  "Traces (obs)":              "#22d3ee",
+  "Metrics (obs)":             "#2dd4bf",
+  "Dashboards & alerts (obs)": "#f472b6",
+  "Trace sampling (obs)":      "#c084fc",
+};
+
+// id, title, category, complexity, measures
+const METRICS = [
+  ["regression-eval-set","Regression eval set","Output correctness","starter","Whether code or prompt changes silently break previously-passing cases."],
+  ["llm-judge-rubric","LLM-judge with rubric","Output correctness","intermediate","Subjective quality dimensions reduced to discrete scores via a judge model + rubric."],
+  ["citation-faithfulness","Citation faithfulness","Output correctness","intermediate","The fraction of model claims that are verifiable against the cited source span."],
+  ["exact-vs-semantic-match","Exact vs semantic match","Output correctness","starter","Output equivalence, with different tolerances for surface variation."],
+  ["schema-conformance","Schema conformance","Output correctness","starter","Rate at which raw model output validates against the declared schema before any retry/repair."],
+  ["calibration-ece","Calibration / ECE","Output correctness","intermediate","Expected Calibration Error — the gap between stated confidence and actual accuracy."],
+  ["multi-turn-coherence","Multi-turn coherence","Output correctness","advanced","Whether the agent maintains state, doesn't contradict itself, and tracks references across turns."],
+  ["pairwise-preference","Pairwise preference","Output correctness","intermediate","Which of two candidate outputs a (human or LLM) judge prefers, per query."],
+  ["tool-trajectory","Tool trajectory","Behavior & tool use","intermediate","Whether the sequence of tool calls matches expectations — order may vary, but key tools must fire."],
+  ["tool-argument-validity","Tool argument validity","Behavior & tool use","starter","Whether tool calls carry valid arguments against the declared input_schema."],
+  ["refusal-rate","Refusal / over-refusal","Behavior & tool use","intermediate","Two rates: over-refusals on benign queries, and under-refusals on truly unsafe queries."],
+  ["safety-guardrail-adherence","Safety guardrail adherence","Behavior & tool use","advanced","Whether the agent follows declared hard rules in every response."],
+  ["tool-failure-recovery","Tool failure recovery","Behavior & tool use","intermediate","Whether the agent gracefully handles tool failures instead of crashing or hallucinating."],
+  ["cost-per-task","Cost per task","Cost & latency","starter","Total API cost per logical task — input + output tokens, by model, net of cache savings."],
+  ["latency-percentiles","Latency p50/p95/p99","Cost & latency","starter","End-to-end response-time distribution from user input to final response."],
+  ["token-usage-attribution","Token usage attribution","Cost & latency","intermediate","Token breakdown by phase: system prompt, history, tool results, retrieval context, output."],
+  ["tail-latency-analysis","Tail latency analysis","Cost & latency","advanced","What's happening in the slow 1% — long agent loops, retries, slow tools, cold caches."],
+  ["red-team-injection","Red-team prompt-injection","Safety & robustness","advanced","Whether the agent follows attacker-injected instructions hidden in retrieved content."],
+  ["jailbreak-resistance","Jailbreak resistance","Safety & robustness","advanced","Whether known jailbreak techniques bypass safety prompting."],
+  ["pii-leakage","PII leakage","Safety & robustness","intermediate","Whether the agent inadvertently echoes, logs, or transmits PII outside intended boundaries."],
+  ["hallucination-rate","Hallucination rate","Safety & robustness","advanced","Fraction of factual claims in agent output that are not verifiable."],
+  ["eval-set-freshness","Eval set freshness","Eval ops","intermediate","How well the eval set still reflects the production traffic distribution."],
+  ["ci-eval-gate","CI eval gate","Eval ops","starter","Whether the regression eval still passes — and blocks merging if not."],
+  ["sample-size-power","Sample size & power","Eval ops","intermediate","Minimum number of eval cases needed to detect an effect of a given size at a given confidence."],
+  ["prompt-ab-eval","Prompt A/B eval","Eval ops","intermediate","Difference in the scoring metric between prompt A and prompt B over the same eval set."],
+  ["obs-trace-tree","Per-task trace tree","Traces (obs)","starter","Each task = one trace = a tree of spans (LLM calls, tools, memory reads). Replay the agent's 'mind' in 30s."],
+  ["obs-spans","Spans & attributes","Traces (obs)","starter","Each span carries latency_ms, cost_usd, tokens, model, prompt version, confidence, error type."],
+  ["obs-events","Events","Traces (obs)","starter","Point-in-time markers inside a span — tool returned, schema validated, reflection critique fired."],
+  ["obs-replay","Replay infrastructure","Traces (obs)","advanced","Re-run a stored trace with the same inputs but a new prompt/model to A/B changes off real traffic."],
+  ["obs-counters","Counters","Metrics (obs)","intermediate","Per agent/tool/task-type: invocations, successes, failures, count per error type."],
+  ["obs-histograms","Histograms","Metrics (obs)","intermediate","Distributions of latency, cost, tool-call count, and confidence — not just averages."],
+  ["obs-five-metrics","The 5 metrics that matter","Metrics (obs)","intermediate","Accuracy (7d), cost/task (daily), p95 latency (hourly), escalation rate (daily), calibration ECE (weekly)."],
+  ["obs-per-agent","Per-agent / per-tool breakdown","Metrics (obs)","intermediate","Attribute every metric to the agent, tool, and task type that produced it."],
+  ["obs-dashboards","4 dashboard widgets","Dashboards & alerts (obs)","intermediate","Accuracy, cost per task, p95 latency, calibration — the standing view of agent health."],
+  ["obs-alert-thresholds","Alert thresholds","Dashboards & alerts (obs)","intermediate","Set from history so the false-positive rate stays under ~1/month."],
+  ["obs-alert-fatigue","Alert-fatigue rule","Dashboards & alerts (obs)","advanced","Beyond ~3 unactioned alerts/week the team stops looking — thresholds too tight, or system unstable."],
+  ["obs-oncall-playbook","On-call playbook","Dashboards & alerts (obs)","advanced","Confirm → scope → recent changes → sample traces → hypothesis → rollback/fix → document."],
+  ["obs-sample-failures","Always sample failures","Trace sampling (obs)","starter","Failures, escalations, and high-confidence-but-overridden answers are always stored."],
+  ["obs-sample-routine","1% of routine successes","Trace sampling (obs)","intermediate","A statistical sample of healthy traffic keeps storage bounded."],
+  ["obs-sample-rare","100% of rare task types","Trace sampling (obs)","intermediate","Low-volume, high-importance task types are always sampled so you never lose the signal."],
+  ["obs-sample-anomalous-cost","Anomalous-cost capture","Trace sampling (obs)","advanced","Any trace costing more than 2× P95 is stored regardless of the sampling rate."],
+];
+
+// learning order (beginner → expert), used for "recommended next"
+const TOUR = [
+  "obs-trace-tree","obs-spans","obs-events","schema-conformance","exact-vs-semantic-match",
+  "cost-per-task","latency-percentiles","tool-argument-validity","tool-trajectory",
+  "regression-eval-set","ci-eval-gate","citation-faithfulness","llm-judge-rubric",
+  "sample-size-power","calibration-ece","pairwise-preference","prompt-ab-eval",
+  "token-usage-attribution","tail-latency-analysis","refusal-rate","tool-failure-recovery",
+  "multi-turn-coherence","safety-guardrail-adherence","pii-leakage","red-team-injection",
+  "jailbreak-resistance","hallucination-rate","obs-counters","obs-histograms","obs-per-agent",
+  "obs-five-metrics","obs-dashboards","obs-alert-thresholds","obs-alert-fatigue","obs-oncall-playbook",
+  "obs-sample-failures","obs-sample-routine","obs-sample-rare","obs-sample-anomalous-cost",
+  "obs-replay","eval-set-freshness",
+];
+
+// which metrics each incident teaches (root-cause resolution path)
+const INCIDENT_METRICS = {
+  latency:     ["latency-percentiles","tail-latency-analysis","obs-trace-tree","tool-failure-recovery"],
+  calibration: ["calibration-ece","obs-per-agent","obs-replay","refusal-rate"],
+  schema:      ["schema-conformance","obs-spans","tool-argument-validity","ci-eval-gate"],
+  regression:  ["regression-eval-set","sample-size-power","prompt-ab-eval","ci-eval-gate"],
+};
+
+const META = {};
+METRICS.forEach(([id,t,cat,cx,m]) => META[id] = {title:t,cat,cx,measure:m});
+const catList = Object.keys(CATS);
+
+// spaced-repetition intervals in days, by number of successful reviews
+const REVIEW_DAYS = [1, 3, 7, 21, 45, 90];
+const DAY = 86400000;
+
+/* ───────────── storage ───────────── */
+const SK = { study:"apex-studied", inc:"apex-incident-stars", self:"apex-mastery" };
+function load(k){ try{ return JSON.parse(localStorage.getItem(k)) || {}; }catch{ return {}; } }
+function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+
+function appliedSet(){
+  const inc = load(SK.inc);   // { incidentId: stars }
+  const set = new Set();
+  for (const [iid, stars] of Object.entries(inc))
+    if (stars >= 1 && INCIDENT_METRICS[iid]) INCIDENT_METRICS[iid].forEach(id => set.add(id));
+  return set;
+}
+
+/* ───────────── mastery model ───────────── */
+// level 0 not started · 1 studied · 2 practiced (completed lesson OR applied) · 3 mastered (recall-confirmed)
+function stateOf(id){
+  const study = load(SK.study)[id] || null;
+  const self  = load(SK.self)[id] || null;
+  const applied = appliedSet().has(id);
+  const viewed = !!(study && study.firstViewed);
+  const completed = !!(study && study.completed);
+  const confident = !!(self && self.confident);
+  let level = 0;
+  if (confident) level = 3;
+  else if (completed || applied) level = 2;
+  else if (viewed) level = 1;
+  // review-due only meaningful once mastered
+  let due = false, dueAt = null;
+  if (confident && self) {
+    const reviews = self.reviews || 1;
+    const span = REVIEW_DAYS[Math.min(reviews - 1, REVIEW_DAYS.length - 1)] * DAY;
+    dueAt = (self.reviewedAt || Date.now()) + span;
+    due = Date.now() >= dueAt;
+  }
+  return { level, viewed, completed, applied, confident, due, dueAt };
+}
+
+function setConfident(id, val){
+  const self = load(SK.self);
+  const cur = self[id] || {};
+  if (val){
+    cur.confident = true;
+    cur.reviews = (cur.reviews || 0) + (cur.confident ? 0 : 0); // reviews bump handled in recall pass
+    if (!cur.reviews) cur.reviews = 1;
+    cur.reviewedAt = Date.now();
+  } else {
+    cur.confident = false;
+  }
+  self[id] = cur;
+  save(SK.self, self);
+}
+
+// recall pass: mark confident + advance spaced-repetition schedule
+function recallPass(id){
+  const self = load(SK.self);
+  const cur = self[id] || {};
+  cur.confident = true;
+  cur.reviews = (cur.reviews || 0) + 1;
+  cur.reviewedAt = Date.now();
+  self[id] = cur;
+  save(SK.self, self);
+}
+// recall fail / need review: keep studied, reset schedule to soon, drop "mastered"
+function recallFail(id){
+  const self = load(SK.self);
+  const cur = self[id] || {};
+  cur.confident = false;
+  cur.reviews = 1;             // back to the short interval
+  cur.reviewedAt = Date.now() - REVIEW_DAYS[0] * DAY; // due now
+  self[id] = cur;
+  save(SK.self, self);
+  // ensure it counts as at least studied
+  const study = load(SK.study);
+  if (!study[id]) { study[id] = { firstViewed: Date.now() }; save(SK.study, study); }
+}
+
+/* ───────────── render ───────────── */
+const LABEL = ["Not started","Studied","Practiced","Mastered"];
+let activeFilter = "all";
+let activeCat = null;
+let searchq = "";
+
+function pct(){
+  let sum = 0; METRICS.forEach(([id]) => sum += stateOf(id).level);
+  return sum / (METRICS.length * 3);
+}
+
+function renderHero(){
+  const p = pct();
+  const ring = document.getElementById("ringfill");
+  const C = 2 * Math.PI * 86; // ~540
+  ring.setAttribute("stroke-dasharray", C.toFixed(1));
+  ring.setAttribute("stroke-dashoffset", (C * (1 - p)).toFixed(1));
+  document.getElementById("ringpct").textContent = Math.round(p * 100) + "%";
+
+  let studied=0, practiced=0, mastered=0, due=0;
+  METRICS.forEach(([id]) => {
+    const s = stateOf(id);
+    if (s.level >= 1) studied++;
+    if (s.level === 2) practiced++;
+    if (s.level === 3) mastered++;
+    if (s.due) due++;
+  });
+  document.getElementById("t-studied").textContent  = studied;
+  document.getElementById("t-practiced").textContent = practiced;
+  document.getElementById("t-mastered").textContent  = mastered;
+  document.getElementById("t-due").textContent        = due;
+  document.getElementById("ringcap").textContent =
+    mastered === METRICS.length ? "All 41 metrics mastered. Keep up with the scheduled reviews to retain it."
+    : studied === 0 ? "Nothing studied yet — start with the recommended lesson on the right."
+    : mastered + " of " + METRICS.length + " metrics mastered. " + (METRICS.length - studied) + " not yet started.";
+
+  // recommended next: first metric in TOUR order at level 0, else lowest-level not mastered
+  let next = TOUR.find(id => stateOf(id).level === 0);
+  if (!next) next = TOUR.find(id => stateOf(id).level < 3);
+  const nb = document.getElementById("next-body");
+  if (next){
+    const m = META[next], st = stateOf(next);
+    const verb = st.level === 0 ? "Start the lesson" : "Continue toward mastery";
+    nb.innerHTML =
+      '<h3>' + esc(m.title) + '</h3>' +
+      '<p>' + esc(m.measure) + '</p>' +
+      '<a class="btn primary" href="lesson.html#' + next + '">' + verb + ' →</a>';
+  } else {
+    nb.innerHTML = '<h3>All caught up 🎉</h3><p>Every metric is mastered. Re-run a recall check from the grid to stay sharp.</p>';
+  }
+
+  // reviews due
+  const dueIds = METRICS.map(([id]) => id).filter(id => stateOf(id).due);
+  const db = document.getElementById("due-body");
+  if (dueIds.length){
+    db.outerHTML = '<ul class="duelist" id="due-body">' + dueIds.slice(0,5).map(id =>
+      '<li><span>' + esc(META[id].title) + '</span>' +
+      '<a class="due-study" href="javascript:void 0" onclick="openRecall(\'' + id + '\')">Recall ↻</a></li>').join("") +
+      (dueIds.length > 5 ? '<li class="emptyhint">+ ' + (dueIds.length - 5) + ' more — filter “Review due” below.</li>' : '') +
+      '</ul>';
+  } else {
+    db.outerHTML = '<ul class="duelist" id="due-body"><li class="emptyhint">No reviews due. Mastered metrics will resurface here on a spaced schedule.</li></ul>';
+  }
+}
+
+function renderCats(){
+  const host = document.getElementById("cats");
+  host.innerHTML = catList.map(cat => {
+    const ids = METRICS.filter(([,,c]) => c === cat).map(([id]) => id);
+    const total = ids.length;
+    const sum = ids.reduce((a,id) => a + stateOf(id).level, 0);
+    const mastered = ids.filter(id => stateOf(id).level === 3).length;
+    const frac = sum / (total * 3);
+    const col = CATS[cat];
+    // segmented fill by level distribution
+    const lv = [0,0,0,0]; ids.forEach(id => lv[stateOf(id).level]++);
+    const seg = (n, color) => n ? '<span class="fill" style="width:' + (n/total*100) + '%;background:' + color + '"></span>' : '';
+    return '<div class="catcard' + (activeCat===cat?' activef':'') + '" onclick="toggleCat(\'' + cat.replace(/'/g,"\\'") + '\')">' +
+      '<div class="top"><div class="nm"><span class="swatch" style="background:' + col + '"></span>' + esc(cat) + '</div>' +
+      '<div class="frac">' + mastered + '/' + total + ' · ' + Math.round(frac*100) + '%</div></div>' +
+      '<div class="bar">' +
+        seg(lv[3], '#34d399') + seg(lv[2], '#fbbf24') + seg(lv[1], col) +
+      '</div></div>';
+  }).join("");
+}
+
+function chipHTML(id){
+  const m = META[id], s = stateOf(id), col = CATS[m.cat];
+  const segs = [1,2,3].map(n =>
+    '<span class="seg' + (s.level >= n ? (n===3 ? ' on gold' : ' on') : '') + '"></span>').join("");
+  const sig = (on, label, cls) => '<span class="' + (cls||'') + (on?' on':'') + '">' + (on?'✓ ':'') + label + '</span>';
+  return '<div class="chip lvl' + s.level + '" data-id="' + id + '" style="--cc:' + col + '">' +
+    '<div class="row1"><div><div class="ttl">' + esc(m.title) + '</div><div class="cx">' + esc(m.cx) + '</div></div>' +
+      '<span class="statepill l' + s.level + '">' + (s.due ? 'Review due' : LABEL[s.level]) + '</span></div>' +
+    '<div class="meter">' + segs + '</div>' +
+    '<div class="measure">' + esc(m.measure) + '</div>' +
+    '<div class="signals">' +
+      sig(s.viewed || s.completed, 'Studied') +
+      sig(s.applied, 'Applied', 'applied') +
+      sig(s.confident, 'Recall') +
+    '</div>' +
+    '<div class="acts">' +
+      '<a class="btn" href="lesson.html#' + id + '">Study</a>' +
+      '<button class="btn" onclick="openRecall(\'' + id + '\')">Recall ↻</button>' +
+      '<label class="mastered-toggle"><input type="checkbox" ' + (s.confident?'checked':'') +
+        ' onchange="onToggle(\'' + id + '\', this.checked)"> Mastered</label>' +
+    '</div></div>';
+}
+
+function passFilter(id){
+  const s = stateOf(id), m = META[id];
+  if (activeCat && m.cat !== activeCat) return false;
+  if (searchq && !(m.title.toLowerCase().includes(searchq) || m.measure.toLowerCase().includes(searchq))) return false;
+  switch(activeFilter){
+    case "notstarted": return s.level === 0;
+    case "inprogress": return s.level === 1 || s.level === 2;
+    case "mastered":   return s.level === 3;
+    case "due":        return s.due;
+    default: return true;
+  }
+}
+
+function renderGrid(){
+  const host = document.getElementById("gridhost");
+  const groups = catList.map(cat => {
+    const ids = METRICS.filter(([id,,c]) => c === cat && passFilter(id)).map(([id]) => id);
+    if (!ids.length) return "";
+    return '<div class="catgroup"><h3><span class="swatch" style="background:' + CATS[cat] + '"></span>' +
+      esc(cat) + ' <span style="color:var(--faint);font-weight:600">(' + ids.length + ')</span></h3>' +
+      '<div class="grid">' + ids.map(chipHTML).join("") + '</div></div>';
+  }).join("");
+  host.innerHTML = groups || '<p class="emptyhint" style="padding:20px 0">No metrics match this filter.</p>';
+}
+
+function renderAll(){ renderHero(); renderCats(); renderGrid(); }
+
+/* ───────────── interactions ───────────── */
+function onToggle(id, checked){
+  if (checked) recallPass(id);   // checking "Mastered" counts as a self-confirmed pass
+  else setConfident(id, false);
+  renderAll();
+}
+function toggleCat(cat){ activeCat = (activeCat === cat) ? null : cat; renderCats(); renderGrid(); }
+
+document.getElementById("filters").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-f]"); if (!b) return;
+  activeFilter = b.dataset.f;
+  document.querySelectorAll("#filters button").forEach(x => x.classList.toggle("on", x === b));
+  renderGrid();
+});
+document.getElementById("search").addEventListener("input", (e) => { searchq = e.target.value.toLowerCase().trim(); renderGrid(); });
+document.getElementById("reset").addEventListener("click", () => {
+  if (!confirm("Reset all study, incident and mastery progress stored in this browser?")) return;
+  localStorage.removeItem(SK.study); localStorage.removeItem(SK.self); localStorage.removeItem(SK.inc);
+  renderAll();
+});
+
+/* ───────────── recall modal ───────────── */
+let recallId = null;
+function openRecall(id){
+  recallId = id;
+  const m = META[id], L = LESSONS[id];
+  document.getElementById("m-title").textContent = m.title;
+  document.getElementById("m-cat").textContent = m.cat + " · " + m.cx;
+  document.getElementById("m-prompt").innerHTML =
+    "<strong>Without looking:</strong> what does <em>" + esc(m.title) +
+    "</em> measure, and what's the acceptance threshold you'd gate on?";
+  const ans = document.getElementById("m-answer");
+  ans.classList.remove("show");
+  document.getElementById("m-answer-text").innerHTML =
+    "<p style='margin:0 0 8px'>" + esc(m.measure) + "</p>" +
+    (L && L.threshold ? "<p style='margin:0'><strong>Threshold:</strong> " + esc(L.threshold) + "</p>"
+                      : "<p style='margin:0;color:var(--muted)'>See the full lesson for the precise gate.</p>");
+  const btns = document.getElementById("m-btns");
+  btns.innerHTML = '<button class="btn grow" id="reveal">Reveal answer</button>';
+  document.getElementById("reveal").onclick = () => {
+    ans.classList.add("show");
+    btns.innerHTML =
+      '<button class="btn primary grow" onclick="answer(true)">I knew it ✓</button>' +
+      '<button class="btn grow" onclick="answer(false)">Need review ↻</button>' +
+      '<a class="btn grow" href="lesson.html#' + recallId + '">Open lesson</a>';
+  };
+  document.getElementById("overlay").classList.add("show");
+}
+function answer(ok){
+  if (ok) recallPass(recallId); else recallFail(recallId);
+  closeRecall(); renderAll();
+}
+function closeRecall(){ document.getElementById("overlay").classList.remove("show"); recallId = null; }
+document.getElementById("m-close").onclick = closeRecall;
+document.getElementById("overlay").addEventListener("click", (e) => { if (e.target.id === "overlay") closeRecall(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeRecall(); });
+
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+// expose for inline handlers
+window.openRecall = openRecall; window.answer = answer; window.onToggle = onToggle; window.toggleCat = toggleCat;
+
+renderAll();
+// re-sync when returning from a lesson tab
+window.addEventListener("focus", renderAll);
+window.addEventListener("storage", renderAll);
+</script>
+</body>
+</html>

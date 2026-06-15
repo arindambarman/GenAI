@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agentic Architecture 3D / VR · ADAPTLEARN</title>
+<style>
+:root{
+  --bg0:#05070f; --panel:rgba(15,21,38,0.88); --line:rgba(120,140,190,0.18);
+  --txt:#e6ecff; --muted:#8b97b8; --faint:#5d6b8e; --accent:#38bdf8;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg0);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;color:var(--txt);}
+#cv3d{position:fixed;inset:0;}
+.overlay{position:fixed;inset:0;z-index:20;pointer-events:none;}
+.overlay *{pointer-events:auto;}
+
+/* top bar */
+.topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:14px;padding:14px 18px;pointer-events:none;flex-wrap:wrap;}
+.brand{pointer-events:auto;}
+.brand h1{margin:0;font-size:15px;font-weight:800;letter-spacing:-0.01em;
+  background:linear-gradient(90deg,#fcd34d,#a78bfa,#7dd3fc);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.brand .sub{font-size:10.5px;color:var(--muted);letter-spacing:.13em;text-transform:uppercase;}
+.spacer{flex:1;}
+.hud{pointer-events:auto;display:flex;gap:8px;}
+.hud .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 11px;backdrop-filter:blur(8px);text-align:center;}
+.hud .stat b{display:block;font-size:15px;font-weight:800;line-height:1;}
+.hud .stat span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.vrbtnwrap{pointer-events:auto;}
+button.vr-button-placeholder{display:none;}
+.openvr{pointer-events:auto;display:inline-flex;align-items:center;gap:5px;background:rgba(167,139,250,0.15);
+  border:1px solid rgba(167,139,250,0.45);color:#c4b5fd;border-radius:10px;padding:7px 13px;font-size:12px;font-weight:700;
+  text-decoration:none;backdrop-filter:blur(8px);white-space:nowrap;cursor:pointer;}
+.openvr:hover{background:rgba(167,139,250,0.26);color:#ddd6fe;}
+
+/* QR "open in VR" modal */
+.qrwrap{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(3,5,12,0.72);backdrop-filter:blur(4px);}
+.qrwrap[hidden]{display:none;}
+.qrcard{position:relative;width:340px;max-width:92vw;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;backdrop-filter:blur(16px);box-shadow:0 24px 70px rgba(0,0,0,0.55);}
+.qrcard h3{margin:0 0 6px;font-size:16px;font-weight:800;}
+.qrcard .qrsub{margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.5;}
+.qrcard .qrsub b{color:#c4b5fd;}
+.qrx{position:absolute;top:11px;right:14px;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;}
+.qrx:hover{color:var(--txt);}
+#qrcanvas{display:block;margin:0 auto;border-radius:10px;background:#fff;padding:8px;width:220px;height:220px;}
+.qrnote{margin:12px 0 0;font-size:11.5px;text-align:center;line-height:1.45;}
+.qrnote.ok{color:#34d399;}
+.qrnote.warn{color:#fbbf24;}
+.qrlbl{display:block;margin:14px 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;}
+.qrrow{display:flex;gap:7px;}
+.qrrow input{flex:1;min-width:0;background:rgba(255,255,255,0.05);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;font-size:12px;outline:none;font-family:ui-monospace,Menlo,monospace;}
+.qrrow input:focus{border-color:var(--accent);}
+.qrbtn{background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.4);color:#7dd3fc;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.qrbtn:hover{background:rgba(56,189,248,0.24);}
+.qrtip{margin:12px 0 0;font-size:11px;color:var(--faint);line-height:1.5;}
+.qrtip code{background:rgba(255,255,255,0.06);border-radius:4px;padding:1px 5px;color:#cfd8f5;font-size:10.5px;}
+
+/* walkthrough launcher button */
+.toolbtn{pointer-events:auto;display:inline-flex;align-items:center;gap:5px;background:rgba(252,211,77,0.15);
+  border:1px solid rgba(252,211,77,0.45);color:#fcd34d;border-radius:10px;padding:7px 13px;font-size:12px;font-weight:700;
+  text-decoration:none;backdrop-filter:blur(8px);white-space:nowrap;cursor:pointer;}
+.toolbtn:hover{background:rgba(252,211,77,0.26);color:#fde68a;}
+
+/* scenario chooser modal */
+.scnwrap{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(3,5,12,0.72);backdrop-filter:blur(4px);}
+.scnwrap[hidden]{display:none;}
+.scncard{position:relative;width:460px;max-width:94vw;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;backdrop-filter:blur(16px);box-shadow:0 24px 70px rgba(0,0,0,0.55);}
+.scncard h3{margin:0 0 6px;font-size:16px;font-weight:800;}
+.scncard .qrsub{margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.5;}
+.scnlist{display:flex;flex-direction:column;gap:11px;}
+.scnopt{display:flex;gap:13px;align-items:flex-start;text-align:left;background:rgba(255,255,255,0.04);border:1px solid var(--line);
+  border-radius:13px;padding:14px 15px;cursor:pointer;transition:.15s;color:var(--txt);}
+.scnopt:hover{background:rgba(252,211,77,0.10);border-color:rgba(252,211,77,0.45);transform:translateY(-1px);}
+.scnemoji{font-size:26px;line-height:1;flex-shrink:0;}
+.scntxt{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.scntxt b{font-size:14px;font-weight:800;}
+.scntxt small{font-size:10.5px;color:#fcd34d;text-transform:uppercase;letter-spacing:.07em;font-weight:700;}
+.scntxt em{font-style:normal;font-size:12px;color:var(--muted);line-height:1.5;margin-top:2px;}
+
+/* walkthrough dock — docked to the RIGHT so the graph in the centre stays unobstructed */
+.tourdock{position:absolute;top:108px;right:18px;width:min(372px,calc(100% - 36px));max-height:calc(100% - 132px);overflow-y:auto;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;backdrop-filter:blur(10px);
+  box-shadow:0 18px 50px rgba(0,0,0,0.5);pointer-events:auto;display:none;}
+.tourdock.show{display:block;}
+.tdstory{font-size:11.5px;line-height:1.55;color:#cdd6f0;background:rgba(252,211,77,0.07);border:1px solid rgba(252,211,77,0.22);
+  border-radius:10px;padding:9px 11px;margin-bottom:11px;}
+.tdstory b{color:#fcd34d;}
+.tourdock .tdhead{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.tdscn{font-size:12.5px;font-weight:800;color:#fcd34d;}
+.tdstep{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-left:auto;}
+.tdaudio{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:var(--muted);font-size:10.5px;font-weight:700;cursor:pointer;border-radius:8px;padding:4px 9px;line-height:1;white-space:nowrap;}
+.tdaudio:hover{color:var(--txt);border-color:rgba(255,255,255,0.25);}
+.tdaudio.on{color:#fcd34d;border-color:rgba(252,211,77,0.5);background:rgba(252,211,77,0.08);}
+.tdx{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;}
+.tdx:hover{color:var(--txt);}
+.tdcallout{min-height:60px;}
+.tcflow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.tcflow .ar{color:var(--accent);font-size:15px;}
+.tcflow .chipnode{padding:3px 9px;border-radius:8px;font-size:12px;font-weight:700;border:1px solid transparent;}
+.tcverb{padding:2px 9px;border-radius:7px;font-size:11px;font-weight:700;border:1px solid transparent;}
+.tcsent{margin:0 0 8px;font-size:13px;line-height:1.5;color:#e6ecff;}
+.tcsent b{color:#fff;}
+.tcmeta{font-size:11.5px;color:var(--muted);margin-bottom:2px;line-height:1.6;}
+.tcmeta code{background:rgba(255,255,255,0.07);border-radius:4px;padding:1px 5px;color:#cfd8f5;font-size:10.5px;}
+.tcnext{margin-top:6px;padding-top:7px;border-top:1px solid rgba(255,255,255,0.08);font-size:11.5px;color:#9aa6c8;line-height:1.5;}
+.tcnext b{color:#cdd6f5;}
+.tdctrls{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.tdbar{flex:1 1 100%;height:6px;background:#0a0e1c;border-radius:999px;overflow:hidden;margin:7px 0 0;}
+.tdbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#fcd34d,#a78bfa);transition:width .12s linear;}
+
+/* mode selector */
+.modebar{position:absolute;top:60px;left:50%;transform:translateX(-50%);display:flex;gap:0;background:var(--panel);
+  border:1px solid var(--line);border-radius:12px;overflow:hidden;backdrop-filter:blur(8px);pointer-events:auto;}
+.modebar button{background:transparent;border:none;color:var(--muted);padding:9px 16px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:96px;border-right:1px solid var(--line);transition:.15s;}
+.modebar button:last-child{border-right:none;}
+.modebar button .em{font-size:15px;}
+.modebar button small{font-size:9.5px;color:var(--faint);font-weight:500;letter-spacing:.02em;}
+.modebar button.active{color:#fff;background:rgba(56,189,248,0.16);}
+.modebar button.active small{color:#9fd5f5;}
+.modebar button:hover:not(.active){color:#cdd8f5;}
+
+/* inspector panel */
+.panel{position:absolute;top:108px;right:18px;width:340px;max-height:calc(100% - 200px);overflow-y:auto;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 18px;backdrop-filter:blur(10px);
+  pointer-events:auto;display:none;box-shadow:0 18px 50px rgba(0,0,0,0.5);}
+.panel.show{display:block;}
+.panel .ptag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:3px 8px;border-radius:999px;margin-bottom:8px;}
+.panel h2{margin:2px 0 2px;font-size:17px;font-weight:800;letter-spacing:-0.01em;}
+.panel .kind{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;}
+.panel p{margin:8px 0;font-size:13px;line-height:1.5;color:#cdd6f0;}
+.panel .flow{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin:6px 0 10px;flex-wrap:wrap;}
+.panel .flow .ar{color:var(--accent);font-size:15px;}
+.panel .chipnode{padding:3px 9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid transparent;}
+.kv{display:grid;grid-template-columns:84px 1fr;gap:5px 10px;font-size:12px;margin:10px 0;}
+.kv .k{color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-size:10px;padding-top:1px;}
+.kv .v{color:#dde6fb;}
+.kv .v.bad{color:#fca5a5;}
+.code{background:#0a0e1c;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:11.5px;line-height:1.45;color:#a8e0ff;white-space:pre-wrap;word-break:break-word;margin:8px 0;max-height:170px;overflow:auto;}
+.hops{margin:10px 0 2px;}
+.hops .hl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;}
+.hops ol{margin:0;padding-left:0;list-style:none;counter-reset:h;}
+.hops li{counter-increment:h;position:relative;padding:5px 0 5px 26px;font-size:12px;color:#d4ddf5;border-left:2px solid var(--line);margin-left:8px;}
+.hops li:before{content:counter(h);position:absolute;left:-11px;top:4px;width:18px;height:18px;border-radius:50%;
+  background:#16203a;border:1px solid var(--accent);color:var(--accent);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.relrow{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12.5px;}
+.relrow:hover{background:rgba(120,140,190,0.1);}
+.relrow .dot{width:9px;height:9px;border-radius:50%;flex:none;}
+.relrow .vrb{color:var(--muted);font-size:11px;margin-left:auto;}
+.phead{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:14px 0 4px;}
+.closex{position:absolute;top:12px;right:12px;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;}
+.closex:hover{color:#fff;}
+
+/* trace dock */
+.tracedock{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:min(760px,calc(100% - 40px));
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;backdrop-filter:blur(10px);
+  pointer-events:auto;display:none;box-shadow:0 18px 50px rgba(0,0,0,0.5);}
+.tracedock.show{display:block;}
+.tracedock .trow{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+.tracedock select{background:#0a0e1c;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 10px;font-size:12.5px;outline:none;}
+.tracedock .tbtn,.tourdock .tbtn{background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.4);color:#9fd5f5;border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;}
+.tracedock .tbtn:hover,.tourdock .tbtn:hover{background:rgba(56,189,248,0.24);}
+.tracedock .tbtn.ghost,.tourdock .tbtn.ghost{background:transparent;border-color:var(--line);color:var(--muted);}
+.tracedock .step{flex:1;font-size:12px;color:#cdd6f0;}
+.tracedock .step b{color:#fff;}
+.tracebar{height:6px;background:#0a0e1c;border-radius:999px;overflow:hidden;}
+.tracebar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#34d399,#22d3ee);transition:width .12s linear;}
+
+/* legend */
+.legend{position:absolute;left:18px;bottom:18px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:11px 13px;backdrop-filter:blur(8px);pointer-events:auto;font-size:11.5px;max-width:230px;}
+.legend h3{margin:0 0 7px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;}
+.legend .lg{display:flex;align-items:center;gap:7px;margin:3px 0;color:#cdd6f0;}
+.legend .lg .sw{width:11px;height:11px;border-radius:3px;flex:none;}
+.legend .lg .sw.round{border-radius:50%;}
+.legend .cols{display:flex;gap:16px;}
+.legend .hint{margin-top:8px;color:var(--faint);font-size:10.5px;line-height:1.4;}
+
+/* loading */
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg0);z-index:50;flex-direction:column;gap:14px;}
+#loading .spin{width:40px;height:40px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:s 0.9s linear infinite;}
+#loadmsg{color:var(--muted);font-size:13px;}
+.err{color:#fca5a5;font-size:13px;max-width:480px;text-align:center;line-height:1.5;padding:0 20px;}
+@keyframes s{to{transform:rotate(360deg);}}
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+<canvas id="cv3d"></canvas>
+
+<div id="loading"><div class="spin"></div><div id="loadmsg">Loading 3D engine…</div></div>
+
+<div class="overlay">
+  <div class="topbar">
+    <div class="brand"><h1>Agentic Architecture · 3D / VR</h1><div class="sub">ADAPTLEARN — component & contract map</div></div>
+    <div class="spacer"></div>
+    <div class="hud">
+      <div class="stat"><b id="s-comp">0</b><span>components</span></div>
+      <div class="stat"><b id="s-conn">0</b><span>connections</span></div>
+    </div>
+    <button id="scn-open" class="toolbtn" title="Play a guided, narrated walkthrough of a scenario">🎬 Walkthrough</button>
+    <a id="qr-open" class="openvr" href="#" title="Open this 3D graph on a VR headset">📱 Open in VR</a>
+    <div class="vrbtnwrap" id="vrbtnwrap"></div>
+  </div>
+
+  <div class="modebar" id="modebar">
+    <button data-mode="inspect" class="active"><span class="em">🔍</span>Inspect<small>contract + flow</small></button>
+    <button data-mode="explode"><span class="em">💥</span>Explode<small>unfold the hops</small></button>
+    <button data-mode="trace"><span class="em">📡</span>Trace<small>replay a request</small></button>
+  </div>
+
+  <div class="panel" id="panel"><span class="closex" id="panel-close">×</span><div id="panel-body"></div></div>
+
+  <div class="tracedock" id="tracedock">
+    <div class="trow">
+      <select id="trace-pick"></select>
+      <button class="tbtn" id="trace-play">▶ Play</button>
+      <button class="tbtn ghost" id="trace-step">Step ›</button>
+      <button class="tbtn ghost" id="trace-reset">Reset</button>
+    </div>
+    <div class="trow"><div class="step" id="trace-step-label">Pick a trace and press Play — a packet will travel the real path through the mesh.</div></div>
+    <div class="tracebar"><i id="trace-prog"></i></div>
+  </div>
+
+  <div class="legend" id="legend">
+    <div class="cols">
+      <div>
+        <h3>Components</h3>
+        <div class="lg"><span class="sw round" style="background:#a78bfa"></span>Agent</div>
+        <div class="lg"><span class="sw round" style="background:#f59e0b"></span>Context Bus</div>
+        <div class="lg"><span class="sw round" style="background:#22d3ee"></span>LLM model</div>
+        <div class="lg"><span class="sw round" style="background:#34d399"></span>External tool</div>
+        <div class="lg"><span class="sw round" style="background:#38bdf8"></span>Data store</div>
+        <div class="lg"><span class="sw round" style="background:#f472b6"></span>Zod schema</div>
+        <div class="lg"><span class="sw round" style="background:#94a3b8"></span>Entry / auth</div>
+      </div>
+      <div>
+        <h3>Contracts</h3>
+        <div class="lg"><span class="sw" style="background:#f59e0b"></span>dispatch</div>
+        <div class="lg"><span class="sw" style="background:#fbbf24"></span>deliver</div>
+        <div class="lg"><span class="sw" style="background:#34d399"></span>result</div>
+        <div class="lg"><span class="sw" style="background:#22d3ee"></span>invoke</div>
+        <div class="lg"><span class="sw" style="background:#a78bfa"></span>uses-model</div>
+        <div class="lg"><span class="sw" style="background:#38bdf8"></span>read / write</div>
+        <div class="lg"><span class="sw" style="background:#f472b6"></span>validates</div>
+      </div>
+    </div>
+    <div class="hint">Click a <b>node</b> for its role · click a <b>link</b> to run the selected mode. Particles flow source→target.</div>
+  </div>
+
+  <div class="tourdock" id="tourdock">
+    <div class="tdhead">
+      <span class="tdscn" id="td-scn">Scenario</span>
+      <span class="tdstep" id="td-step">Step 1 / 1</span>
+      <button class="tdaudio on" id="td-audio" title="Toggle audio narration">🔊 Narration</button>
+      <button class="tdx" id="td-exit" title="Exit walkthrough">✕</button>
+    </div>
+    <div class="tdstory" id="td-story" hidden></div>
+    <div class="tdcallout" id="td-callout"></div>
+    <div class="tdctrls">
+      <button class="tbtn ghost" id="td-prev">‹ Prev</button>
+      <button class="tbtn" id="td-play">⏸ Pause</button>
+      <button class="tbtn ghost" id="td-next">Next ›</button>
+      <button class="tbtn ghost" id="td-restart">↺ Restart</button>
+      <div class="tdbar"><i id="td-prog"></i></div>
+    </div>
+  </div>
+
+  <div class="scnwrap" id="scnwrap" hidden>
+    <div class="scncard">
+      <button class="qrx" id="scn-close" aria-label="Close">×</button>
+      <h3>Choose a scenario to walk through</h3>
+      <p class="qrsub">Watch a real request travel the architecture one connection at a time — the camera flies to each hop and a callout explains what's happening.</p>
+      <div class="scnlist" id="scnlist"></div>
+    </div>
+  </div>
+
+  <div class="qrwrap" id="qrwrap" hidden>
+    <div class="qrcard">
+      <button class="qrx" id="qr-close" aria-label="Close">×</button>
+      <h3>Open on a VR headset</h3>
+      <p class="qrsub">Scan with the <b>Quest Browser</b> (or your phone), open the page, then tap <b>ENTER VR</b>.</p>
+      <canvas id="qrcanvas" width="220" height="220"></canvas>
+      <div class="qrnote" id="qrnote"></div>
+      <label class="qrlbl" for="qrurl">URL to encode</label>
+      <div class="qrrow">
+        <input id="qrurl" type="text" spellcheck="false" autocomplete="off" />
+        <button id="qrcopy" class="qrbtn">Copy</button>
+      </div>
+      <p class="qrtip">A headset can't reach <code>localhost</code> or a <code>192.168.*</code> LAN address. Serve over HTTPS first — e.g. <code>cloudflared tunnel --url http://localhost:4181</code> — then paste that <code>https://…</code> link above and the code updates.</p>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://esm.sh/three@0.160.0",
+    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
+    "three-forcegraph": "https://esm.sh/three-forcegraph@1.41.4?external=three",
+    "three-spritetext": "https://esm.sh/three-spritetext@1.8.2?external=three"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { VRButton } from "three/addons/webxr/VRButton.js";
+import ThreeForceGraph from "three-forcegraph";
+import SpriteText from "three-spritetext";
+
+const loadEl = document.getElementById("loading");
+const fail = (msg)=>{ loadEl.innerHTML = '<div class="err">⚠ '+msg+'</div>'; };
+
+/* ═══════════════ ARCHITECTURE DATA (static, hand-authored from CLAUDE.md) ═══════════════ */
+const KIND_COL = { agent:"#a78bfa", bus:"#f59e0b", model:"#22d3ee", tool:"#34d399", store:"#38bdf8", schema:"#f472b6", entry:"#94a3b8", auth:"#94a3b8" };
+const KIND_LABEL = { agent:"Agent", bus:"Context Bus", model:"LLM model", tool:"External tool", store:"Data store (Supabase)", schema:"Zod schema", entry:"Entry point", auth:"Auth" };
+const EDGE_COL = { triggers:"#94a3b8", dispatch:"#f59e0b", deliver:"#fbbf24", result:"#34d399", invoke:"#22d3ee", "uses-model":"#a78bfa", validates:"#f472b6", writes:"#38bdf8", reads:"#60a5fa", "backed-by":"#475569" };
+const EDGE_VERB = { triggers:"triggers", dispatch:"dispatches to", deliver:"delivers to", result:"returns result to", invoke:"invokes", "uses-model":"calls model", validates:"validates with", writes:"writes to", reads:"reads from", "backed-by":"backed by" };
+
+const N = (id,kind,label,role,extra={})=>({id,kind,label,role,...extra});
+const NODES = [
+  N("entry:ui","entry","Web UI","Next.js 14 front-end. Learner interacts here; sends requests to the API route."),
+  N("entry:api","entry","API Route","Next.js API route — the only HTTP entry. Authenticates, then calls the Master Agent in-process."),
+  N("auth:supabase","auth","Supabase Auth","Email/password authentication. The API route verifies the session before doing any work."),
+  N("agent:master","agent","Master Agent","Entry-point agent. Classifies intent with Sonnet, then dispatches work to specialist agents over the Context Bus. Logs every decision."),
+  N("agent:scout","agent","Scout","Research agent. Uses Tavily + Perplexity to gather sources and Claude to synthesise a topic outline + skill map."),
+  N("agent:content","agent","Content Creator","Generates lessons with Sonnet and flashcards with Haiku, validates them, and persists content items."),
+  N("agent:assessment","agent","Assessment","Scores learner answers with Haiku, validates the score object, and records results."),
+  N("agent:learning","agent","Learning","Tracks mastery — reads the skill map and reads/writes the learner's progress."),
+  N("bus:context","bus","Context Bus","The ONLY inter-agent channel. Backed by the agent_messages table. dispatch → poll → claim → complete/fail. No agent imports another agent."),
+  N("model:sonnet","model","claude-sonnet-4-6","High-capability model. Master intent classification; Content Creator lesson generation; Scout synthesis."),
+  N("model:haiku","model","claude-haiku-4-5","Fast model. Flashcards, scoring, Scout extraction, connector text."),
+  N("tool:tavily","tool","Tavily API","Web search API used by Scout to find primary sources."),
+  N("tool:perplexity","tool","Perplexity API","Research/synthesis API used by Scout for deeper queries."),
+  N("store:topics","store","topics","Catalogue of topics Scout has researched."),
+  N("store:skill_map","store","skill_map","Graph of skills/prerequisites per topic. Written by Scout, read by Learning."),
+  N("store:content_items","store","content_items","Generated lessons, flashcards, and other learning content."),
+  N("store:assessment_results","store","assessment_results","Per-attempt scores written by the Assessment agent."),
+  N("store:user_progress","store","user_progress","Mastery + progress state per learner. Read/written by Learning."),
+  N("store:agent_messages","store","agent_messages","The durable message log behind the Context Bus — pending/in_progress/done/failed rows."),
+  N("store:master_agent_log","store","master_agent_log","Audit trail of every Master decision and dispatch."),
+  N("schema:intent","schema","IntentSchema","Zod schema for the Master's parsed intent. LLM output is thrown out if it fails to parse."),
+  N("schema:scout","schema","ScoutResultSchema","Zod schema for Scout's topic outline + skill-map payload."),
+  N("schema:content","schema","ContentSchema","Zod schema for generated lessons/flashcards."),
+  N("schema:score","schema","ScoreSchema","Zod schema for an assessment score object."),
+];
+
+// E(source,target,type, {channel,payload,sample,dir,sync,trigger,latency,volume,onError,hops})
+const LINKS = [];
+const E = (source,target,type,m={})=>{ LINKS.push({ source, target, type, key:source+"→"+target+"#"+type, ...m }); };
+
+E("entry:ui","entry:api","triggers",{channel:"HTTPS · fetch()",payload:"HTTP POST /api/agent",sample:{route:"/api/agent",body:{action:"learn",topic:"AML basics"}},dir:"request → reply",sync:"sync",trigger:"learner clicks an action in the UI",latency:"~40ms",hops:["UI builds request body","fetch POST to the Next.js route","awaits JSON reply"]});
+E("entry:api","auth:supabase","validates",{channel:"Supabase client",payload:"session token",sample:{access_token:"eyJ…",user:{email:"learner@bank.com"}},dir:"request → reply",sync:"sync",trigger:"every API call before work begins",latency:"~15ms",onError:"401 → reject request",hops:["read auth cookie/header","verify session with Supabase","attach user to context"]});
+E("entry:api","agent:master","triggers",{channel:"in-process function call",payload:"MasterRequest",sample:{userId:"u_123",action:"learn",topic:"AML basics"},dir:"request → reply",sync:"sync",trigger:"authenticated request",latency:"variable (whole pipeline)",hops:["parse + validate body","call masterAgent(req)","await assembled response"]});
+E("agent:master","model:sonnet","uses-model",{channel:"Anthropic API",payload:"intent prompt",sample:{model:"claude-sonnet-4-6",system:"Classify the learner intent…",messages:[{role:"user",content:"learn AML basics"}]},dir:"request → reply",sync:"sync",trigger:"start of every request",latency:"~700ms",onError:"retry once, else fail",hops:["build intent prompt","call Sonnet","receive JSON intent"]});
+E("agent:master","schema:intent","validates",{channel:"Zod",payload:"raw LLM JSON → Intent",sample:{intent:"research_and_teach",topic:"AML basics",confidence:0.92},dir:"parse",sync:"sync",trigger:"after Sonnet replies",latency:"<1ms",onError:"throw — never use unvalidated LLM output",hops:["IntentSchema.parse(llmJson)","throw on failure","return typed Intent"]});
+E("agent:master","store:master_agent_log","writes",{channel:"Supabase",payload:"decision row",sample:{userId:"u_123",intent:"research_and_teach",dispatched:["scout","content"],ts:"…"},dir:"write",sync:"sync",trigger:"on every decision/dispatch",latency:"~20ms",hops:["assemble log row","insert into master_agent_log"]});
+E("agent:master","bus:context","dispatch",{channel:"Context Bus · agent_messages",payload:"AgentMessage<ScoutRequest|ContentRequest|…>",sample:{to:"scout",type:"ScoutRequest",topic:"AML basics",depth:3},dir:"async one-way",sync:"async",trigger:"after intent is known",latency:"~10ms to enqueue",onError:"failMessage → master_agent_log",hops:["dispatchMessage(msg)","INSERT agent_messages row (status=pending)","returns immediately"]});
+
+E("bus:context","store:agent_messages","backed-by",{channel:"Supabase table",payload:"message rows",sample:{id:"m_88",to:"scout",status:"pending",payload:{}},dir:"persistence",sync:"sync",trigger:"the bus IS this table",latency:"—",hops:["every dispatch is a row","status: pending → in_progress → done/failed"]});
+
+E("bus:context","agent:scout","deliver",{channel:"poll + claim",payload:"ScoutRequest",sample:{type:"ScoutRequest",topic:"AML basics",depth:3},dir:"pull",sync:"async",trigger:"Scout polls for pending work",latency:"poll interval",hops:["pollMessages(to=scout)","claimMessage (status→in_progress)","invoke Scout in-process"]});
+E("bus:context","agent:content","deliver",{channel:"poll + claim",payload:"ContentRequest",sample:{type:"ContentRequest",topic:"AML basics",outline:["…"]},dir:"pull",sync:"async",trigger:"Content Creator polls",latency:"poll interval",hops:["pollMessages(to=content)","claimMessage","invoke Content Creator"]});
+E("bus:context","agent:assessment","deliver",{channel:"poll + claim",payload:"AssessRequest",sample:{type:"AssessRequest",itemId:"c_12",answer:"…"},dir:"pull",sync:"async",trigger:"Assessment polls",latency:"poll interval",hops:["pollMessages(to=assessment)","claimMessage","invoke Assessment"]});
+E("bus:context","agent:learning","deliver",{channel:"poll + claim",payload:"LearningRequest",sample:{type:"LearningRequest",userId:"u_123",scored:{itemId:"c_12",score:0.8}},dir:"pull",sync:"async",trigger:"Learning polls",latency:"poll interval",hops:["pollMessages(to=learning)","claimMessage","invoke Learning"]});
+E("bus:context","agent:master","deliver",{channel:"poll + claim",payload:"AgentResult",sample:{from:"scout",ok:true,result:{topicId:"t_9"}},dir:"pull",sync:"async",trigger:"Master collects specialist results",latency:"poll interval",hops:["pollMessages(to=master)","claimMessage","resume the request"]});
+
+E("agent:scout","bus:context","result",{channel:"completeMessage",payload:"AgentResult<ScoutResult>",sample:{ok:true,topicId:"t_9",skills:14},dir:"async one-way",sync:"async",trigger:"Scout finishes research",latency:"~5ms",onError:"failMessage(reason)",hops:["completeMessage(id,result)","UPDATE row status=done"]});
+E("agent:content","bus:context","result",{channel:"completeMessage",payload:"AgentResult<ContentResult>",sample:{ok:true,items:8},dir:"async one-way",sync:"async",trigger:"content generated + stored",latency:"~5ms",hops:["completeMessage(id,result)","status=done"]});
+E("agent:assessment","bus:context","result",{channel:"completeMessage",payload:"AgentResult<ScoreResult>",sample:{ok:true,score:0.8},dir:"async one-way",sync:"async",trigger:"answer scored",latency:"~5ms",hops:["completeMessage(id,result)","status=done"]});
+E("agent:learning","bus:context","result",{channel:"completeMessage",payload:"AgentResult<ProgressResult>",sample:{ok:true,mastery:0.62},dir:"async one-way",sync:"async",trigger:"progress updated",latency:"~5ms",hops:["completeMessage(id,result)","status=done"]});
+
+E("agent:scout","tool:tavily","invoke",{channel:"HTTPS API",payload:"search query",sample:{query:"AML regulations 2024 banking"},dir:"request → reply",sync:"sync",trigger:"gathering sources",latency:"~900ms",onError:"fall back to Perplexity",hops:["build query","POST to Tavily","parse results"]});
+E("agent:scout","tool:perplexity","invoke",{channel:"HTTPS API",payload:"research query",sample:{query:"summarise AML obligations for commercial banks"},dir:"request → reply",sync:"sync",trigger:"deeper synthesis",latency:"~1.4s",hops:["build query","POST to Perplexity","parse answer + citations"]});
+E("agent:scout","model:haiku","uses-model",{channel:"Anthropic API",payload:"extraction prompt",sample:{model:"claude-haiku-4-5",system:"Extract structured facts…"},dir:"request → reply",sync:"sync",trigger:"normalising sources",latency:"~350ms",hops:["chunk sources","call Haiku per chunk","collect facts"]});
+E("agent:scout","model:sonnet","uses-model",{channel:"Anthropic API",payload:"synthesis prompt",sample:{model:"claude-sonnet-4-6",system:"Build a topic outline + skill map…"},dir:"request → reply",sync:"sync",trigger:"assembling the outline",latency:"~1.1s",hops:["assemble facts","call Sonnet","receive outline JSON"]});
+E("agent:scout","schema:scout","validates",{channel:"Zod",payload:"raw JSON → ScoutResult",sample:{topic:"AML basics",outline:["…"],skills:[{id:"s1",prereqs:[]}]},dir:"parse",sync:"sync",trigger:"after synthesis",latency:"<1ms",onError:"throw",hops:["ScoutResultSchema.parse","throw on failure"]});
+E("agent:scout","store:topics","writes",{channel:"Supabase",payload:"topic row",sample:{id:"t_9",title:"AML basics"},dir:"write",sync:"sync",trigger:"persisting research",latency:"~20ms",hops:["upsert topic"]});
+E("agent:scout","store:skill_map","writes",{channel:"Supabase",payload:"skill rows",sample:{topicId:"t_9",skills:14},dir:"write",sync:"sync",trigger:"persisting skill map",latency:"~30ms",hops:["insert skill_map rows"]});
+
+E("agent:content","model:sonnet","uses-model",{channel:"Anthropic API",payload:"generation prompt",sample:{model:"claude-sonnet-4-6",system:"Write a lesson on…"},dir:"request → reply",sync:"sync",trigger:"per lesson",latency:"~1.6s",hops:["build prompt from outline","call Sonnet","receive lesson"]});
+E("agent:content","model:haiku","uses-model",{channel:"Anthropic API",payload:"flashcard prompt",sample:{model:"claude-haiku-4-5",system:"Make 5 flashcards…"},dir:"request → reply",sync:"sync",trigger:"per lesson",latency:"~300ms",hops:["call Haiku","receive cards"]});
+E("agent:content","schema:content","validates",{channel:"Zod",payload:"raw JSON → Content",sample:{lessonId:"c_12",body:"…",cards:[{q:"…",a:"…"}]},dir:"parse",sync:"sync",trigger:"after generation",latency:"<1ms",onError:"throw",hops:["ContentSchema.parse","throw on failure"]});
+E("agent:content","store:content_items","writes",{channel:"Supabase",payload:"content rows",sample:{topicId:"t_9",items:8},dir:"write",sync:"sync",trigger:"persisting content",latency:"~25ms",hops:["insert content_items"]});
+
+E("agent:assessment","model:haiku","uses-model",{channel:"Anthropic API",payload:"scoring prompt",sample:{model:"claude-haiku-4-5",system:"Score this answer 0–1…"},dir:"request → reply",sync:"sync",trigger:"learner submits an answer",latency:"~280ms",hops:["build rubric prompt","call Haiku","receive score"]});
+E("agent:assessment","schema:score","validates",{channel:"Zod",payload:"raw JSON → Score",sample:{score:0.8,rationale:"…"},dir:"parse",sync:"sync",trigger:"after scoring",latency:"<1ms",onError:"throw",hops:["ScoreSchema.parse","throw on failure"]});
+E("agent:assessment","store:assessment_results","writes",{channel:"Supabase",payload:"result row",sample:{userId:"u_123",itemId:"c_12",score:0.8},dir:"write",sync:"sync",trigger:"after validation",latency:"~20ms",hops:["insert assessment_results"]});
+
+E("agent:learning","store:skill_map","reads",{channel:"Supabase",payload:"skill rows",sample:{topicId:"t_9"},dir:"read",sync:"sync",trigger:"deciding next item",latency:"~18ms",hops:["select skill_map by topic"]});
+E("agent:learning","store:user_progress","writes",{channel:"Supabase",payload:"progress row (read+write)",sample:{userId:"u_123",mastery:0.62},dir:"read + write",sync:"sync",trigger:"after a scored attempt",latency:"~25ms",hops:["select current progress","recompute mastery","upsert user_progress"]});
+
+/* traces = ordered lists of edge keys; the packet rides each in turn */
+const TRACES = [
+  { id:"learn", label:"Learn a new topic (research → generate)", steps:[
+    "entry:ui→entry:api#triggers","entry:api→auth:supabase#validates","entry:api→agent:master#triggers",
+    "agent:master→model:sonnet#uses-model","agent:master→schema:intent#validates","agent:master→store:master_agent_log#writes",
+    "agent:master→bus:context#dispatch","bus:context→agent:scout#deliver",
+    "agent:scout→tool:tavily#invoke","agent:scout→tool:perplexity#invoke","agent:scout→model:haiku#uses-model",
+    "agent:scout→model:sonnet#uses-model","agent:scout→schema:scout#validates","agent:scout→store:topics#writes",
+    "agent:scout→store:skill_map#writes","agent:scout→bus:context#result","bus:context→agent:master#deliver",
+    "agent:master→bus:context#dispatch","bus:context→agent:content#deliver","agent:content→model:sonnet#uses-model",
+    "agent:content→model:haiku#uses-model","agent:content→schema:content#validates","agent:content→store:content_items#writes",
+    "agent:content→bus:context#result","bus:context→agent:master#deliver","agent:master→store:master_agent_log#writes"
+  ]},
+  { id:"assess", label:"Take an assessment (score → update mastery)", steps:[
+    "entry:ui→entry:api#triggers","entry:api→agent:master#triggers","agent:master→model:sonnet#uses-model",
+    "agent:master→schema:intent#validates","agent:master→bus:context#dispatch","bus:context→agent:assessment#deliver",
+    "agent:assessment→model:haiku#uses-model","agent:assessment→schema:score#validates","agent:assessment→store:assessment_results#writes",
+    "agent:assessment→bus:context#result","bus:context→agent:master#deliver","agent:master→bus:context#dispatch",
+    "bus:context→agent:learning#deliver","agent:learning→store:skill_map#reads","agent:learning→store:user_progress#writes",
+    "agent:learning→bus:context#result","bus:context→agent:master#deliver","agent:master→store:master_agent_log#writes"
+  ]},
+  // Real-life end-to-end journey: a request travels from a learner's click all the way to a recorded mastery score.
+  { id:"priya", label:"Priya's AML onboarding (end-to-end)", steps:[
+    // Part 1 — "Teach me AML basics": auth → Master intent → Scout research → Content generation
+    "entry:ui→entry:api#triggers","entry:api→auth:supabase#validates","entry:api→agent:master#triggers",
+    "agent:master→model:sonnet#uses-model","agent:master→schema:intent#validates","agent:master→store:master_agent_log#writes",
+    "agent:master→bus:context#dispatch","bus:context→agent:scout#deliver",
+    "agent:scout→tool:tavily#invoke","agent:scout→tool:perplexity#invoke","agent:scout→model:haiku#uses-model",
+    "agent:scout→model:sonnet#uses-model","agent:scout→schema:scout#validates","agent:scout→store:topics#writes",
+    "agent:scout→store:skill_map#writes","agent:scout→bus:context#result","bus:context→agent:master#deliver",
+    "agent:master→bus:context#dispatch","bus:context→agent:content#deliver","agent:content→model:sonnet#uses-model",
+    "agent:content→model:haiku#uses-model","agent:content→schema:content#validates","agent:content→store:content_items#writes",
+    "agent:content→bus:context#result","bus:context→agent:master#deliver","agent:master→store:master_agent_log#writes",
+    // Part 2 — "Here's my answer": Assessment scores it, Learning folds it into her mastery profile
+    "entry:ui→entry:api#triggers","entry:api→agent:master#triggers","agent:master→model:sonnet#uses-model",
+    "agent:master→schema:intent#validates","agent:master→bus:context#dispatch","bus:context→agent:assessment#deliver",
+    "agent:assessment→model:haiku#uses-model","agent:assessment→schema:score#validates","agent:assessment→store:assessment_results#writes",
+    "agent:assessment→bus:context#result","bus:context→agent:master#deliver","agent:master→bus:context#dispatch",
+    "bus:context→agent:learning#deliver","agent:learning→store:skill_map#reads","agent:learning→store:user_progress#writes",
+    "agent:learning→bus:context#result","bus:context→agent:master#deliver","agent:master→store:master_agent_log#writes"
+  ]}
+];
+
+/* ═══════════════ build graph data ═══════════════ */
+const DATA = { nodes: NODES.map(n=>({...n, val: n.kind==="bus"?34 : n.kind==="agent"?18 : n.kind==="model"?12 : n.kind==="store"?7 : n.kind==="tool"?9 : 6 })),
+               links: LINKS.map(l=>({...l})) };
+const NODE = Object.fromEntries(DATA.nodes.map(n=>[n.id,n]));
+const linkByKey = Object.fromEntries(DATA.links.map(l=>[l.key,l]));
+const srcId = (l)=> typeof l.source==="object" ? l.source.id : l.source;
+const tgtId = (l)=> typeof l.target==="object" ? l.target.id : l.target;
+const nodeName = (id)=> (NODE[id]?NODE[id].label:id);
+
+document.getElementById("s-comp").textContent = DATA.nodes.length;
+document.getElementById("s-conn").textContent = DATA.links.length;
+
+/* adjacency for highlight */
+const adj = {}; DATA.nodes.forEach(n=>adj[n.id]=new Set());
+DATA.links.forEach(l=>{ adj[srcId(l)].add(tgtId(l)); adj[tgtId(l)].add(srcId(l)); });
+
+/* ═══════════════ three.js scene ═══════════════ */
+const canvas = document.getElementById("cv3d");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05070f);
+scene.fog = new THREE.FogExp2(0x05070f, 0.0016);
+
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 6000);
+camera.position.set(0, 20, 300);
+const rig = new THREE.Group(); rig.add(camera); scene.add(rig);
+
+scene.add(new THREE.AmbientLight(0x8aa0d0, 1.6));
+const dlight = new THREE.DirectionalLight(0xffffff, 1.0); dlight.position.set(1,1,1); scene.add(dlight);
+camera.add(new THREE.PointLight(0x6688ff, 0.5, 0, 2));
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.1; controls.rotateSpeed = 0.75;
+
+const world = new THREE.Group(); scene.add(world);
+const fxGroup = new THREE.Group(); world.add(fxGroup);   // beads, packet, explode overlay
+
+/* ── node visuals: distinct geometry per kind ── */
+const meshById = {};
+function nodeGeo(kind, r){
+  switch(kind){
+    case "agent":  return new THREE.IcosahedronGeometry(r,0);
+    case "bus":    return new THREE.TorusKnotGeometry(r*0.7, r*0.24, 80, 12);
+    case "model":  return new THREE.ConeGeometry(r*0.95, r*1.9, 6);
+    case "tool":   return new THREE.TetrahedronGeometry(r*1.25,0);
+    case "store":  return new THREE.CylinderGeometry(r*0.9, r*0.9, r*1.5, 16);
+    case "schema": return new THREE.OctahedronGeometry(r,0);
+    default:       return new THREE.BoxGeometry(r*1.5, r*1.5, r*1.5);
+  }
+}
+function makeNode(node){
+  const g = new THREE.Group();
+  const col = KIND_COL[node.kind] || "#8b97b8";
+  const r = node.kind==="bus"?9 : node.kind==="agent"?6 : node.kind==="model"?4.6 : node.kind==="store"?3.6 : node.kind==="tool"?4 : 3.4;
+  const mat = new THREE.MeshStandardMaterial({ color:col, emissive:col, emissiveIntensity:0.5, roughness:0.42, metalness:0.18 });
+  const mesh = new THREE.Mesh(nodeGeo(node.kind, r), mat);
+  mesh.userData.nodeId = node.id; g.add(mesh);
+  const sprite = new SpriteText(node.label, node.kind==="bus"?6 : node.kind==="agent"?5 : 3.8, "#dbe4ff");
+  sprite.fontFace = "Inter, sans-serif"; sprite.fontWeight = node.kind==="agent"||node.kind==="bus"?"700":"500";
+  sprite.position.set(0, r+3.2, 0); sprite.material.depthWrite = false;
+  g.add(sprite);
+  g.userData = { nodeId:node.id, mesh, mat, sprite, baseEmissive:0.5, r };
+  meshById[node.id] = g;
+  return g;
+}
+
+/* ── force graph ── */
+const SELECTED = { link:null };
+const Graph = new ThreeForceGraph()
+  .graphData(DATA)
+  .numDimensions(3)
+  .nodeThreeObject(makeNode)
+  .nodeThreeObjectExtend(false)
+  .linkColor(l => EDGE_COL[l.type] || "#3b4a66")
+  .linkWidth(l => l===SELECTED.link ? 2.6 : (l.type==="backed-by"?0.4:0.9))
+  .linkOpacity(0.5)
+  .linkDirectionalParticles(l => l===SELECTED.link ? 6 : (l.type==="backed-by"?0:2))
+  .linkDirectionalParticleWidth(l => l===SELECTED.link ? 2.6 : 1.3)
+  .linkDirectionalParticleSpeed(l => l===SELECTED.link ? 0.02 : 0.008);
+Graph.d3Force("link").distance(l => l.type==="backed-by"?14 : l.type==="deliver"||l.type==="dispatch"||l.type==="result"?40 : 30);
+Graph.d3Force("charge").strength(-220);
+world.add(Graph);
+
+function refreshLinkStyles(){ Graph.linkWidth(Graph.linkWidth()).linkDirectionalParticles(Graph.linkDirectionalParticles()).linkDirectionalParticleWidth(Graph.linkDirectionalParticleWidth()).linkDirectionalParticleSpeed(Graph.linkDirectionalParticleSpeed()); }
+
+/* ═══════════════ highlight / dim ═══════════════ */
+function setDim(activeIds /* Set or null */){
+  for(const n of DATA.nodes){
+    const g = meshById[n.id]; if(!g) continue;
+    const on = !activeIds || activeIds.has(n.id);
+    g.userData.mat.emissiveIntensity = on ? g.userData.baseEmissive : 0.08;
+    g.userData.mat.opacity = on ? 1 : 0.25; g.userData.mat.transparent = !on;
+    if(g.userData.sprite) g.userData.sprite.visible = on;
+  }
+}
+function clearDim(){ setDim(null); }
+
+/* ═══════════════ panels ═══════════════ */
+const panel = document.getElementById("panel"), panelBody = document.getElementById("panel-body");
+const esc = (s)=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function showPanel(html){ panelBody.innerHTML = html; panel.classList.add("show"); }
+function hidePanel(){ panel.classList.remove("show"); }
+document.getElementById("panel-close").addEventListener("click", ()=>{ hidePanel(); clearSelectionSoft(); });
+
+function nodeChip(id){ const c = KIND_COL[NODE[id]?.kind]||"#8b97b8"; return '<span class="chipnode" data-node="'+esc(id)+'" style="background:'+c+'22;color:'+c+';border-color:'+c+'55">'+esc(nodeName(id))+'</span>'; }
+
+function renderNodePanel(id){
+  const n = NODE[id]; if(!n) return;
+  const out = DATA.links.filter(l=>srcId(l)===id), inc = DATA.links.filter(l=>tgtId(l)===id);
+  const rel = (l,dir)=>{ const other = dir==="out"?tgtId(l):srcId(l); const c=EDGE_COL[l.type]||"#8b97b8";
+    return '<div class="relrow" data-link="'+esc(l.key)+'"><span class="dot" style="background:'+c+'"></span><span>'+esc(nodeName(other))+'</span><span class="vrb">'+esc(dir==="out"?EDGE_VERB[l.type]:("← "+EDGE_VERB[l.type]))+'</span></div>'; };
+  let h = '<span class="ptag" style="background:'+KIND_COL[n.kind]+'22;color:'+KIND_COL[n.kind]+'">'+esc(KIND_LABEL[n.kind]||n.kind)+'</span>';
+  h += '<h2>'+esc(n.label)+'</h2><div class="kind">'+esc(n.id)+'</div>';
+  h += '<p>'+esc(n.role)+'</p>';
+  if(out.length){ h += '<div class="phead">Outgoing ('+out.length+')</div>'+out.map(l=>rel(l,"out")).join(''); }
+  if(inc.length){ h += '<div class="phead">Incoming ('+inc.length+')</div>'+inc.map(l=>rel(l,"in")).join(''); }
+  showPanel(h);
+}
+
+function renderEdgePanel(l){
+  const c = EDGE_COL[l.type]||"#8b97b8";
+  let h = '<span class="ptag" style="background:'+c+'22;color:'+c+'">'+esc(l.type)+'</span>';
+  h += '<div class="flow">'+nodeChip(srcId(l))+'<span class="ar">→</span>'+nodeChip(tgtId(l))+'</div>';
+  h += '<p><b>'+esc(nodeName(srcId(l)))+'</b> '+esc(EDGE_VERB[l.type]||l.type)+' <b>'+esc(nodeName(tgtId(l)))+'</b>.</p>';
+  h += '<div class="kv">';
+  const row=(k,v,bad)=> v?('<div class="k">'+esc(k)+'</div><div class="v'+(bad?' bad':'')+'">'+esc(v)+'</div>'):'';
+  h += row("Channel",l.channel)+row("Payload",l.payload)+row("Direction",l.dir)+row("Mode",l.sync)+row("Trigger",l.trigger)+row("Latency",l.latency)+row("Volume",l.volume)+row("On error",l.onError,true);
+  h += '</div>';
+  if(l.sample) h += '<div class="phead">Sample message</div><div class="code">'+esc(JSON.stringify(l.sample,null,2))+'</div>';
+  if(l.hops&&l.hops.length){ h += '<div class="hops"><div class="hl">How it connects · '+l.hops.length+' steps</div><ol>'+l.hops.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol></div>'; }
+  showPanel(h);
+}
+
+/* delegate clicks inside the panel (chips + relation rows) */
+panelBody.addEventListener("click",(e)=>{
+  const ln = e.target.closest("[data-link]"); if(ln){ const l=linkByKey[ln.getAttribute("data-link")]; if(l) selectLink(l); return; }
+  const nd = e.target.closest("[data-node]"); if(nd){ selectNode(nd.getAttribute("data-node")); }
+});
+
+/* ═══════════════ selection orchestration ═══════════════ */
+let mode = "inspect";
+function clearSelectionSoft(){ SELECTED.link=null; refreshLinkStyles(); clearExplode(); clearDim(); }
+function clearSelection(){ hidePanel(); clearSelectionSoft(); stopTrace(); }
+
+function selectNode(id){
+  SELECTED.link=null; refreshLinkStyles(); clearExplode();
+  const keep = new Set([id, ...adj[id]]); setDim(keep);
+  renderNodePanel(id);
+  const g = meshById[id]; if(g){ g.getWorldPosition(_tmp); flyTo(_tmp); }
+}
+
+function selectLink(l){
+  SELECTED.link=l; refreshLinkStyles();
+  const keep = new Set([srcId(l), tgtId(l)]); setDim(keep);
+  renderEdgePanel(l);
+  // frame the edge
+  const a=meshById[srcId(l)], b=meshById[tgtId(l)];
+  if(a&&b){ a.getWorldPosition(_a); b.getWorldPosition(_b); _tmp.addVectors(_a,_b).multiplyScalar(0.5); flyTo(_tmp); }
+  if(mode==="explode") buildExplode(l);
+  else clearExplode();
+  if(mode==="trace") startTraceForLink(l);
+}
+
+/* ═══════════════ EXPLODE mode: unfold the hops along a bowed arc ═══════════════ */
+let exploadeObjs = [];
+function clearExplode(){ for(const o of exploadeObjs){ fxGroup.remove(o); if(o.material){ if(o.material.map)o.material.map.dispose(); o.material.dispose(); } if(o.geometry)o.geometry.dispose(); } exploadeObjs=[]; }
+const _a=new THREE.Vector3(), _b=new THREE.Vector3(), _mid=new THREE.Vector3(), _tmp=new THREE.Vector3(), _up=new THREE.Vector3(0,1,0), _per=new THREE.Vector3();
+function buildExplode(l){
+  clearExplode();
+  const a=meshById[srcId(l)], b=meshById[tgtId(l)]; if(!a||!b) return;
+  a.getWorldPosition(_a); b.getWorldPosition(_b);
+  const hops = l.hops && l.hops.length ? l.hops : [EDGE_VERB[l.type]||l.type];
+  const dirv = new THREE.Vector3().subVectors(_b,_a);
+  const len = dirv.length(); _per.copy(dirv).normalize().cross(_up); if(_per.lengthSq()<1e-4) _per.set(1,0,0); _per.normalize();
+  const bow = Math.min(len*0.35, 26);
+  const n = hops.length;
+  // place a labelled bead per hop along a bowed arc from a→b
+  for(let i=0;i<n;i++){
+    const t = (i+1)/(n+1);
+    const base = _a.clone().lerp(_b, t);
+    const lift = Math.sin(t*Math.PI)*bow;
+    base.addScaledVector(_per, lift);
+    const bead = new THREE.Mesh(new THREE.SphereGeometry(1.5,14,14),
+      new THREE.MeshStandardMaterial({ color:0x38bdf8, emissive:0x38bdf8, emissiveIntensity:0.7 }));
+    bead.position.copy(base); fxGroup.add(bead); exploadeObjs.push(bead);
+    const st = new SpriteText((i+1)+". "+hops[i], 3.2, "#cfe0ff");
+    st.fontFace="Inter, sans-serif"; st.backgroundColor="rgba(8,12,24,0.9)"; st.padding=2; st.borderRadius=3;
+    st.borderColor="#38bdf8"; st.borderWidth=0.6; st.material.depthWrite=false; st.material.depthTest=false; st.renderOrder=999;
+    st.position.copy(base).add(new THREE.Vector3(0,4,0)); fxGroup.add(st); exploadeObjs.push(st);
+  }
+  // a faint guide line through the beads
+  const pts=[_a.clone()]; for(let i=0;i<n;i++){ const t=(i+1)/(n+1); const p=_a.clone().lerp(_b,t).addScaledVector(_per,Math.sin(t*Math.PI)*bow); pts.push(p);} pts.push(_b.clone());
+  const guide = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color:0x38bdf8, transparent:true, opacity:0.5 }));
+  fxGroup.add(guide); exploadeObjs.push(guide);
+}
+
+/* ═══════════════ TRACE mode: a packet rides the real path ═══════════════ */
+const packet = new THREE.Mesh(new THREE.SphereGeometry(2.4,18,18),
+  new THREE.MeshStandardMaterial({ color:0x34d399, emissive:0x34d399, emissiveIntensity:1.1 }));
+packet.visible=false; fxGroup.add(packet);
+const packetGlow = new THREE.Mesh(new THREE.SphereGeometry(4.2,16,16),
+  new THREE.MeshBasicMaterial({ color:0x34d399, transparent:true, opacity:0.22 }));
+packet.add(packetGlow);
+const trace = { active:false, playing:false, def:null, step:0, t:0, visited:new Set(), speed:0.9 };
+
+function traceEdges(def){ return def.steps.map(k=>linkByKey[k]).filter(Boolean); }
+function loadTrace(def){ stopTrace(); trace.def=def; trace.step=0; trace.t=0; trace.visited=new Set(); trace.active=true; setDim(new Set()); updateTraceUI(); }
+function startTraceForLink(l){ const def = TRACES.find(t=>t.steps.includes(l.key)) || TRACES[0]; tracePick.value=def.id; loadTrace(def); playTrace(); }
+function playTrace(){ if(!trace.def) loadTrace(TRACES[0]); trace.active=true; trace.playing=true; packet.visible=true; updateTraceBtn(); }
+function pauseTrace(){ trace.playing=false; updateTraceBtn(); }
+function stopTrace(){ trace.playing=false; trace.active=false; packet.visible=false; trace.step=0; trace.t=0; trace.visited=new Set(); clearDim(); updateTraceUI(); }
+function stepTrace(){ // advance one whole edge
+  if(!trace.def) loadTrace(TRACES[0]);
+  const edges=traceEdges(trace.def); if(trace.step>=edges.length){ return; }
+  markVisited(edges[trace.step]); trace.step++; trace.t=0;
+  if(trace.step>=edges.length){ snapPacketEnd(edges[edges.length-1]); }
+  trace.playing=false; updateTraceUI(); updateTraceBtn();
+}
+function markVisited(l){ if(l){ trace.visited.add(l.id||l.key); highlightVisited(); } }
+function highlightVisited(){
+  const ids=new Set(); for(const k of trace.visited){ const l=linkByKey[k]; if(l){ ids.add(srcId(l)); ids.add(tgtId(l)); } }
+  setDim(ids.size?ids:new Set());
+}
+function snapPacketEnd(l){ const b=meshById[tgtId(l)]; if(b){ b.getWorldPosition(_tmp); packet.position.copy(_tmp);} }
+
+function updateTrace(dt){
+  if(!trace.active||!trace.playing||!trace.def) return;
+  const edges=traceEdges(trace.def);
+  if(trace.step>=edges.length){ trace.playing=false; updateTraceBtn(); return; }
+  const l=edges[trace.step]; const a=meshById[srcId(l)], b=meshById[tgtId(l)];
+  if(!a||!b){ trace.step++; trace.t=0; return; }
+  a.getWorldPosition(_a); b.getWorldPosition(_b);
+  const dist=Math.max(_a.distanceTo(_b),1);
+  trace.t += dt*60*trace.speed/dist;
+  if(trace.t>=1){ trace.t=0; markVisited(l); trace.step++; updateTraceUI(); if(trace.step>=edges.length){ packet.position.copy(_b); trace.playing=false; updateTraceBtn(); return; } }
+  else { packet.position.copy(_a).lerp(_b, trace.t); }
+  // gently follow
+  if(trace.step<edges.length){ _mid.copy(packet.position); }
+}
+
+/* trace UI */
+const tracedock=document.getElementById("tracedock"), tracePick=document.getElementById("trace-pick");
+const tracePlay=document.getElementById("trace-play"), traceStepLbl=document.getElementById("trace-step-label"), traceProg=document.getElementById("trace-prog");
+TRACES.forEach(t=>{ const o=document.createElement("option"); o.value=t.id; o.textContent=t.label; tracePick.appendChild(o); });
+function updateTraceBtn(){ tracePlay.textContent = trace.playing ? "⏸ Pause" : "▶ Play"; }
+function updateTraceUI(){
+  if(!trace.def){ traceStepLbl.textContent="Pick a trace and press Play."; traceProg.style.width="0%"; return; }
+  const edges=traceEdges(trace.def); const i=Math.min(trace.step, edges.length-1); const l=edges[i];
+  traceProg.style.width = Math.round(100*trace.step/edges.length)+"%";
+  if(trace.step>=edges.length){ traceStepLbl.innerHTML="✓ Trace complete — "+edges.length+" hops through the mesh."; }
+  else if(l){ traceStepLbl.innerHTML='<b>'+(trace.step+1)+'/'+edges.length+'</b> &nbsp; '+esc(nodeName(srcId(l)))+' <span style="color:#34d399">'+esc(EDGE_VERB[l.type]||l.type)+'</span> '+esc(nodeName(tgtId(l))); }
+}
+tracePick.addEventListener("change",()=>{ const d=TRACES.find(t=>t.id===tracePick.value); if(d){ loadTrace(d); } });
+tracePlay.addEventListener("click",()=>{ if(trace.playing) pauseTrace(); else playTrace(); });
+document.getElementById("trace-step").addEventListener("click", stepTrace);
+document.getElementById("trace-reset").addEventListener("click", ()=>{ const d=trace.def||TRACES[0]; loadTrace(d); });
+
+/* ═══════════════ mode selector ═══════════════ */
+const modebar=document.getElementById("modebar");
+modebar.addEventListener("click",(e)=>{ const b=e.target.closest("button[data-mode]"); if(!b) return;
+  if(tour.active) exitTour();
+  mode=b.getAttribute("data-mode");
+  [...modebar.querySelectorAll("button")].forEach(x=>x.classList.toggle("active", x===b));
+  tracedock.classList.toggle("show", mode==="trace");
+  clearExplode();
+  if(mode!=="trace") stopTrace();
+  if(mode==="trace"){ if(!trace.def) loadTrace(TRACES[0]); }
+  // re-apply current selection under the new mode
+  if(SELECTED.link) selectLink(SELECTED.link);
+});
+
+/* ═══════════════ picking (desktop) ═══════════════ */
+const ray = new THREE.Raycaster(); const ndc = new THREE.Vector2();
+const _la=new THREE.Vector3(), _lb=new THREE.Vector3(), _lpr=new THREE.Vector3(), _lps=new THREE.Vector3();
+function pickNode(cx,cy){
+  ndc.set((cx/window.innerWidth)*2-1, -(cy/window.innerHeight)*2+1);
+  ray.setFromCamera(ndc, camera);
+  const hits=ray.intersectObjects(Graph.children, true);
+  for(const h of hits){ let o=h.object; while(o){ if(o.userData&&o.userData.nodeId) return o.userData.nodeId; o=o.parent; } }
+  return null;
+}
+function nearestLink(cx,cy){
+  ndc.set((cx/window.innerWidth)*2-1, -(cy/window.innerHeight)*2+1);
+  ray.setFromCamera(ndc,camera);
+  let best=null,bestD=Infinity,bestPt=null;
+  for(const l of DATA.links){
+    const a=meshById[srcId(l)], b=meshById[tgtId(l)]; if(!a||!b) continue;
+    a.getWorldPosition(_la); b.getWorldPosition(_lb);
+    const d2=ray.ray.distanceSqToSegment(_la,_lb,_lpr,_lps);
+    if(d2<bestD){ bestD=d2; best=l; bestPt=_lps.clone(); }
+  }
+  if(!best) return null;
+  // gate by screen-space distance to the click
+  const sp=bestPt.clone().project(camera);
+  const sx=(sp.x+1)/2*window.innerWidth, sy=(-sp.y+1)/2*window.innerHeight;
+  if(Math.hypot(sx-cx, sy-cy) > 22) return null;
+  return best;
+}
+let downXY=null;
+canvas.addEventListener("pointerdown",(e)=>{ downXY=[e.clientX,e.clientY]; });
+canvas.addEventListener("pointerup",(e)=>{
+  if(!downXY) return; const moved=Math.hypot(e.clientX-downXY[0], e.clientY-downXY[1]); downXY=null;
+  if(moved>6) return;                          // drag = orbit, not a click
+  if(tour.active) return;                       // walkthrough owns the stage
+  const nid=pickNode(e.clientX,e.clientY);
+  if(nid){ selectNode(nid); return; }
+  const l=nearestLink(e.clientX,e.clientY);
+  if(l){ selectLink(l); return; }
+  clearSelection();
+});
+
+/* ═══════════════ desktop camera fly-to ═══════════════ */
+let flyTarget=null;
+function flyTo(p){ if(renderer.xr.isPresenting) return; flyTarget=p.clone(); }
+
+/* ═══════════════ VR scaffolding (rig + controllers + minimal locomotion) ═══════════════ */
+const XR_TARGET=new THREE.Vector3(0,1.5,-2.4), XR_SPAN=3.0;
+function fitWorldForXR(){
+  const box=new THREE.Box3(), v=new THREE.Vector3();
+  DATA.nodes.forEach(n=>{ if(n.x==null)return; box.expandByPoint(v.set(n.x,n.y,n.z)); });
+  const size=new THREE.Vector3(); box.getSize(size); const ctr=new THREE.Vector3(); box.getCenter(ctr);
+  const s=XR_SPAN/(Math.max(size.x,size.y,size.z)||1);
+  world.scale.setScalar(s); world.position.copy(XR_TARGET).sub(ctr.multiplyScalar(s));
+}
+function makeController(i){
+  const ctrl=renderer.xr.getController(i);
+  const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-1)]), new THREE.LineBasicMaterial({color:0x38bdf8}));
+  line.scale.z=5; ctrl.add(line);
+  ctrl.addEventListener("selectstart", ()=>{ const r=controllerPick(ctrl); if(r&&r.node) selectNode(r.node); else if(r&&r.link) selectLink(r.link); });
+  ctrl.addEventListener("squeezestart", ()=>{ clearSelection(); });
+  scene.add(ctrl); return ctrl;
+}
+const tmpM=new THREE.Matrix4();
+function controllerPick(ctrl){
+  tmpM.identity().extractRotation(ctrl.matrixWorld);
+  ray.ray.origin.setFromMatrixPosition(ctrl.matrixWorld);
+  ray.ray.direction.set(0,0,-1).applyMatrix4(tmpM);
+  const hits=ray.intersectObjects(Graph.children,true);
+  for(const h of hits){ let o=h.object; while(o){ if(o.userData&&o.userData.nodeId) return {node:o.userData.nodeId}; o=o.parent; } }
+  let best=null,bestD=Infinity;
+  for(const l of DATA.links){ const a=meshById[srcId(l)],b=meshById[tgtId(l)]; if(!a||!b)continue; a.getWorldPosition(_la); b.getWorldPosition(_lb); const d2=ray.ray.distanceSqToSegment(_la,_lb,_lpr,_lps); if(d2<bestD){bestD=d2;best=l;} }
+  if(best && Math.sqrt(bestD) < 0.18) return {link:best};
+  return null;
+}
+const controllers=[makeController(0),makeController(1)];
+const xrClock=new THREE.Clock(), xrUP=new THREE.Vector3(0,1,0), DEAD=0.18;
+const _fwd=new THREE.Vector3(), _right=new THREE.Vector3(), _mv=new THREE.Vector3(), _camW=new THREE.Vector3(), _snapQ=new THREE.Quaternion();
+let snapArmed=true;
+function updateLoco(dt){
+  const s=renderer.xr.getSession(); if(!s) return; let mx=0,mz=0,tx=0,fy=0;
+  for(const src of s.inputSources){ if(!src.gamepad)continue; const ax=src.gamepad.axes||[]; const x=ax.length>=4?ax[2]:(ax[0]||0), y=ax.length>=4?ax[3]:(ax[1]||0);
+    const X=Math.abs(x)>DEAD?x:0, Y=Math.abs(y)>DEAD?y:0; if(src.handedness==="right"){tx=X;fy=Y;} else {mx=X;mz=Y;} }
+  if(mx||mz){ camera.getWorldDirection(_fwd); _fwd.y=0; if(_fwd.lengthSq()<1e-4)_fwd.set(0,0,-1); _fwd.normalize(); _right.crossVectors(_fwd,xrUP).normalize();
+    _mv.set(0,0,0).addScaledVector(_fwd,-mz*2.2*dt).addScaledVector(_right,mx*2.2*dt); rig.position.add(_mv); }
+  if(fy) rig.position.y += -fy*1.6*dt;
+  if(Math.abs(tx)>0.6){ if(snapArmed){ camera.getWorldPosition(_camW); _snapQ.setFromAxisAngle(xrUP, tx>0?-Math.PI/6:Math.PI/6); rig.position.sub(_camW).applyQuaternion(_snapQ).add(_camW); rig.quaternion.premultiply(_snapQ); snapArmed=false; } }
+  else if(Math.abs(tx)<0.3) snapArmed=true;
+}
+renderer.xr.addEventListener("sessionstart", ()=>{ if(tour.active) exitTour(); controls.enabled=false; rig.position.set(0,0,0); rig.quaternion.identity(); snapArmed=true; xrClock.getDelta(); fitWorldForXR(); document.querySelector(".overlay").style.display="none"; });
+renderer.xr.addEventListener("sessionend", ()=>{ controls.enabled=true; rig.position.set(0,0,0); rig.quaternion.identity(); world.scale.setScalar(1); world.position.set(0,0,0); document.querySelector(".overlay").style.display=""; });
+
+/* VR button */
+try{ const vb=VRButton.createButton(renderer); vb.style.position="static"; vb.style.transform="none"; vb.style.margin="0";
+  document.getElementById("vrbtnwrap").appendChild(vb); }catch(e){}
+
+/* ═══════════════ render loop ═══════════════ */
+let warm=0;
+renderer.setAnimationLoop(()=>{
+  Graph.tickFrame();
+  if(renderer.xr.isPresenting){ const dt=Math.min(xrClock.getDelta(),0.1); updateLoco(dt); }
+  const _dt = renderer.xr.isPresenting ? 0.016 : Math.min(clock.getDelta(),0.05);
+  if(tour.active) updateTour(_dt); else updateTrace(_dt);
+  if(packet.visible){ packetGlow.material.opacity = 0.18 + 0.12*Math.sin(performance.now()*0.006); }
+  if(flyTarget && !renderer.xr.isPresenting){
+    controls.target.lerp(flyTarget,0.08);
+    const dir2=camera.position.clone().sub(controls.target).normalize();
+    const want=flyTarget.clone().add(dir2.multiplyScalar(120));
+    camera.position.lerp(want,0.06);
+    if(camera.position.distanceTo(want)<1.5) flyTarget=null;
+  }
+  controls.update();
+  renderer.render(scene,camera);
+});
+const clock=new THREE.Clock();
+
+window.addEventListener("resize", ()=>{ camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth,window.innerHeight); });
+window.addEventListener("keydown",(e)=>{ if(e.key==="Escape"){ if(!document.getElementById("qrwrap").hidden) closeQR(); else if(!document.getElementById("scnwrap").hidden) closeScenarios(); else if(tour.active) exitTour(); else clearSelection(); }
+  else if(tour.active){ if(e.key==="ArrowRight"){ nextTour(); } else if(e.key==="ArrowLeft"){ prevTour(); } else if(e.key===" "){ e.preventDefault(); tour.playing?pauseTour():playTour(); } } });
+
+/* let the layout settle, then reveal */
+setTimeout(()=>{ loadEl.classList.add("hidden"); }, 600);
+
+/* ───────── QR: open on a headset ───────── */
+let QRLib = null;
+async function ensureQR(){ if(QRLib!==null) return QRLib; try{ QRLib=(await import("https://esm.sh/qrcode@1.5.3")).default; }catch(e){ QRLib=false; } return QRLib; }
+function urlState(u){
+  try{ const x=new URL(u); const h=x.hostname;
+    if(x.protocol==="file:") return {ok:false,msg:"⚠ file:// can't open on a headset — serve over HTTPS."};
+    if(h==="localhost"||h==="127.0.0.1"||/^192\.168\./.test(h)||/^10\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h))
+      return {ok:false,msg:"⚠ Local address — a headset can't reach it. Paste an https:// tunnel or deployed link below."};
+    if(x.protocol!=="https:") return {ok:false,msg:"⚠ Not https — WebXR needs a secure origin in the headset."};
+    return {ok:true,msg:"✓ Reachable & secure — scan with the Quest Browser."};
+  }catch(e){ return {ok:false,msg:"⚠ Not a valid URL."}; }
+}
+async function drawQR(u){
+  const c=document.getElementById("qrcanvas"), note=document.getElementById("qrnote");
+  const st=urlState(u); note.textContent=st.msg; note.className="qrnote "+(st.ok?"ok":"warn");
+  const lib=await ensureQR();
+  const ctx=c.getContext("2d");
+  if(!lib){ ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height); ctx.fillStyle="#0b1020";ctx.font="13px sans-serif";ctx.textAlign="center";ctx.fillText("QR library offline —",110,104);ctx.fillText("copy the link instead",110,124); return; }
+  try{ await lib.toCanvas(c, u||" ", {width:220, margin:1, color:{dark:"#0b1020", light:"#ffffff"}}); }
+  catch(e){ ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height); }
+}
+// live cloudflared quick-tunnel for headset testing (ephemeral — regenerate when it dies)
+const PREFERRED_VR_URL = "https://message-notes-newbie-priced.trycloudflare.com/eval-recipes/agent-graph-3d.html";
+function openQR(){ const inp=document.getElementById("qrurl"); const pref=PREFERRED_VR_URL && urlState(PREFERRED_VR_URL).ok ? PREFERRED_VR_URL : location.href; inp.value=pref; document.getElementById("qrwrap").hidden=false; drawQR(inp.value); }
+function closeQR(){ document.getElementById("qrwrap").hidden=true; }
+document.getElementById("qr-open").addEventListener("click", e=>{ e.preventDefault(); openQR(); });
+document.getElementById("qr-close").addEventListener("click", closeQR);
+document.getElementById("qrwrap").addEventListener("click", e=>{ if(e.target.id==="qrwrap") closeQR(); });
+document.getElementById("qrurl").addEventListener("input", e=>drawQR(e.target.value.trim()));
+document.getElementById("qrcopy").addEventListener("click", async()=>{ const b=document.getElementById("qrcopy"); try{ await navigator.clipboard.writeText(document.getElementById("qrurl").value); const t=b.textContent; b.textContent="Copied ✓"; setTimeout(()=>b.textContent=t,1200);}catch(e){ b.textContent="Copy failed"; } });
+
+/* ═══════════════ GUIDED WALKTHROUGH (scenarios) ═══════════════ */
+const SCENARIOS = [
+  { id:"priya", emoji:"🏦", title:"Real-life: Priya's AML onboarding", traceId:"priya",
+    tagline:"a real task, solved end-to-end",
+    intro:'Priya, a new analyst at a commercial bank, must master "AML basics" before her compliance sign-off. Watch the agents solve her request end-to-end — from her first click to a recorded mastery score.',
+    spokenIntro:'Meet Priya, a new analyst at a commercial bank. Before she can be signed off for compliance work, she has to master the basics of anti-money-laundering. She opens AdaptLearn and asks it to teach her. Watch how the agents solve her request, step by step, from her very first click all the way to a recorded mastery score.',
+    story:'<b>Priya, new compliance analyst.</b> She must master <b>AML basics</b> before sign-off. She asks AdaptLearn to teach her, then proves it on a question. Follow how five agents — coordinated only through the Context Bus — solve her request end-to-end.',
+    chapters:[
+      { at:0,  label:'Part 1 · "Teach me AML basics"', story:'<b>Part 1 — Priya asks to learn.</b> Her click becomes an authenticated request. The <b>Master Agent</b> reads her intent, then dispatches <b>Scout</b> to research and <b>Content Creator</b> to write the lesson — every hop crossing the Context Bus, every LLM reply checked by Zod.' },
+      { at:26, label:'Part 2 · "Here is my answer"', story:'<b>Part 2 — Priya answers a question.</b> A second request flows in. <b>Assessment</b> scores her answer with Haiku and validates it, then <b>Learning</b> reads the skill map and folds the result into her <b>mastery profile</b>. Her progress is now durable.' },
+    ] },
+  { id:"learn", emoji:"📚", title:"Learn a new topic", traceId:"learn",
+    tagline:"UI → research → content generation",
+    intro:'A learner asks to study "AML basics" — follow the request through intent, Scout research, and Content Creator generation.' },
+  { id:"assess", emoji:"📝", title:"Take an assessment", traceId:"assess",
+    tagline:"submit answer → score → mastery update",
+    intro:'The learner submits an answer — watch Assessment score it, Zod validate it, and Learning fold it into the mastery profile.' },
+];
+
+// speed: slow glide between nodes · readDwell: pause at a node when narration is OFF
+const tour = { active:false, playing:false, scn:null, edges:[], i:0, t:0, phase:"travel", hold:0, readDwell:1.7, speed:0.3,
+               visited:new Set(), audio:true, speaking:false, narrationDone:false, utter:null, speakTO:0, keepAlive:0 };
+const td = (id)=>document.getElementById(id);
+
+/* ---- narration (Web Speech API, self-contained, no network) ---- */
+const synth = ("speechSynthesis" in window) ? window.speechSynthesis : null;
+let pickedVoice = null;
+function pickVoice(){ if(!synth) return null; if(pickedVoice) return pickedVoice; const vs=synth.getVoices()||[];
+  pickedVoice = vs.find(v=>/^en[-_]?(us|gb)/i.test(v.lang) && /female|samantha|zira|aria|google|natural/i.test(v.name))
+             || vs.find(v=>/^en/i.test(v.lang)) || vs[0] || null; return pickedVoice; }
+if(synth) try{ synth.onvoiceschanged=()=>{ pickedVoice=null; pickVoice(); }; }catch(e){}
+function cap(s){ s=String(s||""); return s.charAt(0).toUpperCase()+s.slice(1); }
+function spokenStep(l){ const v=EDGE_VERB[l.type]||l.type; let s=nodeName(srcId(l))+" "+v+" "+nodeName(tgtId(l))+". "; if(l.trigger) s+=cap(l.trigger)+". "; return s; }
+function spokenNext(i){ const e=tour.edges; if(i+1<e.length){ const n=e[i+1]; return "Next, "+nodeName(srcId(n))+" "+(EDGE_VERB[n.type]||n.type)+" "+nodeName(tgtId(n))+"."; } return "That is the final step. The scenario is complete."; }
+function chapterAt(i){ const ch=tour.scn&&tour.scn.chapters; return ch ? (ch.find(c=>c.at===i)||null) : null; }
+function activeChapter(i){ const ch=tour.scn&&tour.scn.chapters; if(!ch||!ch.length) return null; let cur=null; for(const c of ch){ if(c.at<=i) cur=c; } return cur; }
+function spokenPrefix(i){ let p=""; if(i===0 && tour.scn && tour.scn.spokenIntro) p+=tour.scn.spokenIntro+" "; const c=chapterAt(i); if(c && i!==0) p+=c.label.replace(/·/g," — ")+". "; return p; }
+function renderStory(i){ const el=td("td-story"); if(!el) return; const scn=tour.scn; const c=activeChapter(i); const html = c ? c.story : (scn&&scn.story ? scn.story : ""); if(html){ el.innerHTML=html; el.hidden=false; } else { el.hidden=true; } }
+function cancelSpeech(){ if(synth){ try{ synth.cancel(); }catch(e){} } clearTimeout(tour.speakTO); clearInterval(tour.keepAlive); tour.speaking=false; }
+function armSpeakFallback(ms){ clearTimeout(tour.speakTO); tour.speakTO=setTimeout(()=>{ tour.speaking=false; tour.narrationDone=true; }, ms); }
+function speakStep(i){
+  tour.narrationDone=false; tour.speaking=false;
+  if(!tour.audio || !synth){ tour.narrationDone=true; return; }   // no audio → arrival uses the timed readDwell
+  try{ synth.cancel(); }catch(e){}
+  const text = spokenPrefix(i) + spokenStep(tour.edges[i]) + " " + spokenNext(i);
+  const u = new SpeechSynthesisUtterance(text);
+  const v = pickVoice(); if(v) u.voice=v;
+  u.rate=0.98; u.pitch=1.0; u.volume=1.0; u.lang="en-US";
+  tour.utter=u; tour.speaking=true;
+  u.onend  =()=>{ if(tour.utter===u){ tour.speaking=false; tour.narrationDone=true; clearTimeout(tour.speakTO); clearInterval(tour.keepAlive); } };
+  u.onerror=()=>{ if(tour.utter===u){ tour.speaking=false; tour.narrationDone=true; clearTimeout(tour.speakTO); clearInterval(tour.keepAlive); } };
+  armSpeakFallback(Math.min(60000, 2000 + text.length*80));   // safety net so the tour never stalls (generous: long intros)
+  synth.speak(u);
+  // Chrome/Chromium stops speech synthesis ~15s in and may never fire onend — pause+resume resets that watchdog.
+  clearInterval(tour.keepAlive);
+  tour.keepAlive = setInterval(()=>{ if(!tour.speaking){ clearInterval(tour.keepAlive); return; } if(!tour.playing) return; try{ synth.pause(); synth.resume(); }catch(e){} }, 9000);
+}
+function syncAudioBtn(){ const b=td("td-audio"); if(!b) return; b.classList.toggle("on", tour.audio); b.textContent = tour.audio ? "🔊 Narration" : "🔇 Narration"; }
+function setAudio(on){ tour.audio=!!on; syncAudioBtn();
+  if(!tour.audio){ cancelSpeech(); }
+  else if(tour.active && tour.playing && tour.phase!=="done" && !tour.narrationDone){ speakStep(tour.i); }
+}
+
+/* build the chooser cards */
+(function buildScenarioList(){
+  const list = td("scnlist");
+  SCENARIOS.forEach(s=>{
+    const def = TRACES.find(t=>t.id===s.traceId); const n = def?def.steps.length:0;
+    const b = document.createElement("button");
+    b.className="scnopt"; b.setAttribute("data-scn", s.id);
+    b.innerHTML = '<span class="scnemoji">'+s.emoji+'</span><span class="scntxt"><b>'+esc(s.title)+'</b><small>'+n+' steps · '+esc(s.tagline)+'</small><em>'+esc(s.intro)+'</em></span>';
+    list.appendChild(b);
+  });
+  list.addEventListener("click",(e)=>{ const b=e.target.closest("button[data-scn]"); if(b) startTour(b.getAttribute("data-scn")); });
+})();
+
+function openScenarios(){ td("scnwrap").hidden=false; }
+function closeScenarios(){ td("scnwrap").hidden=true; }
+
+function startTour(scnId){
+  const scn = SCENARIOS.find(s=>s.id===scnId); if(!scn) return;
+  closeScenarios();
+  // take over the stage
+  hidePanel(); stopTrace(); clearExplode(); SELECTED.link=null; cancelSpeech();
+  tracedock.classList.remove("show");
+  const def = TRACES.find(t=>t.id===scn.traceId);
+  tour.scn=scn; tour.edges=traceEdges(def); tour.visited=new Set();
+  tour.active=true; tour.playing=true;
+  packet.visible=true;
+  td("tourdock").classList.add("show");
+  td("td-scn").textContent = scn.emoji+"  "+scn.title;
+  syncAudioBtn();
+  gotoTourStep(0);   // first speak() rides the scenario-card click → satisfies the audio gesture gate
+}
+
+function gotoTourStep(i){
+  const edges=tour.edges; if(!edges.length){ return; }
+  if(i>=edges.length){ finishTour(); return; }
+  if(i<0) i=0;
+  tour.i=i; tour.t=0; tour.hold=0;
+  const l=edges[i];
+  // light the path travelled so far + the current edge's endpoints
+  tour.visited=new Set();
+  for(let k=0;k<i;k++){ const e=edges[k]; tour.visited.add(srcId(e)); tour.visited.add(tgtId(e)); }
+  tour.visited.add(srcId(l)); tour.visited.add(tgtId(l));
+  setDim(tour.visited);
+  SELECTED.link=l; refreshLinkStyles();
+  const a=meshById[srcId(l)], b=meshById[tgtId(l)];
+  if(a&&b){ a.getWorldPosition(_a); b.getWorldPosition(_b);
+    if(tour.playing){ packet.position.copy(_a); tour.phase="travel"; }       // glide from source
+    else { packet.position.copy(_b); tour.phase="arrive"; }                   // paused: show the hop completed
+    _tmp.addVectors(_a,_b).multiplyScalar(0.5); flyTo(_tmp); }
+  else { tour.phase="arrive"; }
+  renderStory(i);
+  renderTourCallout(i,l);
+  speakStep(i);    // narration begins exactly as the move begins → no gap between move and audio
+  syncTourUI();
+}
+
+function finishTour(){
+  cancelSpeech();
+  tour.phase="done"; tour.playing=false; tour.i=tour.edges.length;
+  const all=new Set(); tour.edges.forEach(e=>{ all.add(srcId(e)); all.add(tgtId(e)); });
+  tour.visited=all; setDim(all); SELECTED.link=null; refreshLinkStyles();
+  const comps=all.size, n=tour.edges.length;
+  if(tour.scn && tour.scn.story){ const el=td("td-story"); if(el){ el.innerHTML=tour.scn.story; el.hidden=false; } }
+  td("td-callout").innerHTML = '<p class="tcsent">✓ <b>Scenario complete.</b> The request travelled <b>'+n+'</b> connections across <b>'+comps+'</b> components — every hop went through the Context Bus, and nothing skipped Zod validation.</p><div class="tcmeta">↺ <b>Replay</b> to watch again · ‹ <b>Prev</b> to step back · ✕ to exit.</div>';
+  syncTourUI();
+}
+
+function nextTour(){ if(tour.phase==="done") return; gotoTourStep(tour.i+1); }
+function prevTour(){ if(tour.phase==="done"){ gotoTourStep(tour.edges.length-1); return; } gotoTourStep(tour.i-1); }
+function playTour(){ if(!tour.active) return; tour.playing=true;
+  if(tour.phase==="done"){ gotoTourStep(0); }
+  else if(tour.audio && synth){ if(tour.speaking){ try{ synth.resume(); }catch(e){} armSpeakFallback(10000); } else if(!tour.narrationDone){ speakStep(tour.i); } }
+  syncTourUI(); }
+function pauseTour(){ tour.playing=false; if(synth){ try{ synth.pause(); }catch(e){} } clearTimeout(tour.speakTO); syncTourUI(); }
+function exitTour(){
+  cancelSpeech();
+  tour.active=false; tour.playing=false; tour.scn=null; tour.edges=[]; tour.phase="travel";
+  packet.visible=false; SELECTED.link=null; refreshLinkStyles(); clearDim(); hidePanel();
+  td("tourdock").classList.remove("show");
+}
+
+function syncTourUI(){
+  const play=td("td-play");
+  if(tour.phase==="done"){ play.textContent="↺ Replay"; td("td-step").textContent="✓ "+tour.edges.length+" steps"; }
+  else { play.textContent = tour.playing ? "⏸ Pause" : "▶ Play"; td("td-step").textContent="Step "+(tour.i+1)+" / "+tour.edges.length; }
+  td("td-prog").style.width = tourProgress()+"%";
+}
+function tourProgress(){
+  if(!tour.edges.length) return 0;
+  if(tour.phase==="done") return 100;
+  const within = (tour.phase==="arrive") ? 1 : Math.min(tour.t,1);
+  return Math.round(100*(tour.i+within)/tour.edges.length);
+}
+
+function renderTourCallout(i,l){
+  const c=EDGE_COL[l.type]||"#8b97b8";
+  const src=nodeName(srcId(l)), tgt=nodeName(tgtId(l)), verb=EDGE_VERB[l.type]||l.type;
+  let h='<div class="tcflow">'+nodeChip(srcId(l))+'<span class="ar">→</span>'+nodeChip(tgtId(l))
+       +'<span class="tcverb" style="background:'+c+'22;color:'+c+';border-color:'+c+'55">'+esc(verb)+'</span></div>';
+  h+='<p class="tcsent"><b>'+esc(src)+'</b> '+esc(verb)+' <b>'+esc(tgt)+'</b>'+(l.trigger?(' — '+esc(l.trigger)):'')+'.</p>';
+  const bits=[]; if(l.payload) bits.push('Carries <code>'+esc(l.payload)+'</code>'); if(l.channel) bits.push('via '+esc(l.channel)); if(l.sync) bits.push(esc(l.sync));
+  if(bits.length) h+='<div class="tcmeta">'+bits.join(' · ')+'</div>';
+  const hops = l.hops&&l.hops.length ? l.hops : [verb];
+  h+='<div class="hops"><ol>'+hops.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol></div>';
+  const nx = (i+1<tour.edges.length) ? tour.edges[i+1] : null;
+  if(nx) h+='<div class="tcnext">Up next → <b>'+esc(nodeName(srcId(nx)))+'</b> '+esc(EDGE_VERB[nx.type]||nx.type)+' <b>'+esc(nodeName(tgtId(nx)))+'</b></div>';
+  td("td-callout").innerHTML=h;
+}
+
+function updateTour(dt){
+  if(!tour.active || tour.phase==="done") return;
+  if(!tour.playing) return;                         // paused → freeze packet + narration, no auto-advance
+  const l=tour.edges[tour.i]; if(!l) return;
+  const a=meshById[srcId(l)], b=meshById[tgtId(l)];
+  if(!a||!b){ advanceAfterStep(); return; }
+  a.getWorldPosition(_a); b.getWorldPosition(_b);
+  if(tour.phase==="travel"){
+    const dist=Math.max(_a.distanceTo(_b),1);
+    tour.t += dt*60*tour.speed/dist;
+    if(tour.t>=1){ tour.t=1; packet.position.copy(_b); tour.phase="arrive"; tour.hold=0; }
+    else packet.position.copy(_a).lerp(_b,tour.t);
+  } else if(tour.phase==="arrive"){
+    packet.position.copy(_b);                        // hold at the node …
+    let ready;
+    if(tour.audio && synth) ready = tour.narrationDone;          // … until narration (incl. "next" cue) finishes
+    else { tour.hold += dt; ready = tour.hold >= tour.readDwell; } // … or a fixed read-pause when muted
+    if(ready){ advanceAfterStep(); return; }          // then immediately start the next move (no gap)
+  }
+  td("td-prog").style.width = tourProgress()+"%";
+}
+function advanceAfterStep(){ if(tour.i+1<tour.edges.length){ gotoTourStep(tour.i+1); } else { finishTour(); } }
+
+/* wire walkthrough controls */
+td("scn-open").addEventListener("click", openScenarios);
+td("scn-close").addEventListener("click", closeScenarios);
+td("scnwrap").addEventListener("click", e=>{ if(e.target.id==="scnwrap") closeScenarios(); });
+td("td-exit").addEventListener("click", exitTour);
+td("td-prev").addEventListener("click", prevTour);
+td("td-next").addEventListener("click", nextTour);
+td("td-restart").addEventListener("click", ()=>{ if(tour.active){ tour.playing=true; gotoTourStep(0); } });
+td("td-play").addEventListener("click", ()=>{ if(tour.playing) pauseTour(); else playTour(); });
+td("td-audio").addEventListener("click", ()=>setAudio(!tour.audio));
+syncAudioBtn();
+
+/* ═══════════════ debug hook ═══════════════ */
+window.__A = { DATA, NODE, linkByKey, TRACES, Graph, camera, world, rig, renderer, meshById,
+  mode:()=>mode, setMode:(m)=>{ mode=m; }, selectNode, selectLink, clearSelection,
+  selected:()=>SELECTED.link, srcId, tgtId, nodeName,
+  buildExplode, clearExplode, explodeCount:()=>exploadeObjs.length,
+  trace, loadTrace, playTrace, pauseTrace, stopTrace, stepTrace, traceEdges, packet,
+  pickNode, nearestLink, controllerPick, controllers,
+  SCENARIOS, tour, openScenarios, closeScenarios, startTour, gotoTourStep, nextTour, prevTour, playTour, pauseTour, exitTour, finishTour, updateTour };
+</script>
+</body>
+</html>

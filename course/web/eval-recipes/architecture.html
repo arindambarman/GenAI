@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Architecture · Eval &amp; Observability · AdaptLearn</title>
+<style>
+  :root{
+    --bg0:#05070f; --panel:rgba(15,21,38,0.86); --panel2:rgba(20,28,48,0.7);
+    --border:rgba(120,150,210,0.18); --border2:rgba(120,150,210,0.34);
+    --txt:#e6ecf7; --muted:#8b9bc0; --faint:#5d6b8e;
+    --accent:#38bdf8; --good:#34d399; --warn:#fbbf24; --bad:#f87171; --violet:#a78bfa;
+    --cyan:#22d3ee; --code:#0b1120;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1100px 700px at 10% -8%, rgba(56,189,248,0.10), transparent 60%),
+      radial-gradient(1000px 700px at 100% 0%, rgba(167,139,250,0.10), transparent 55%),
+      var(--bg0);
+    color:var(--txt);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    min-height:100vh;
+  }
+  a{color:inherit;}
+  code,.mono{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;}
+
+  .topnav{display:flex;align-items:center;gap:18px;padding:16px 24px;flex-wrap:wrap;}
+  .brand{font-weight:800;font-size:15px;}
+  .brand .dot{color:var(--accent);}
+  .topnav .links{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;}
+  .topnav .links a{font-size:13px;text-decoration:none;color:var(--muted);padding:6px 12px;border-radius:999px;
+    border:1px solid transparent;transition:.15s;font-weight:600;}
+  .topnav .links a:hover{color:var(--txt);border-color:var(--border2);background:var(--panel2);}
+  .topnav .links a.active{color:#06121f;background:var(--accent);}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:6px 24px 60px;}
+  .intro{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px 24px;margin-bottom:20px;}
+  .intro h1{margin:0 0 8px;font-size:24px;font-weight:800;letter-spacing:-0.01em;}
+  .intro p{margin:0;color:var(--muted);font-size:14px;line-height:1.6;max-width:880px;}
+  .facts{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px;}
+  .fact{font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;border:1px solid var(--border2);
+    background:var(--panel2);color:var(--muted);}
+  .fact b{color:var(--accent);}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px 22px;margin-bottom:20px;}
+  .phead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
+  .phead .num{font-size:12px;font-weight:800;color:#06121f;background:var(--accent);width:22px;height:22px;border-radius:7px;
+    display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;align-self:center;}
+  .phead h2{margin:0;font-size:18px;font-weight:800;}
+  .phead .tag{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--violet);font-weight:700;}
+  .pdesc{color:var(--muted);font-size:13px;line-height:1.55;margin:6px 0 16px;max-width:900px;}
+  .pdesc b{color:var(--txt);} .pdesc code{background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:11.5px;color:var(--accent);}
+
+  .diagram{background:var(--code);border:1px solid var(--border);border-radius:12px;padding:18px;overflow:auto;}
+  .diagram svg{display:block;margin:0 auto;}
+  .scrollhint{font-size:11px;color:var(--faint);margin:8px 2px 0;}
+  .loading{color:var(--faint);font-size:13px;text-align:center;padding:30px;}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:12px;color:var(--muted);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block;}
+
+  .footnote{font-size:12px;color:var(--faint);line-height:1.6;margin-top:8px;}
+  .footnote b{color:var(--muted);}
+</style>
+</head>
+<body>
+  <nav class="topnav">
+    <span class="brand">Apex<span class="dot">·</span>Architecture</span>
+    <div class="links">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="knowledge-graph.html">Graph</a>
+      <a href="incident-simulator.html">Incidents</a>
+      <a href="eval-studio.html">Studio</a>
+      <a href="trace-explorer.html">Traces</a>
+      <a href="tutor.html">Tutor</a>
+      <a href="my-sessions.html">My Sessions</a>
+      <a href="mastery.html">Mastery</a>
+      <a href="architecture.html" class="active">Architecture</a>
+      <a href="journey.html">Journey</a>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <div class="intro">
+      <h1>System architecture &amp; experience</h1>
+      <p>A build-free single-page-app collection for learning agent <b>eval &amp; observability</b> — 41 metrics across 9 categories,
+      mapped onto the Meridian "Apex" sales-desk scenario. Every page is a self-contained HTML artifact; all intelligence runs
+      client-side over a shared data + engine layer, with a documented seam to swap in a real Claude backend later.</p>
+      <div class="facts">
+        <span class="fact"><b>Static</b> · no build step</span>
+        <span class="fact"><b>41</b> lessons / <b>9</b> categories</span>
+        <span class="fact"><b>1</b> source of truth · lessons-data.js</span>
+        <span class="fact"><b>Grounded</b> tutor · cite-or-refuse</span>
+        <span class="fact"><b>localStorage</b> state · no server today</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><span class="num">1</span><h2>System architecture</h2><span class="tag">layers &amp; data flow</span></div>
+      <p class="pdesc"><code>lessons-data.js</code> is the single source of truth. <code>tutor-engine.js</code> is a pluggable layer —
+      deterministic grounded retrieval today, with <code>config.backend</code> as the seam to route synthesis through a future
+      Claude <code>/api/tutor</code> endpoint without touching any page.</p>
+      <div class="diagram" id="d1"><div class="loading">rendering diagram…</div></div>
+      <div class="legend">
+        <span><i style="background:#38bdf8"></i> page surface</span>
+        <span><i style="background:#a78bfa"></i> shared module</span>
+        <span><i style="background:#fbbf24"></i> client storage</span>
+        <span><i style="background:#5d6b8e"></i> future seam</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><span class="num">2</span><h2>Tutor request lifecycle</h2><span class="tag">ApexTutor.ask()</span></div>
+      <p class="pdesc">The engineered core. The same pipeline runs from the full <b>tutor.html</b> page and the <b>floating Ask widget</b>.
+      It dogfoods the course's own metrics — every answer is self-scored (citation-faithfulness, schema-conformance, refusal correctness,
+      latency, cost) and emits a 5-span trace viewable in Trace Explorer.</p>
+      <div class="diagram" id="d2"><div class="loading">rendering diagram…</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><span class="num">3</span><h2>User-experience journey</h2><span class="tag">learn → practice → master</span></div>
+      <p class="pdesc">Wherever a learner is — reading a lesson, exploring the graph, or running a live eval — the <b>Ask bubble</b> is one tap away.
+      Every tutor answer links <b>back</b> into content (lesson citations, related re-asks) and <b>forward</b> into tools
+      (open this answer's trace). The tutor never invents — it cites or refuses.</p>
+      <div class="diagram" id="d3"><div class="loading">rendering diagram…</div></div>
+      <p class="footnote"><b>Lesson anatomy:</b> scenario → mind map → elaboration → problem → solution → math → tech details.</p>
+    </div>
+  </div>
+
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  securityLevel: 'loose',
+  themeVariables: {
+    fontFamily: 'Inter, -apple-system, sans-serif',
+    fontSize: '14px',
+    background: '#0b1120',
+    primaryColor: '#101a30',
+    primaryBorderColor: 'rgba(120,150,210,0.40)',
+    primaryTextColor: '#e6ecf7',
+    secondaryColor: '#141c30',
+    tertiaryColor: '#0b1120',
+    lineColor: '#7184ad',
+    textColor: '#e6ecf7',
+    titleColor: '#38bdf8',
+    clusterBkg: 'rgba(20,28,48,0.45)',
+    clusterBorder: 'rgba(120,150,210,0.22)',
+    edgeLabelBackground: '#0b1120',
+    nodeTextColor: '#e6ecf7'
+  }
+});
+
+const D1 = `flowchart TB
+  subgraph BROWSER["Browser — static, no build step"]
+    direction TB
+    subgraph SURF["Page surfaces · self-contained HTML artifacts"]
+      direction TB
+      HUB["Hub<br/>index · dashboard"]
+      CONTENT["Content<br/>lesson.html · 26 recipe pages<br/>scripts/view · 41 tsx"]
+      NAVV["Navigation<br/>knowledge-graph · mindmaps<br/>roadmap · flow"]
+      TOOLS["Interactive tools<br/>eval-studio · trace-explorer<br/>incidents · mastery<br/>assessment · playground"]
+      TUTOR["tutor.html<br/>grounded chat"]
+    end
+    subgraph SHARED["Shared client modules · the 'backend' today"]
+      direction TB
+      DATA["lessons-data.js<br/>window.LESSONS<br/>41 lessons / 9 categories"]
+      ENGINE["tutor-engine.js<br/>window.ApexTutor<br/>retrieval · intent · self-eval · trace"]
+      WIDGET["tutor-widget.js<br/>floating Ask bubble"]
+    end
+    STORE["localStorage · per-user state<br/>apex-studied · apex-mastery · apex-incident-stars · apex-tutor-traces"]
+  end
+  subgraph FUTURE["Future seam — designed, not wired"]
+    API["/api/tutor → Claude sonnet / haiku<br/>+ prompt caching"]
+  end
+
+  HUB --> CONTENT
+  HUB --> NAVV
+  HUB --> TOOLS
+  HUB --> TUTOR
+  CONTENT --> DATA
+  TOOLS --> DATA
+  TUTOR --> DATA
+  TUTOR --> ENGINE
+  WIDGET --> ENGINE
+  ENGINE --> DATA
+  WIDGET -. mounted on .-> CONTENT
+  WIDGET -. mounted on .-> HUB
+  ENGINE -- "writes traces" --> STORE
+  TOOLS -- "read / write" --> STORE
+  TUTOR -- "trace · cite" --> TOOLS
+  ENGINE -. "config.backend = claude" .-> API
+
+  classDef surface fill:#0d2238,stroke:#38bdf8,color:#dff1ff;
+  classDef shared fill:#1b1538,stroke:#a78bfa,color:#efe9ff;
+  classDef store fill:#2a2410,stroke:#fbbf24,color:#fef3d6;
+  classDef future fill:#0f1526,stroke:#5d6b8e,color:#cfd8ec,stroke-dasharray:4 3;
+  class HUB,CONTENT,NAVV,TOOLS,TUTOR surface;
+  class DATA,ENGINE,WIDGET shared;
+  class STORE store;
+  class API future;`;
+
+const D2 = `flowchart TD
+  Q(["User question"]) --> INTENT["detectIntent()<br/>compare · overview · threshold ·<br/>pitfall · code · math · when · definition"]
+  Q --> SCORE["scoreMetrics()<br/>alias hits + word overlap<br/>over 41-lesson corpus"]
+  INTENT --> ROUTE{"route"}
+  SCORE --> ROUTE
+  ROUTE -->|"overview & top score &lt; 5"| OVW["composeOverview()<br/>the 9-category map"]
+  ROUTE -->|"no match · score = 0"| REFUSE["refuse()<br/>honest, out-of-scope"]
+  ROUTE -->|"strong metric match"| COMPOSE["compose…<br/>Definition / Threshold / Pitfall /<br/>Code / Math / When / Compare"]
+  OVW --> EVAL
+  REFUSE --> EVAL
+  COMPOSE --> EVAL
+  EVAL["selfEval()<br/>citation-faithfulness · schema-conformance ·<br/>refusal · latency · cost"] --> TRACE["buildTrace()<br/>5 spans: orchestrator → router →<br/>retriever → composer → self-evaluator"]
+  TRACE --> SAVE["saveTrace()<br/>localStorage apex-tutor-traces · cap 12"]
+  EVAL --> RENDER["Answer block<br/>gate callout · citations · related re-asks ·<br/>self-eval strip"]
+  SAVE -. "trace deep-link" .-> TE(["trace-explorer.html#TUTOR-…"])
+
+  classDef io fill:#0d2238,stroke:#38bdf8,color:#dff1ff;
+  classDef proc fill:#1b1538,stroke:#a78bfa,color:#efe9ff;
+  classDef out fill:#0f2a1e,stroke:#34d399,color:#d7f7e8;
+  class Q,TE io;
+  class INTENT,SCORE,OVW,REFUSE,COMPOSE,EVAL,TRACE proc;
+  class SAVE,RENDER out;`;
+
+const D3 = `flowchart TD
+  START(["Learner arrives"]) --> IDX["index · dashboard hub"]
+  IDX -->|"explore a metric"| LES["Lesson page<br/>scenario → mind map → elaboration →<br/>problem → solution → math → tech"]
+  IDX -->|"see the big picture"| MAP["Knowledge graph · mind maps ·<br/>roadmap · flow"]
+  IDX -->|"practice & play"| STUDIO["Eval Studio<br/>run a metric, see PASS / FAIL"]
+  IDX -->|"inspect runs"| TRACE["Trace Explorer<br/>agent runs as a waterfall"]
+  IDX -->|"on-call game"| INC["Incident Simulator"]
+  IDX -->|"track progress"| MAST["Mastery tracker"]
+  IDX -->|"open full chat"| TUT["tutor.html"]
+
+  LES -. "Ask bubble" .-> ASK
+  MAP -. "Ask bubble" .-> ASK
+  STUDIO -. "Ask bubble" .-> ASK
+  TUT --> ASK
+  ASK{{"Eval Tutor<br/>grounded · cited · self-scored"}}
+  ASK -->|"cite"| LES
+  ASK -->|"related re-ask"| ASK
+  ASK -->|"trace"| TRACE
+  ASK -->|"out of scope"| REFUSE["honest refusal +<br/>suggested starting points"]
+
+  STUDIO --> MAST
+  INC --> MAST
+  LES --> MAST
+  MAST --> DONE(["Confident across 41 metrics"])
+
+  classDef hub fill:#0d2238,stroke:#38bdf8,color:#dff1ff;
+  classDef learn fill:#1b1538,stroke:#a78bfa,color:#efe9ff;
+  classDef tutor fill:#0f2a2c,stroke:#22d3ee,color:#d7f7f7;
+  classDef goal fill:#0f2a1e,stroke:#34d399,color:#d7f7e8;
+  class IDX,START hub;
+  class LES,MAP,STUDIO,TRACE,INC,MAST,TUT learn;
+  class ASK,REFUSE tutor;
+  class DONE goal;`;
+
+async function draw(id, def){
+  const host = document.getElementById(id);
+  try{
+    const { svg } = await mermaid.render(id + "-svg", def);
+    host.innerHTML = svg;
+    // Mermaid emits width="100%" with no height -> auto-height collapses to 0.
+    // Pin explicit pixel size from the viewBox; the .diagram container scrolls.
+    const el = host.querySelector("svg");
+    const vb = el.viewBox && el.viewBox.baseVal;
+    if (vb && vb.width){
+      const avail = host.clientWidth - 36;            // minus padding
+      let scale = Math.min(1, avail / vb.width);       // shrink to fit, never upscale
+      const FLOOR = 0.55;                              // below this, scroll instead of shrinking
+      const scroll = scale < FLOOR;
+      if (scroll) scale = 1;                           // render natural size, container scrolls
+      el.removeAttribute("width");
+      el.style.maxWidth = "none";
+      el.style.width  = Math.round(vb.width  * scale) + "px";
+      el.style.height = Math.round(vb.height * scale) + "px";
+      let msg = "";
+      if (scroll) msg = "↔ wide diagram — scroll horizontally to see all of it";
+      else if (scale < 1) msg = "shown at " + Math.round(scale*100) + "% to fit your screen";
+      if (msg){
+        const hint = document.createElement("div");
+        hint.className = "scrollhint";
+        hint.textContent = msg;
+        host.parentNode.insertBefore(hint, host.nextSibling);
+      }
+    }
+  }catch(e){
+    host.innerHTML = '<div class="loading">diagram failed to render: ' + (e && e.message ? e.message : e) + '</div>';
+    console.error(id, e);
+  }
+}
+draw("d1", D1);
+draw("d2", D2);
+draw("d3", D3);
+</script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent Eval &amp; Observability — Build Roadmap · AdaptLearn</title>
+  <style>
+    :root {
+      --bg: #f6f7f9; --surface: #ffffff; --ink: #16203a; --muted: #5b6473;
+      --border: #e4e7ec; --accent: #2563eb; --spine: #cbd5e1;
+      --know-bg: #f0fdf4; --know-br: #16a34a; --know-tx: #15803d;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      line-height: 1.55; }
+    a { color: inherit; }
+    .topbar { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+    .topbar .row { max-width: 1140px; margin: 0 auto; padding: 12px 24px;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .topbar h1 { font-size: 16px; margin: 0; font-weight: 800; letter-spacing: -0.01em; }
+    .topbar .crumb { font-size: 12px; color: var(--muted); }
+    .topbar .crumb a { text-decoration: none; } .topbar .crumb a:hover { color: var(--accent); }
+    .spacer { flex: 1; }
+    .btn { font-size: 13px; font-weight: 600; text-decoration: none; color: var(--accent);
+      border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; background: #fff; }
+    .btn:hover { border-color: var(--accent); background: #eff6ff; }
+
+    .wrap { max-width: 1140px; margin: 0 auto; padding: 28px 24px 60px; }
+    .lede { background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      padding: 20px 24px; margin-bottom: 22px; }
+    .lede h2 { margin: 0 0 6px; font-size: 20px; letter-spacing: -0.02em; }
+    .lede p { margin: 6px 0; color: var(--muted); font-size: 14.5px; }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 14px 0 4px; font-size: 12px; }
+    .legend .item { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+    .legend .dot { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+    .phasenav { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 6px; }
+    .phasenav a { font-size: 12.5px; font-weight: 600; text-decoration: none; color: var(--muted);
+      border: 1px solid var(--border); background: #fff; padding: 5px 10px; border-radius: 999px; }
+    .phasenav a:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* timeline */
+    .timeline { position: relative; margin-top: 26px; }
+    .timeline::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0;
+      width: 3px; background: var(--spine); transform: translateX(-50%); border-radius: 3px; }
+    .phase { position: relative; width: 50%; padding: 14px 38px; }
+    .phase.left  { left: 0; }
+    .phase.right { left: 50%; }
+    .node { position: absolute; top: 26px; width: 42px; height: 42px; border-radius: 50%;
+      background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 16px; box-shadow: 0 0 0 5px var(--bg); z-index: 2; }
+    .phase.left  .node { right: -21px; }
+    .phase.right .node { left: -21px; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      padding: 16px 18px; box-shadow: 0 1px 3px rgba(16,24,40,0.05); }
+    .card:hover { box-shadow: 0 6px 20px rgba(16,24,40,0.08); }
+    .stage { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); }
+    .card h3 { margin: 3px 0 4px; font-size: 17px; letter-spacing: -0.01em; }
+    .goal { font-size: 13.5px; color: var(--muted); margin: 0 0 12px; font-style: italic; }
+
+    .block { margin-top: 10px; }
+    .block .label { font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.07em; margin-bottom: 7px; display: flex; align-items: center; gap: 6px; }
+    .know .label { color: var(--know-tx); }
+    .tests .label { color: var(--ink); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+    .know-chip { font-size: 12.5px; background: var(--know-bg); color: var(--know-tx);
+      border: 1px solid #bbf7d0; border-left: 3px solid var(--know-br);
+      padding: 4px 9px; border-radius: 6px; }
+    .test-chip { font-size: 12.5px; font-weight: 600; text-decoration: none;
+      padding: 4px 9px; border-radius: 6px; border: 1px solid; display: inline-flex; align-items: center; gap: 6px; }
+    .test-chip:hover { filter: brightness(0.97); text-decoration: none; }
+    .test-chip .scriptlink { font-weight: 700; opacity: 0.7; font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .test-chip .scriptlink:hover { opacity: 1; }
+    .none { font-size: 12.5px; color: var(--muted); font-style: italic; }
+
+    .footnote { font-size: 12px; color: var(--muted); margin-top: 34px; text-align: center; }
+
+    @media (max-width: 760px) {
+      .timeline::before { left: 21px; }
+      .phase, .phase.left, .phase.right { width: 100%; left: 0; padding: 12px 0 12px 52px; }
+      .phase.left .node, .phase.right .node { left: 0; right: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="row">
+      <h1>Agent Eval &amp; Observability — Build Roadmap</h1>
+      <span class="crumb">&nbsp;·&nbsp; <a href="index.html">Eval Recipes</a> › <a href="mindmap.html">Mindmap</a></span>
+      <span class="spacer"></span>
+      <a class="btn" href="mindmap.html">Taxonomy mindmap →</a>
+      <a class="btn" href="agent-assessment.html">Worked examples →</a>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="lede">
+      <h2>If you're building an agent, do these in order</h2>
+      <p>A phased path from "I have an idea" to "it's monitored in production." Each phase lists the
+      <strong style="color:var(--know-tx)">knowledge to learn</strong> and the
+      <strong>eval &amp; observability tests to implement</strong>. Every test chip links to its
+      worked example; the <code>&lt;/&gt;</code> opens its runnable script.</p>
+      <p>Covers all 41 checks from the <a href="mindmap.html">taxonomy</a>, sequenced for a real build.</p>
+      <div class="legend" id="legend"></div>
+      <div class="phasenav" id="phasenav"></div>
+    </div>
+
+    <div class="timeline" id="timeline"></div>
+
+    <div class="footnote">10 phases · 41 eval &amp; observability checks · knowledge prerequisites per phase.
+      Self-contained page — <a href="roadmap.html">roadmap.html</a>.</div>
+  </div>
+
+  <script>
+    // ── category palette ────────────────────────────────────────────────
+    const CATS = {
+      "Output correctness":        { c: "#2563eb", soft: "#eff6ff", br: "#bfdbfe" },
+      "Behavior & tool use":       { c: "#7c3aed", soft: "#f5f3ff", br: "#ddd6fe" },
+      "Cost & latency":            { c: "#0891b2", soft: "#ecfeff", br: "#a5f3fc" },
+      "Safety & robustness":       { c: "#dc2626", soft: "#fef2f2", br: "#fecaca" },
+      "Eval ops":                  { c: "#d97706", soft: "#fffbeb", br: "#fde68a" },
+      "Traces (obs)":              { c: "#0d9488", soft: "#f0fdfa", br: "#99f6e4" },
+      "Metrics (obs)":             { c: "#db2777", soft: "#fdf2f8", br: "#fbcfe8" },
+      "Dashboards & alerts (obs)": { c: "#4f46e5", soft: "#eef2ff", br: "#c7d2fe" },
+      "Trace sampling (obs)":      { c: "#475569", soft: "#f8fafc", br: "#cbd5e1" },
+    };
+
+    // ── metric id → {title, category} (matches agent-assessment.html) ───
+    const METRICS = {
+      "regression-eval-set":      ["Regression eval set", "Output correctness"],
+      "llm-judge-rubric":         ["LLM-judge with rubric", "Output correctness"],
+      "citation-faithfulness":    ["Citation faithfulness", "Output correctness"],
+      "exact-vs-semantic-match":  ["Exact vs semantic match", "Output correctness"],
+      "schema-conformance":       ["Schema conformance", "Output correctness"],
+      "calibration-ece":          ["Calibration / ECE", "Output correctness"],
+      "multi-turn-coherence":     ["Multi-turn coherence", "Output correctness"],
+      "pairwise-preference":      ["Pairwise preference", "Output correctness"],
+      "tool-trajectory":          ["Tool trajectory", "Behavior & tool use"],
+      "tool-argument-validity":   ["Tool argument validity", "Behavior & tool use"],
+      "refusal-rate":             ["Refusal / over-refusal", "Behavior & tool use"],
+      "safety-guardrail-adherence":["Safety guardrail adherence", "Behavior & tool use"],
+      "tool-failure-recovery":    ["Tool failure recovery", "Behavior & tool use"],
+      "cost-per-task":            ["Cost per task", "Cost & latency"],
+      "latency-percentiles":      ["Latency p50/p95/p99", "Cost & latency"],
+      "token-usage-attribution":  ["Token usage attribution", "Cost & latency"],
+      "tail-latency-analysis":    ["Tail latency analysis", "Cost & latency"],
+      "red-team-injection":       ["Red-team prompt-injection", "Safety & robustness"],
+      "jailbreak-resistance":     ["Jailbreak resistance", "Safety & robustness"],
+      "pii-leakage":              ["PII leakage", "Safety & robustness"],
+      "hallucination-rate":       ["Hallucination rate", "Safety & robustness"],
+      "eval-set-freshness":       ["Eval set freshness & rotation", "Eval ops"],
+      "ci-eval-gate":             ["CI eval gate", "Eval ops"],
+      "sample-size-power":        ["Sample size & power", "Eval ops"],
+      "prompt-ab-eval":           ["Prompt A/B eval", "Eval ops"],
+      "obs-trace-tree":           ["Per-task trace tree", "Traces (obs)"],
+      "obs-spans":                ["Spans & attributes", "Traces (obs)"],
+      "obs-events":               ["Events", "Traces (obs)"],
+      "obs-replay":               ["Replay infrastructure", "Traces (obs)"],
+      "obs-counters":             ["Counters", "Metrics (obs)"],
+      "obs-histograms":           ["Histograms", "Metrics (obs)"],
+      "obs-five-metrics":         ["The 5 metrics that matter", "Metrics (obs)"],
+      "obs-per-agent":            ["Per-agent / per-tool breakdown", "Metrics (obs)"],
+      "obs-dashboards":           ["4 dashboard widgets", "Dashboards & alerts (obs)"],
+      "obs-alert-thresholds":     ["Alert thresholds", "Dashboards & alerts (obs)"],
+      "obs-alert-fatigue":        ["Alert-fatigue rule", "Dashboards & alerts (obs)"],
+      "obs-oncall-playbook":      ["On-call playbook", "Dashboards & alerts (obs)"],
+      "obs-sample-failures":      ["Always sample failures", "Trace sampling (obs)"],
+      "obs-sample-routine":       ["1% of routine successes", "Trace sampling (obs)"],
+      "obs-sample-rare":          ["100% of rare task types", "Trace sampling (obs)"],
+      "obs-sample-anomalous-cost":["Anomalous-cost capture", "Trace sampling (obs)"],
+    };
+
+    // ── the roadmap ─────────────────────────────────────────────────────
+    const PHASES = [
+      { stage: "Learn first", title: "Foundations & mental model",
+        goal: "Know what you're measuring before you write a line of agent code.",
+        know: [
+          "Why agents need evals — non-determinism & compounding errors",
+          "Offline evals vs online (production) monitoring",
+          "The 3 pillars: logs · metrics · traces",
+          "Eval taxonomy: correctness / behavior / safety / cost",
+          "Stats you'll use: precision, recall, percentiles, calibration",
+          "Token & $ cost model per model",
+          "Agent failure modes: loops, wrong tool, hallucination, silent drop",
+        ], tests: [] },
+
+      { stage: "Design", title: "Define success & output contracts",
+        goal: "Make “correct” machine-checkable before building.",
+        know: [
+          "Output contracts & JSON Schema / Zod",
+          "Deterministic vs subjective outputs",
+          "Reference answers vs rubric scoring",
+        ], tests: ["schema-conformance", "exact-vs-semantic-match"] },
+
+      { stage: "Design", title: "Instrument observability on day one",
+        goal: "If it isn't traced, you can't debug it later.",
+        know: [
+          "Spans, attributes & events (OpenTelemetry model)",
+          "One trace = one task = a tree of spans",
+          "Structured logging discipline",
+          "Record / replay a run",
+        ], tests: ["obs-trace-tree", "obs-spans", "obs-events", "obs-replay", "token-usage-attribution"] },
+
+      { stage: "Pre-launch", title: "Build the golden eval set",
+        goal: "A labelled dataset that catches regressions in output quality.",
+        know: [
+          "Dataset curation & labelling",
+          "Inter-annotator agreement",
+          "LLM-as-judge + rubric design",
+          "Confidence calibration (ECE)",
+          "Sample size & statistical power",
+        ], tests: ["regression-eval-set", "llm-judge-rubric", "citation-faithfulness", "calibration-ece", "multi-turn-coherence", "pairwise-preference", "sample-size-power"] },
+
+      { stage: "Pre-launch", title: "Test behaviour & tool use",
+        goal: "Right tools, right order, and graceful recovery.",
+        know: [
+          "The agent loop: plan → act → observe",
+          "Tool schemas & argument validation",
+          "Trajectory evaluation (ordered vs loose match)",
+          "Failure-recovery & retry patterns",
+        ], tests: ["tool-trajectory", "tool-argument-validity", "tool-failure-recovery", "refusal-rate"] },
+
+      { stage: "Gate", title: "Safety & robustness gate",
+        goal: "Survive adversarial input; never leak; stay grounded.",
+        know: [
+          "Threat modelling for LLM apps",
+          "Prompt injection & jailbreak techniques",
+          "PII handling & compliance obligations",
+          "Hallucination & grounding to sources",
+        ], tests: ["red-team-injection", "jailbreak-resistance", "pii-leakage", "hallucination-rate", "safety-guardrail-adherence"] },
+
+      { stage: "Gate", title: "Cost & latency budgets",
+        goal: "Fast and affordable — at p95, not just on average.",
+        know: [
+          "Per-model pricing & prompt caching",
+          "Percentile math (p50 / p95 / p99)",
+          "Tail-latency causes: retries, long loops, cold caches",
+          "Token attribution by phase / subagent",
+        ], tests: ["cost-per-task", "latency-percentiles", "tail-latency-analysis"] },
+
+      { stage: "Automate", title: "Wire CI eval gates",
+        goal: "Block regressions before they merge.",
+        know: [
+          "CI pipelines & block-on-regression gating",
+          "A/B prompt & model comparison",
+          "Statistical significance of a delta",
+          "Keeping the eval set fresh vs prod traffic",
+        ], tests: ["ci-eval-gate", "prompt-ab-eval", "eval-set-freshness"] },
+
+      { stage: "Production", title: "Production monitoring",
+        goal: "Watch the live system; alert before users feel it.",
+        know: [
+          "Counters & histograms (Prometheus-style)",
+          "The 5 golden signals for agents",
+          "Dashboards (Grafana-style panels)",
+          "Alert thresholds set from history",
+          "Alert fatigue & precision",
+          "On-call investigation playbook",
+        ], tests: ["obs-counters", "obs-histograms", "obs-five-metrics", "obs-per-agent", "obs-dashboards", "obs-alert-thresholds", "obs-alert-fatigue", "obs-oncall-playbook"] },
+
+      { stage: "Production", title: "Sampling & closing the loop",
+        goal: "Capture the right traces; feed failures back into evals.",
+        know: [
+          "Trace sampling strategy (what to keep)",
+          "Cost-bounded retention",
+          "Mining prod failures into new eval cases",
+          "The continuous-improvement loop",
+        ], tests: ["obs-sample-failures", "obs-sample-routine", "obs-sample-rare", "obs-sample-anomalous-cost"] },
+    ];
+
+    const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+    function buildLegend() {
+      const el = document.getElementById("legend");
+      el.innerHTML = Object.entries(CATS).map(([name, c]) =>
+        `<span class="item"><span class="dot" style="background:${c.c}"></span>${esc(name)}</span>`).join("");
+    }
+
+    function buildNav() {
+      const el = document.getElementById("phasenav");
+      el.innerHTML = PHASES.map((p, i) =>
+        `<a href="#p${i+1}">${i+1}. ${esc(p.title)}</a>`).join("");
+    }
+
+    function testChip(id) {
+      const m = METRICS[id]; if (!m) return "";
+      const [title, cat] = m; const c = CATS[cat];
+      return `<a class="test-chip" href="agent-assessment.html#${id}" title="${esc(cat)} — open worked example"
+        style="background:${c.soft};border-color:${c.br};color:${c.c}">${esc(title)}
+        <a class="scriptlink" href="scripts/view.html#${id}" title="View runnable test script"
+           style="color:${c.c}" onclick="event.stopPropagation()">&lt;/&gt;</a></a>`;
+    }
+
+    function buildTimeline() {
+      const tl = document.getElementById("timeline");
+      tl.innerHTML = PHASES.map((p, i) => {
+        const side = i % 2 === 0 ? "left" : "right";
+        const know = p.know.map(k => `<span class="know-chip">${esc(k)}</span>`).join("");
+        const tests = p.tests.length
+          ? p.tests.map(testChip).join("")
+          : `<span class="none">No new tests yet — this phase is about understanding.</span>`;
+        return `<div class="phase ${side}" id="p${i+1}">
+          <div class="node">${i+1}</div>
+          <div class="card">
+            <div class="stage">${esc(p.stage)}</div>
+            <h3>${esc(p.title)}</h3>
+            <p class="goal">${esc(p.goal)}</p>
+            <div class="block know">
+              <div class="label">📚 Knowledge to learn</div>
+              <div class="chips">${know}</div>
+            </div>
+            <div class="block tests">
+              <div class="label">🧪 Eval &amp; observability to implement</div>
+              <div class="chips">${tests}</div>
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    buildLegend();
+    buildNav();
+    buildTimeline();
+  </script>
+</body>
+</html>

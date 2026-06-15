@@ -5,6 +5,7 @@ import { runDiagramsStage } from "./stages/diagrams.js";
 import { buildIndices } from "./stages/indices.js";
 import { runConceptsStage, runBookCoverStage } from "./stages/concepts.js";
 import { runScenariosStage } from "./stages/scenarios.js";
+import { runEvalRecipesStage } from "./stages/eval-recipes.js";
 import type { StageResult } from "./schema.js";
 
 const HELP = `course-agent — AdaptLearn course-authoring pipeline
@@ -15,7 +16,8 @@ Usage:
   course-agent indices  [--course-dir <dir>] [--web-dir <dir>]
   course-agent concepts [--course-dir <dir>] [--web-dir <dir>]
   course-agent book     [--course-dir <dir>] [--web-dir <dir>]
-  course-agent scenarios [--web-dir <dir>]
+  course-agent scenarios    [--web-dir <dir>]
+  course-agent eval-recipes [--web-dir <dir>]
   course-agent content  <lesson-spec.yaml>                   [stub]
   course-agent help
 
@@ -135,6 +137,12 @@ async function main(): Promise<number> {
     case "scenarios": {
       const webDir = flags["web-dir"] ?? "course/web";
       const result = await runScenariosStage({ webDir });
+      reportStage(result);
+      return result.ok ? 0 : 1;
+    }
+    case "eval-recipes": {
+      const webDir = flags["web-dir"] ?? "course/web";
+      const result = await runEvalRecipesStage({ webDir });
       reportStage(result);
       return result.ok ? 0 : 1;
     }

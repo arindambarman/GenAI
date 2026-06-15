@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent Eval &amp; Observability — Dashboard · AdaptLearn</title>
+  <style>
+    :root {
+      --bg: #f4f6f9; --surface: #ffffff;
+      --text: #1c2230; --text-muted: #5b6473;
+      --border: #e5e7eb; --accent: #2563eb; --accent-soft: #eff6ff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      color: var(--text); background: var(--bg); }
+    a { color: inherit; }
+    .container { max-width: 1180px; margin: 0 auto; padding: 28px 28px 56px; }
+    .breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
+    .breadcrumb a { color: var(--text-muted); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+    .breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+
+    .hero { padding: 26px 30px; background: linear-gradient(135deg, #1c2230 0%, #2d3a55 100%);
+      color: #fff; border-radius: 16px; margin-bottom: 22px; }
+    .hero h1 { margin: 0 0 6px; font-size: 25px; font-weight: 800; letter-spacing: -0.02em; }
+    .hero p { margin: 0; opacity: 0.85; font-size: 15.5px; max-width: 760px; }
+
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 18px; }
+    .kpi { background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 10px; padding: 12px 14px; }
+    .kpi .n { font-size: 24px; font-weight: 800; line-height: 1; }
+    .kpi .l { font-size: 12px; opacity: 0.82; margin-top: 5px; }
+
+    .section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-muted); margin: 26px 0 12px; font-weight: 800; }
+
+    /* explore strip */
+    .views { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .view-card { background: var(--surface); border: 1px solid var(--border); border-top: 4px solid;
+      border-radius: 12px; padding: 14px 16px; text-decoration: none; color: inherit;
+      transition: transform .12s ease, box-shadow .12s ease; display: block; }
+    .view-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(20,30,50,0.10); }
+    .view-card .ic { font-size: 20px; }
+    .view-card .vt { font-weight: 700; font-size: 15px; margin: 6px 0 3px; }
+    .view-card .vd { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; }
+
+    /* area panels */
+    .areas { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; align-items: start; }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .panel-head { padding: 12px 16px; color: #fff; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .panel-head .pt { font-weight: 800; font-size: 15px; }
+    .panel-head .pc { font-size: 12px; font-weight: 700; opacity: 0.9; white-space: nowrap; }
+    .panel-body { padding: 6px 6px 8px; }
+    .metric { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; text-decoration: none; }
+    .metric:hover { background: var(--accent-soft); }
+    .metric .mt { flex: 1; font-size: 13.5px; font-weight: 600; }
+    .metric .cx { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800;
+      padding: 2px 6px; border-radius: 5px; white-space: nowrap; }
+    .cx.starter { background: #dcfce7; color: #14532d; }
+    .cx.intermediate { background: #fef3c7; color: #78350f; }
+    .cx.advanced { background: #fee2e2; color: #7f1d1d; }
+    .cx.obs { background: #e2e8f0; color: #1e293b; }
+    .links { display: flex; gap: 4px; }
+    .ilink { font-size: 11px; font-weight: 700; text-decoration: none; padding: 2px 6px;
+      border-radius: 5px; border: 1px solid var(--border); color: var(--text-muted); white-space: nowrap; }
+    .ilink:hover { border-color: var(--accent); color: var(--accent); }
+    .ilink.code { font-family: ui-monospace, Consolas, monospace; }
+
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .legend .sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+    .foot { font-size: 12.5px; color: var(--text-muted); margin-top: 26px; }
+    .foot code { background: #eef1f5; padding: 1px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="breadcrumb">
+      <a href="../book.html">Book</a>
+      <span class="sep">›</span>
+      <a href="journey.html">Journey</a>
+      <span class="sep">›</span>
+      <span>Eval &amp; Observability Dashboard</span>
+    </nav>
+
+    <header class="hero">
+      <h1>Agent Eval &amp; Observability — Dashboard</h1>
+      <p>The single hub for measuring agent quality, behavior, cost, safety, and ops health on the Meridian Commercial Bank "Apex" desk. Pick a view, or jump straight to a metric and its worked example, runnable script, and recipe.</p>
+      <div class="kpis" id="kpis"></div>
+    </header>
+
+    <div class="section-title">Explore</div>
+    <div class="views" id="views"></div>
+
+    <div class="section-title">Key areas — click a metric for its detail</div>
+    <div class="legend">
+      <span><span class="sw" style="background:#dcfce7;border:1px solid #16a34a;"></span>starter</span>
+      <span><span class="sw" style="background:#fef3c7;border:1px solid #b45309;"></span>intermediate</span>
+      <span><span class="sw" style="background:#fee2e2;border:1px solid #b91c1c;"></span>advanced</span>
+      <span><span class="sw" style="background:#e2e8f0;border:1px solid #475569;"></span>observability topic</span>
+      <span>·&nbsp; <strong>detail</strong> = worked example &nbsp;·&nbsp; <strong>&lt;/&gt;</strong> = test script &nbsp;·&nbsp; <strong>recipe</strong> = full how-to</span>
+    </div>
+    <div class="areas" id="areas"></div>
+
+    <div class="foot" id="foot"></div>
+  </div>
+
+  <script>
+    const COLORS = {
+      "Output correctness":   { head: "#2563eb" },
+      "Behavior & tool use":  { head: "#16a34a" },
+      "Cost & latency":       { head: "#b45309" },
+      "Safety & robustness":  { head: "#b91c1c" },
+      "Eval ops":             { head: "#7c3aed" },
+      "Traces (obs)":         { head: "#0d9488" },
+      "Metrics (obs)":        { head: "#0891b2" },
+      "Dashboards & alerts (obs)": { head: "#db2777" },
+      "Trace sampling (obs)": { head: "#475569" },
+    };
+
+    // obs:true => observability topic (no standalone recipe page; complexity shown as "obs")
+    const AREAS = [
+      { area: "Output correctness", metrics: [
+        { id: "regression-eval-set", t: "Regression eval set", c: "starter" },
+        { id: "llm-judge-rubric", t: "LLM-judge with structured rubric", c: "intermediate" },
+        { id: "citation-faithfulness", t: "Citation faithfulness", c: "intermediate" },
+        { id: "exact-vs-semantic-match", t: "Exact vs semantic match", c: "starter" },
+        { id: "schema-conformance", t: "Schema conformance", c: "starter" },
+        { id: "calibration-ece", t: "Calibration / ECE", c: "intermediate" },
+        { id: "multi-turn-coherence", t: "Multi-turn coherence", c: "advanced" },
+        { id: "pairwise-preference", t: "Pairwise preference", c: "intermediate" },
+      ]},
+      { area: "Behavior & tool use", metrics: [
+        { id: "tool-trajectory", t: "Tool trajectory", c: "intermediate" },
+        { id: "tool-argument-validity", t: "Tool argument validity", c: "starter" },
+        { id: "refusal-rate", t: "Refusal / over-refusal", c: "intermediate" },
+        { id: "safety-guardrail-adherence", t: "Safety guardrail adherence", c: "advanced" },
+        { id: "tool-failure-recovery", t: "Tool failure recovery", c: "intermediate" },
+      ]},
+      { area: "Cost & latency", metrics: [
+        { id: "cost-per-task", t: "Cost per task", c: "starter" },
+        { id: "latency-percentiles", t: "Latency p50/p95/p99", c: "starter" },
+        { id: "token-usage-attribution", t: "Token usage attribution", c: "intermediate" },
+        { id: "tail-latency-analysis", t: "Tail latency analysis", c: "advanced" },
+      ]},
+      { area: "Safety & robustness", metrics: [
+        { id: "red-team-injection", t: "Red-team prompt-injection", c: "advanced" },
+        { id: "jailbreak-resistance", t: "Jailbreak resistance", c: "advanced" },
+        { id: "pii-leakage", t: "PII leakage", c: "intermediate" },
+        { id: "hallucination-rate", t: "Hallucination rate", c: "advanced" },
+      ]},
+      { area: "Eval ops", metrics: [
+        { id: "eval-set-freshness", t: "Eval set freshness & rotation", c: "intermediate" },
+        { id: "ci-eval-gate", t: "CI eval gate (block-on-regression)", c: "starter" },
+        { id: "sample-size-power", t: "Sample size & power", c: "intermediate" },
+        { id: "prompt-ab-eval", t: "Prompt A/B eval", c: "intermediate" },
+      ]},
+      { area: "Traces (obs)", obs: true, metrics: [
+        { id: "obs-trace-tree", t: "Per-task trace tree" },
+        { id: "obs-spans", t: "Spans & attributes" },
+        { id: "obs-events", t: "Events" },
+        { id: "obs-replay", t: "Replay infrastructure" },
+      ]},
+      { area: "Metrics (obs)", obs: true, metrics: [
+        { id: "obs-counters", t: "Counters (invocations, errors)" },
+        { id: "obs-histograms", t: "Histograms (latency, cost, confidence)" },
+        { id: "obs-five-metrics", t: "The 5 metrics that matter" },
+        { id: "obs-per-agent", t: "Per-agent / per-tool breakdown" },
+      ]},
+      { area: "Dashboards & alerts (obs)", obs: true, metrics: [
+        { id: "obs-dashboards", t: "4 dashboard widgets" },
+        { id: "obs-alert-thresholds", t: "Alert thresholds" },
+        { id: "obs-alert-fatigue", t: "Alert-fatigue rule" },
+        { id: "obs-oncall-playbook", t: "On-call investigation playbook" },
+      ]},
+      { area: "Trace sampling (obs)", obs: true, metrics: [
+        { id: "obs-sample-failures", t: "Always sample failures & escalations" },
+        { id: "obs-sample-routine", t: "1% of routine successes" },
+        { id: "obs-sample-rare", t: "100% of rare task types" },
+        { id: "obs-sample-anomalous-cost", t: "Anomalous-cost capture" },
+      ]},
+    ];
+
+    const VIEWS = [
+      { ic: "▤",  vt: "Worked examples", vd: "41 metric cards on the Apex agent system — what to measure, thresholds, pitfalls.", href: "agent-assessment.html", color: "#2563eb" },
+      { ic: "📋", vt: "Recipe index", vd: "25 eval recipes with setup steps, code, and acceptance thresholds.", href: "index.html", color: "#7c3aed" },
+      { ic: "🗺️", vt: "Metrics mindmap", vd: "All 41 metrics across 9 areas as a collapsible tree.", href: "mindmap.html", color: "#0d9488" },
+      { ic: "∑",  vt: "Concepts mindmap", vd: "The math / statistics / ML idea behind each metric.", href: "concepts-mindmap.html", color: "#4338ca" },
+      { ic: "🎓", vt: "Learning path", vd: "Beginner → expert knowledge graph: 26 ordered steps with prerequisites that cover all 41 metrics.", href: "knowledge-path.html", color: "#d97706" },
+      { ic: "🧭", vt: "Build roadmap", vd: "10-phase path from foundations to production monitoring.", href: "roadmap.html", color: "#db2777" },
+      { ic: "🔀", vt: "Dependency flow", vd: "How components, parameters, and all 41 metrics connect — hover to trace the chain.", href: "flow.html", color: "#0891b2" },
+      { ic: "🛰️", vt: "Knowledge graph", vd: "Futuristic interactive force-graph of all 41 metrics — click any node to study it; take the guided beginner→expert tour.", href: "knowledge-graph.html", color: "#6366f1" },
+      { ic: "🧩", vt: "Concept playground", vd: "Drag concepts together to see how they connect — and discover the 12 capabilities they combine to form.", href: "playground.html", color: "#0d9488" },
+      { ic: "🚨", vt: "Incident simulator", vd: "On-call decision game — triage live Apex-desk alerts, walk the playbook, and learn metric interdependencies by consequence.", href: "incident-simulator.html", color: "#dc2626" },
+      { ic: "🏅", vt: "Mastery tracker", vd: "Your progress across all 41 metrics — studied, applied in incidents, and recall-tested — with spaced-repetition reviews to make it stick.", href: "mastery.html", color: "#0d9488" },
+      { ic: "🧪", vt: "Eval Studio", vd: "Run real eval metrics live in your browser — paste or load mock Apex outputs and watch the score, chart, and gate verdict compute, with a suggested fix.", href: "eval-studio.html", color: "#7c3aed" },
+      { ic: "🛰️", vt: "Trace Explorer", vd: "Inspect real Apex agent runs as a span waterfall — click any span for its latency, cost, tokens, and events; see per-agent rollups and why the sampler kept each trace.", href: "trace-explorer.html", color: "#0ea5e9" },
+      { ic: "💬", vt: "Eval Tutor", vd: "Ask anything about the 41 metrics. The tutor answers only from the course, cites its sources, refuses out-of-scope questions — and scores & traces itself with the same metrics it teaches.", href: "tutor.html", color: "#a78bfa" },
+      { ic: "📈", vt: "My Sessions", vd: "Your own observability dashboard over the tutor: refusal rate, citation-faithfulness, p95 latency and intent mix across the questions you've asked — each row deep-links to its trace. The dogfooding loop, closed.", href: "my-sessions.html", color: "#34d399" },
+      { ic: "🗺️", vt: "Architecture", vd: "How the whole thing fits together — system layers & data flow, the tutor request lifecycle, and the learn→practice→master user journey, as themed diagrams.", href: "architecture.html", color: "#22d3ee" },
+      { ic: "🧭", vt: "Journey (Book × Console)", vd: "The seam between the Agentic Systems book and this console: which chapter teaches which metric, and the learn→practice→observe→master path that weaves both halves into one.", href: "journey.html", color: "#f59e0b" },
+      { ic: "</>", vt: "Test scripts", vd: "41 runnable npx tsx scripts — each doubles as a PASS/FAIL CI gate.", href: "scripts/view.html#schema-conformance", color: "#16a34a" },
+    ];
+
+    function recipeHref(m, obs) {
+      return obs ? "../m08/lesson-8.3.html" : m.id + ".html";
+    }
+
+    function buildKpis() {
+      const evalN = AREAS.filter(a=>!a.obs).reduce((s,a)=>s+a.metrics.length,0);
+      const obsN  = AREAS.filter(a=>a.obs).reduce((s,a)=>s+a.metrics.length,0);
+      const kpis = [
+        { n: evalN + obsN, l: "metrics tracked" },
+        { n: AREAS.length, l: "key areas" },
+        { n: evalN, l: "eval recipes" },
+        { n: obsN, l: "observability topics" },
+        { n: 41, l: "runnable test scripts" },
+      ];
+      document.getElementById("kpis").innerHTML = kpis.map(k =>
+        `<div class="kpi"><div class="n">${k.n}</div><div class="l">${k.l}</div></div>`).join("");
+    }
+
+    function buildViews() {
+      document.getElementById("views").innerHTML = VIEWS.map(v => `
+        <a class="view-card" href="${v.href}" style="border-top-color:${v.color}">
+          <div class="ic">${v.ic}</div>
+          <div class="vt">${v.vt}</div>
+          <div class="vd">${v.vd}</div>
+        </a>`).join("");
+    }
+
+    function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+    function buildAreas() {
+      document.getElementById("areas").innerHTML = AREAS.map(a => {
+        const head = COLORS[a.area].head;
+        const rows2 = a.metrics.map(m => {
+          const cx = a.obs ? "obs" : m.c;
+          return `
+            <div class="metric">
+              <span class="mt">${esc(m.t)}</span>
+              <span class="cx ${cx}">${a.obs ? "obs" : m.c}</span>
+              <span class="links">
+                <a class="ilink" href="agent-assessment.html#${m.id}" title="Worked example">detail</a>
+                <a class="ilink code" href="scripts/view.html#${m.id}" title="Runnable test script">&lt;/&gt;</a>
+                <a class="ilink" href="${recipeHref(m, a.obs)}" title="${a.obs ? 'Observability lesson 8.3' : 'Full recipe page'}">${a.obs ? "lesson" : "recipe"}</a>
+              </span>
+            </div>`;
+        }).join("");
+        return `
+          <section class="panel">
+            <div class="panel-head" style="background:${head}">
+              <span class="pt">${esc(a.area)}</span>
+              <span class="pc">${a.metrics.length} ${a.obs ? "topics" : "metrics"}</span>
+            </div>
+            <div class="panel-body">${rows2}</div>
+          </section>`;
+      }).join("");
+    }
+
+    document.getElementById("foot").innerHTML =
+      `41 metrics · 9 areas · single self-contained file. Detail links open the worked example in ` +
+      `<code>agent-assessment.html</code>; <code>&lt;/&gt;</code> opens the runnable script in <code>scripts/view.html</code>; ` +
+      `observability topics link to <code>module 8.3</code>.`;
+
+    buildKpis();
+    buildViews();
+    buildAreas();
+  </script>
+  <script src="tutor-widget.js" defer></script>
+</body>
+</html>

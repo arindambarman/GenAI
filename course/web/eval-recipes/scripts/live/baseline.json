@@ -1,0 +1,9 @@
+{
+  "runner": "mock",
+  "dataset": 3,
+  "totalQuotes": 4,
+  "totalValid": 4,
+  "rate": 1,
+  "meanCostUsd": 0,
+  "meanMs": 5
+}

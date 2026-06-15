@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Incident Simulator · Eval &amp; Observability · AdaptLearn</title>
+<style>
+:root{
+  --bg0:#05070f; --panel:rgba(15,21,38,0.86); --line:rgba(120,140,190,0.2);
+  --txt:#e6ecff; --muted:#8b97b8; --accent:#38bdf8; --good:#34d399; --warn:#f0b659; --bad:#f87171;
+  --mono:"SF Mono",Monaco,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;min-height:100%;background:var(--bg0);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;font-size:15px;}
+.glow{position:fixed;inset:0;z-index:-1;background:
+  radial-gradient(900px 600px at 12% 8%, rgba(248,113,113,0.10), transparent 60%),
+  radial-gradient(800px 600px at 90% 88%, rgba(56,189,248,0.10), transparent 60%),
+  linear-gradient(180deg,#05070f,#080c18 55%,#05070f);}
+a{color:var(--accent);}
+.wrap{max-width:1080px;margin:0 auto;padding:22px;}
+
+/* top nav */
+.topnav{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+.topnav h1{margin:0;font-size:17px;font-weight:800;letter-spacing:-0.01em;
+  background:linear-gradient(90deg,#fca5a5,#f472b6,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.topnav .sub{font-size:10.5px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;}
+.topnav .spacer{flex:1;}
+.topnav a.link{background:rgba(255,255,255,0.05);border:1px solid var(--line);color:var(--txt);
+  border-radius:8px;padding:8px 11px;font-size:12px;text-decoration:none;transition:.15s;}
+.topnav a.link:hover{border-color:var(--accent);color:#7dd3fc;}
+
+/* menu */
+.lead{font-size:14px;color:var(--muted);max-width:680px;line-height:1.6;margin:0 0 18px;}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+.icard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;cursor:pointer;
+  transition:.16s;position:relative;overflow:hidden;}
+.icard:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,0.4);}
+.icard .sev{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;padding:3px 9px;
+  border-radius:999px;margin-bottom:10px;}
+.sev1{background:rgba(248,113,113,0.15);color:#fca5a5;border:1px solid rgba(248,113,113,0.4);}
+.sev2{background:rgba(240,182,89,0.15);color:#f0b659;border:1px solid rgba(240,182,89,0.4);}
+.sev3{background:rgba(56,189,248,0.15);color:#7dd3fc;border:1px solid rgba(56,189,248,0.4);}
+.icard .ic{font-size:26px;margin-bottom:8px;}
+.icard h3{margin:0 0 6px;font-size:16px;font-weight:800;}
+.icard p{margin:0;font-size:13px;color:var(--muted);line-height:1.55;}
+.icard .meta{margin-top:12px;display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted);}
+.icard .stars{margin-left:auto;font-size:13px;letter-spacing:1px;}
+.icard .stars .on{color:#fbbf24;} .icard .stars .off{color:#33405e;}
+
+/* game */
+.gamehdr{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:12px 16px;margin-bottom:16px;backdrop-filter:blur(8px);}
+.gamehdr .gt{font-weight:800;font-size:15px;}
+.gamehdr .spacer{flex:1;}
+.gamehdr .clock{font-family:var(--mono);font-size:15px;font-weight:700;}
+.gamehdr .clock .par{color:var(--muted);font-size:11px;font-weight:500;}
+.gamehdr .pin{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;
+  border:1px solid var(--line);border-radius:999px;padding:4px 11px;}
+.gamehdr button{background:rgba(255,255,255,0.05);border:1px solid var(--line);color:var(--txt);
+  border-radius:8px;padding:7px 11px;font-size:12px;cursor:pointer;transition:.15s;}
+.gamehdr button:hover{border-color:var(--accent);color:#7dd3fc;}
+
+.phases{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.phases .ph{font-size:10.5px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);
+  color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+.phases .ph.done{border-color:var(--good);color:var(--good);background:rgba(52,211,153,0.08);}
+.phases .ph.cur{border-color:var(--accent);color:#7dd3fc;background:rgba(56,189,248,0.1);font-weight:700;}
+
+.grid{display:grid;grid-template-columns:1fr 286px;gap:16px;align-items:start;}
+@media(max-width:840px){.grid{grid-template-columns:1fr;}}
+
+.scene{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;backdrop-filter:blur(8px);}
+.telemetry{font-family:var(--mono);font-size:13px;line-height:1.7;background:#0a1020;border:1px solid var(--line);
+  border-radius:10px;padding:14px 16px;margin-bottom:18px;color:#cdd8f5;white-space:pre-wrap;}
+.telemetry .k{color:var(--warn);}
+.scene .q{font-size:16px;font-weight:700;margin:0 0 14px;}
+.choice{display:block;width:100%;text-align:left;background:rgba(255,255,255,0.03);border:1px solid var(--line);
+  border-radius:10px;padding:13px 16px;margin-bottom:10px;cursor:pointer;color:var(--txt);font-size:14px;
+  transition:.13s;position:relative;}
+.choice:hover:not(:disabled){border-color:var(--accent);background:rgba(56,189,248,0.06);transform:translateX(2px);}
+.choice .tag{display:inline-block;font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:6px;
+  padding:1px 7px;margin-left:8px;vertical-align:middle;}
+.choice.ok{border-color:var(--good);background:rgba(52,211,153,0.1);}
+.choice.no{border-color:var(--bad);background:rgba(248,113,113,0.08);opacity:.85;}
+.choice:disabled{cursor:default;}
+.choice .fb{display:none;margin-top:9px;font-size:12.5px;line-height:1.5;padding-left:0;}
+.choice.ok .fb{display:block;color:#a7f3d0;}
+.choice.no .fb{display:block;color:#fca5a5;}
+.choice.shake{animation:shake .35s;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+
+/* casefile rail */
+.rail{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;backdrop-filter:blur(8px);}
+.rail h4{margin:0 0 12px;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+.evi{position:relative;padding-left:20px;margin-bottom:14px;}
+.evi::before{content:"";position:absolute;left:5px;top:5px;width:8px;height:8px;border-radius:50%;
+  background:var(--good);box-shadow:0 0 8px var(--good);}
+.evi::after{content:"";position:absolute;left:8.4px;top:14px;bottom:-14px;width:1px;background:var(--line);}
+.evi:last-child::after{display:none;}
+.evi .ph{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+.evi .tx{font-size:12.5px;line-height:1.5;color:#cdd8f5;margin-top:2px;}
+.rail .none{font-size:12px;color:var(--muted);font-style:italic;}
+
+/* outcome */
+.outcome{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:30px;text-align:center;
+  backdrop-filter:blur(8px);}
+.outcome.resolved{border-color:rgba(52,211,153,0.55);box-shadow:0 0 34px rgba(52,211,153,0.14);}
+.outcome.partial{border-color:rgba(240,182,89,0.5);}
+.outcome .bigstars{font-size:40px;letter-spacing:8px;margin-bottom:8px;}
+.outcome .bigstars .on{color:#fbbf24;} .outcome .bigstars .off{color:#33405e;}
+.outcome h2{margin:6px 0;font-size:24px;font-weight:800;}
+.outcome .verdict{font-size:14px;color:#cdd8f5;max-width:560px;margin:0 auto 16px;line-height:1.6;}
+.outcome .mtbox{display:inline-flex;gap:24px;background:#0a1020;border:1px solid var(--line);border-radius:12px;
+  padding:14px 26px;margin-bottom:20px;}
+.outcome .mtbox div b{display:block;font-size:22px;font-family:var(--mono);}
+.outcome .mtbox div span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.outcome .studyttl{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:6px 0 10px;}
+.studychips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:22px;}
+.studychips a{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.04);
+  border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-size:12.5px;color:var(--txt);
+  text-decoration:none;transition:.13s;}
+.studychips a:hover{border-color:var(--accent);color:#7dd3fc;}
+.studychips a .d{width:8px;height:8px;border-radius:50%;box-shadow:0 0 7px currentColor;}
+.studychips a .ls{font-size:10px;color:var(--good);}
+.obtns{display:flex;gap:10px;justify-content:center;}
+.obtns button,.obtns a{border-radius:10px;padding:11px 20px;font-size:13.5px;font-weight:700;cursor:pointer;
+  text-decoration:none;border:1px solid var(--line);background:rgba(255,255,255,0.05);color:var(--txt);transition:.15s;}
+.obtns .primary{background:linear-gradient(90deg,#0ea5e9,#6366f1);border:none;color:#fff;}
+.obtns button:hover,.obtns a:hover{filter:brightness(1.08);border-color:var(--accent);}
+.hidden{display:none;}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="wrap">
+  <div class="topnav">
+    <div><h1>Apex Desk — Incident Simulator</h1><div class="sub">on-call decision game · learn by consequence</div></div>
+    <div class="spacer"></div>
+    <a class="link" href="dashboard.html">Dashboard</a>
+    <a class="link" href="knowledge-graph.html">Graph</a>
+    <a class="link" href="playground.html">Playground</a>
+    <a class="link" href="tutor.html">Tutor</a>
+  </div>
+
+  <!-- MENU -->
+  <div id="menu">
+    <p class="lead">You're on call for the Meridian <b>Apex</b> agent desk. An alert just fired. Work the
+      on-call playbook — <b>confirm → scope → recent changes → sample traces → hypothesis → act</b> — by choosing which
+      metric or trace to open at each step. Right moves cut your <b>MTTR</b>; wrong moves cost you time. Resolve the
+      incident at root cause for 3 stars.</p>
+    <div class="cards" id="incident-cards"></div>
+  </div>
+
+  <!-- GAME -->
+  <div id="game" class="hidden">
+    <div class="gamehdr">
+      <span class="gt" id="g-title"></span>
+      <span class="pin" id="g-phase"></span>
+      <span class="spacer"></span>
+      <span class="clock">MTTR <b id="g-mttr">0</b>m <span class="par" id="g-par"></span></span>
+      <button id="g-restart">Restart</button>
+      <button id="g-exit">Exit</button>
+    </div>
+    <div class="phases" id="g-phases"></div>
+    <div class="grid">
+      <div class="scene" id="g-scene"></div>
+      <div class="rail">
+        <h4>Case file — evidence</h4>
+        <div id="g-evidence"><p class="none">Findings appear here as you investigate.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OUTCOME -->
+  <div id="outcome-view" class="hidden"></div>
+</div>
+
+<script src="lessons-data.js"></script>
+<script>
+"use strict";
+const LESSONS = window.LESSONS || {};
+const CATS = {
+  "Output correctness":"#38bdf8","Behavior & tool use":"#34d399","Cost & latency":"#fbbf24",
+  "Safety & robustness":"#f87171","Eval ops":"#a78bfa","Traces (obs)":"#22d3ee",
+  "Metrics (obs)":"#2dd4bf","Dashboards & alerts (obs)":"#f472b6","Trace sampling (obs)":"#c084fc",
+};
+const META = {
+  "regression-eval-set":["Regression eval set","Output correctness"],"llm-judge-rubric":["LLM-judge with rubric","Output correctness"],
+  "citation-faithfulness":["Citation faithfulness","Output correctness"],"exact-vs-semantic-match":["Exact vs semantic match","Output correctness"],
+  "schema-conformance":["Schema conformance","Output correctness"],"calibration-ece":["Calibration / ECE","Output correctness"],
+  "multi-turn-coherence":["Multi-turn coherence","Output correctness"],"pairwise-preference":["Pairwise preference","Output correctness"],
+  "tool-trajectory":["Tool trajectory","Behavior & tool use"],"tool-argument-validity":["Tool argument validity","Behavior & tool use"],
+  "refusal-rate":["Refusal / over-refusal","Behavior & tool use"],"safety-guardrail-adherence":["Safety guardrail adherence","Behavior & tool use"],
+  "tool-failure-recovery":["Tool failure recovery","Behavior & tool use"],"cost-per-task":["Cost per task","Cost & latency"],
+  "latency-percentiles":["Latency p50/p95/p99","Cost & latency"],"token-usage-attribution":["Token usage attribution","Cost & latency"],
+  "tail-latency-analysis":["Tail latency analysis","Cost & latency"],"red-team-injection":["Red-team prompt-injection","Safety & robustness"],
+  "jailbreak-resistance":["Jailbreak resistance","Safety & robustness"],"pii-leakage":["PII leakage","Safety & robustness"],
+  "hallucination-rate":["Hallucination rate","Safety & robustness"],"eval-set-freshness":["Eval set freshness","Eval ops"],
+  "ci-eval-gate":["CI eval gate","Eval ops"],"sample-size-power":["Sample size & power","Eval ops"],"prompt-ab-eval":["Prompt A/B eval","Eval ops"],
+  "obs-trace-tree":["Per-task trace tree","Traces (obs)"],"obs-spans":["Spans & attributes","Traces (obs)"],
+  "obs-events":["Events","Traces (obs)"],"obs-replay":["Replay infrastructure","Traces (obs)"],
+  "obs-counters":["Counters","Metrics (obs)"],"obs-histograms":["Histograms","Metrics (obs)"],
+  "obs-five-metrics":["The 5 metrics that matter","Metrics (obs)"],"obs-per-agent":["Per-agent breakdown","Metrics (obs)"],
+  "obs-dashboards":["4 dashboard widgets","Dashboards & alerts (obs)"],"obs-alert-thresholds":["Alert thresholds","Dashboards & alerts (obs)"],
+  "obs-alert-fatigue":["Alert-fatigue rule","Dashboards & alerts (obs)"],"obs-oncall-playbook":["On-call playbook","Dashboards & alerts (obs)"],
+  "obs-sample-failures":["Always sample failures","Trace sampling (obs)"],"obs-sample-routine":["1% routine sample","Trace sampling (obs)"],
+  "obs-sample-rare":["100% rare types","Trace sampling (obs)"],"obs-sample-anomalous-cost":["Anomalous-cost capture","Trace sampling (obs)"],
+};
+const titleOf = id => (META[id]?META[id][0]:id);
+const colorOf = id => (META[id]?CATS[META[id][1]]:"#8b97b8");
+const PHASES = ["Confirm","Scope","Recent changes","Sample traces","Hypothesis","Act"];
+
+/* ───────── incidents ───────── */
+const INCIDENTS = [
+{
+  id:"latency", ic:"🐌", sev:2, title:"The 18-second hang", par:26,
+  blurb:"Apex desk p95 latency jumped 6s → 18s in the last hour. RM Priya's quotes are crawling and clients are noticing.",
+  alert:"PAGE 14:02  SEV-2  service=apex-orchestrator\n  metric=p95_latency  value=18.4s  baseline=6.1s  window=1h\n  > escalation_rate steady · error_rate steady",
+  start:"s1",
+  scenes:{
+    s1:{ phase:0, q:"You acknowledge the page. What's your first move?",
+      obs:"The dashboard shows p95 climbing. Nothing else looks obviously red yet.",
+      choices:[
+        {t:"Open the latency dashboard — split p50/p95/p99", m:"latency-percentiles", ok:true, cost:5, next:"s2",
+         fb:"Confirmed: p50 is a healthy 5s, but p99 is 26s. This is a TAIL problem, not a system-wide slowdown."},
+        {t:"Restart the orchestrator service", ok:false, cost:8, next:null,
+         fb:"Cargo-cult fix. You have no idea what's wrong — it'll recur in an hour and you've lost time."},
+        {t:"Roll back the last deploy immediately", ok:false, cost:8, next:null,
+         fb:"Premature. No evidence the deploy is involved; you might revert an innocent change and still be slow."},
+      ]},
+    s2:{ phase:1, q:"p50 is fine but the tail is huge. Where do you scope next?",
+      obs:"p50=5s  p95=18s  p99=26s   — the median user is fine; a slow minority is dragging the percentile.",
+      choices:[
+        {t:"Tail latency analysis — inspect the slow 1%", m:"tail-latency-analysis", ok:true, cost:5, next:"s3",
+         fb:"The slow traces are 9–12 step agent loops. One tool call inside them keeps timing out and retrying."},
+        {t:"Token usage attribution", m:"token-usage-attribution", ok:false, cost:6, next:null,
+         fb:"Token counts are normal. Context size isn't the problem — slowness here is about loops, not tokens."},
+        {t:"Cost per task", m:"cost-per-task", ok:false, cost:6, next:null,
+         fb:"Cost is steady. A latency tail doesn't always cost more — wrong lens for this incident."},
+      ]},
+    s3:{ phase:3, q:"You suspect a retrying tool. What confirms it?",
+      obs:"Tail traces share a signature: long step count, repeated calls to the pricing-rates tool.",
+      choices:[
+        {t:"Open a sampled slow trace tree end-to-end", m:"obs-trace-tree", ok:true, cost:5, next:"s4",
+         fb:"The trace replays it: pricing-rates times out, the agent retries 3×, then loops trying alternatives. That's the tail."},
+        {t:"Look at the 5 top-line metrics", m:"obs-five-metrics", ok:false, cost:6, next:null,
+         fb:"Too high-level to see a single tool failing inside a trace. You need the span-level trace, not the rollup."},
+      ]},
+    s4:{ phase:4, q:"Root-cause hypothesis?",
+      obs:"pricing-rates upstream is flaky (intermittent 30% timeout). The agent has no backoff and no give-up.",
+      choices:[
+        {t:"Missing tool-failure-recovery — no backoff / circuit-breaker", m:"tool-failure-recovery", ok:true, cost:5, next:"s5",
+         fb:"Right. A flaky upstream + unbounded retries = pathological loops on exactly the slow tail."},
+        {t:"It's a jailbreak attempt", m:"jailbreak-resistance", ok:false, cost:8, next:null,
+         fb:"No adversarial signal anywhere in the traces. Don't reach for security when the data says reliability."},
+      ]},
+    s5:{ phase:5, q:"Ship the fix. Which action actually resolves it?",
+      obs:"You can patch the agent's tool-handling, or you can quiet the alert.",
+      choices:[
+        {t:"Add bounded retry + circuit-breaker; alert on the flaky upstream", ok:true, cost:6, next:"resolved"},
+        {t:"Just raise the p95 alert threshold to 20s", ok:false, cost:6, next:"partial"},
+      ]},
+    resolved:{ end:true, kind:"resolved", title:"Incident resolved at root cause",
+      text:"Bounded retries cap the loop, the circuit-breaker fails fast when pricing-rates is down, and a new upstream alert warns you before users feel it. p95 is back to 6s.",
+      lessons:["latency-percentiles","tail-latency-analysis","obs-trace-tree","tool-failure-recovery"]},
+    partial:{ end:true, kind:"partial", title:"Symptom silenced, root cause alive",
+      text:"Raising the threshold stopped the page — but the retry loops are still there. Next flaky-upstream window, clients hang again and you've trained the team to ignore the alert.",
+      lessons:["tail-latency-analysis","tool-failure-recovery","obs-alert-thresholds"]},
+  }
+},
+{
+  id:"calibration", ic:"🎯", sev:1, title:"Confidently wrong", par:24,
+  blurb:"Compliance auto-approved a Halberd FX quote the agent tagged confidence 0.94. It was wrong — £180k exposure. The auto-approve rule is confidence ≥ 0.90.",
+  alert:"PAGE 09:18  SEV-1  agent=proposal-pricing\n  event=auto_approved_incorrect_quote  stated_confidence=0.94\n  exposure=£180,000  rule=auto_approve(conf>=0.90)",
+  start:"s1",
+  scenes:{
+    s1:{ phase:0, q:"A confident answer was wrong and got auto-approved. First move?",
+      obs:"The agent emits a confidence on every quote. Compliance trusts it to gate human review.",
+      choices:[
+        {t:"Pull calibration / ECE for proposal-pricing", m:"calibration-ece", ok:true, cost:5, next:"s2",
+         fb:"ECE = 0.14. At a stated 0.90, real accuracy is ~0.78. The agent is badly OVER-confident — the gate is built on sand."},
+        {t:"Disable the agent across the whole desk", ok:false, cost:8, next:null,
+         fb:"Overreaction — you'd halt every deal for one miscalibrated number. Diagnose before you amputate."},
+        {t:"File a 'model is dumb' ticket and move on", ok:false, cost:8, next:null,
+         fb:"Not a diagnosis. 'Wrong once' tells you nothing about whether confidence is trustworthy in general."},
+      ]},
+    s2:{ phase:1, q:"Confidence is miscalibrated. Is it every agent or one?",
+      obs:"ECE overall looks bad, but the desk runs several agents that all emit confidence.",
+      choices:[
+        {t:"Per-agent / per-tool breakdown of calibration", m:"obs-per-agent", ok:true, cost:5, next:"s3",
+         fb:"Only proposal-pricing is miscalibrated (ECE 0.14). lead-qualifier is fine (0.03). The blast radius is one agent."},
+        {t:"Stare at the blended dashboard number", m:"obs-dashboards", ok:false, cost:6, next:null,
+         fb:"The blended figure hides which agent is at fault — you can't act on an average. Attribute it."},
+      ]},
+    s3:{ phase:2, q:"What recently changed for proposal-pricing?",
+      obs:"Calibration was fine last week. Something shifted confidence without shifting accuracy.",
+      choices:[
+        {t:"Replay traces from before vs after the last prompt change", m:"obs-replay", ok:true, cost:5, next:"s4",
+         fb:"Found it: the new prompt added 'be decisive and confident.' Stated confidence shot up; accuracy didn't move."},
+        {t:"Re-run the full regression eval set", m:"regression-eval-set", ok:true, cost:9, next:"s4",
+         fb:"The regression run flags lower accuracy on borderline cases — slower than a targeted replay, but it converges: the prompt change is the culprit."},
+      ]},
+    s4:{ phase:5, q:"Stop the bleeding. Best action?",
+      obs:"You can fix the confidence signal, or you can change the gate.",
+      choices:[
+        {t:"Recalibrate (temperature-scale) + raise auto-approve to 0.97 until ECE<0.05", ok:true, cost:5, next:"resolved"},
+        {t:"Drop the auto-approve threshold to 0.50", ok:false, cost:6, next:"partial"},
+      ]},
+    resolved:{ end:true, kind:"resolved", title:"Trust in confidence restored",
+      text:"Reverting the 'be decisive' line plus temperature scaling brings ECE to 0.04. The auto-approve gate is safe again and exposure risk is contained.",
+      lessons:["calibration-ece","obs-per-agent","obs-replay","refusal-rate"]},
+    partial:{ end:true, kind:"partial", title:"You killed the automation's value",
+      text:"At a 0.50 gate almost everything escalates to a human. No more bad auto-approvals — but also no more automation benefit, and the underlying miscalibration is untouched.",
+      lessons:["calibration-ece","refusal-rate"]},
+  }
+},
+{
+  id:"schema", ic:"📄", sev:2, title:"The blank proposal", par:22,
+  blurb:"RM Priya sent Halberd a blank proposal. The renderer crashed on the agent's quote JSON and the £4.2M deal stalled a week.",
+  alert:"TICKET 16:40  SEV-2  renderer=proposal-pdf\n  error=TypeError amount.toFixed is not a function\n  upstream=proposal-pricing  symptom=blank_document",
+  start:"s1",
+  scenes:{
+    s1:{ phase:0, q:"A downstream renderer crashed on the agent's output. First move?",
+      obs:"The renderer consumes a structured quote JSON and trusts its shape.",
+      choices:[
+        {t:"Check schema conformance — first-pass valid rate", m:"schema-conformance", ok:true, cost:5, next:"s2",
+         fb:"First-pass valid dropped from 99% to 88%. On the bad quote, amount came back as the string \"2m\" instead of a number."},
+        {t:"Check latency percentiles", m:"latency-percentiles", ok:false, cost:7, next:null,
+         fb:"It rendered blank, not slow. Speed is irrelevant when the output shape is wrong."},
+      ]},
+    s2:{ phase:1, q:"Conformance dropped. Which fields are failing, and how often?",
+      obs:"You need to know whether it's one field or a broad collapse.",
+      choices:[
+        {t:"Bucket the validation failures by field via span attributes", m:"obs-spans", ok:true, cost:5, next:"s3",
+         fb:"Failures cluster on `amount` and `currency`. Numbers arrive as strings; currency sometimes lowercase."},
+        {t:"Run a red-team injection suite", m:"red-team-injection", ok:false, cost:8, next:null,
+         fb:"No attacker here — this is a plain contract bug. Don't chase security ghosts."},
+      ]},
+    s3:{ phase:2, q:"Why did valid output suddenly start failing the contract?",
+      obs:"It was 99% last week. A config change shipped Thursday.",
+      choices:[
+        {t:"Check whether strict tool use / constrained decoding is still on", m:"tool-argument-validity", ok:true, cost:5, next:"s4",
+         fb:"Confirmed: constrained decoding was switched off in Thursday's config change. The model is now free to emit loose shapes."},
+        {t:"Assume the model regressed and swap models", ok:false, cost:8, next:null,
+         fb:"Expensive guess. The model didn't change — the decoding constraint did. Read the diff before swapping."},
+      ]},
+    s4:{ phase:5, q:"Fix it properly. Which action?",
+      obs:"You can fix the source contract, or patch the renderer.",
+      choices:[
+        {t:"Re-enable constrained decoding + field constraints; add a CI gate on conformance", m:"ci-eval-gate", ok:true, cost:6, next:"resolved"},
+        {t:"Wrap the renderer in a try/catch so it stops crashing", ok:false, cost:6, next:"partial"},
+      ]},
+    resolved:{ end:true, kind:"resolved", title:"Contract restored and guarded",
+      text:"Constrained decoding is back on (first-pass valid → 99.4%), field constraints reject bad currencies, and a CI conformance gate blocks any future config that drops below 98%.",
+      lessons:["schema-conformance","obs-spans","tool-argument-validity","ci-eval-gate"]},
+    partial:{ end:true, kind:"partial", title:"No more crash, still wrong numbers",
+      text:"The try/catch stops the blank document — but the agent still emits \"2m\" for amounts. Now Priya sends proposals with silently wrong figures instead of blank ones. Arguably worse.",
+      lessons:["schema-conformance","tool-argument-validity"]},
+  }
+},
+{
+  id:"regression", ic:"📉", sev:3, title:"The silent regression", par:24,
+  blurb:"A prompt tweak shipped Friday to 'improve tone.' Monday, the desk feels less accurate — but nothing alerted. Did quality drop, or is it vibes?",
+  alert:"REPORT 08:30  SEV-3  source=desk_feedback\n  signal=\"answers feel off since Fri deploy\"  alerts_fired=0\n  change=prompt v7 (tone) on proposal-pricing + qualifier",
+  start:"s1",
+  scenes:{
+    s1:{ phase:0, q:"A subjective 'feels worse' report, no alert. First move?",
+      obs:"A prompt changed Friday. You have a frozen labelled eval set from before the change.",
+      choices:[
+        {t:"Run the regression eval set against the new prompt", m:"regression-eval-set", ok:true, cost:5, next:"s2",
+         fb:"12 previously-passing cases now fail — all numeric-accuracy cases. The 'feeling' is real and measurable."},
+        {t:"Ship a hotfix prompt based on the complaint", ok:false, cost:8, next:null,
+         fb:"You're guessing in the dark. Measure the regression before you 'fix' it, or you'll trade one unknown for another."},
+      ]},
+    s2:{ phase:1, q:"12 of 500 flipped. Is that a real regression or noise?",
+      obs:"You need to know if a 12-case shift is statistically meaningful before you act.",
+      choices:[
+        {t:"Test significance with sample size & power (McNemar)", m:"sample-size-power", ok:true, cost:5, next:"s3",
+         fb:"At n=500, a 12-case paired flip is significant (McNemar p<0.01). This is a real regression, not sampling noise."},
+        {t:"Eyeball it — 12 sounds small, probably fine", ok:false, cost:8, next:null,
+         fb:"'Sounds small' isn't a test. Without the stats you can't tell signal from noise — and here it's signal."},
+      ]},
+    s3:{ phase:2, q:"Confirm the new prompt is the cause and characterise the trade-off.",
+      obs:"v7 was meant to improve tone. Did it help anything?",
+      choices:[
+        {t:"Prompt A/B eval: v6 vs v7 on the same set", m:"prompt-ab-eval", ok:true, cost:5, next:"s4",
+         fb:"v7 wins on tone/preference but loses on numeric accuracy. The tone gain came at a correctness cost."},
+        {t:"Assume v7 is all bad and bin it", ok:false, cost:6, next:null,
+         fb:"Maybe the tone change is worth keeping. A/B it so you revert only the harmful part, not the good part."},
+      ]},
+    s4:{ phase:5, q:"Resolve it. Which action keeps the gains and stops the bleeding?",
+      obs:"You can revert surgically and prevent a repeat, or roll the dice.",
+      choices:[
+        {t:"Revert the numeric-instruction change; wire a CI eval gate to block silent regressions", m:"ci-eval-gate", ok:true, cost:6, next:"resolved"},
+        {t:"Keep v7 — tone matters more, accuracy will probably recover", ok:false, cost:6, next:"partial"},
+      ]},
+    resolved:{ end:true, kind:"resolved", title:"Regression caught and gated",
+      text:"You kept v7's tone wording, reverted the numeric instruction, and added a CI gate on the regression set. Accuracy is back and the next silent regression can't merge.",
+      lessons:["regression-eval-set","sample-size-power","prompt-ab-eval","ci-eval-gate"]},
+    partial:{ end:true, kind:"partial", title:"Hope is not a strategy",
+      text:"Accuracy did not 'recover' — there was no mechanism for it to. The desk keeps shipping subtly wrong numbers and, with no gate, the next regression will be just as silent.",
+      lessons:["regression-eval-set","ci-eval-gate","prompt-ab-eval"]},
+  }
+},
+];
+
+/* ───────── state ───────── */
+const LS_KEY="apex-incident-stars";
+let bestStars = {};
+try{ bestStars = JSON.parse(localStorage.getItem(LS_KEY)||"{}"); }catch(e){ bestStars={}; }
+let cur=null, sceneId=null, mttr=0, wrongAttempts=0, picks=0, evidence=[], usedMetrics=new Set(), wrongTried={};
+
+const $ = id => document.getElementById(id);
+function show(view){ ["menu","game","outcome-view"].forEach(v=>$(v).classList.toggle("hidden", v!==view)); }
+
+/* ───────── menu ───────── */
+function starStr(n){ let s=""; for(let i=0;i<3;i++) s+= i<n?'<span class="on">★</span>':'<span class="off">★</span>'; return s; }
+function renderMenu(){
+  const wrap=$("incident-cards"); wrap.innerHTML="";
+  INCIDENTS.forEach(inc=>{
+    const best=bestStars[inc.id]||0;
+    const c=document.createElement("div"); c.className="icard";
+    c.innerHTML='<span class="sev sev'+inc.sev+'">SEV-'+inc.sev+'</span>'+
+      '<div class="ic">'+inc.ic+'</div><h3>'+inc.title+'</h3><p>'+inc.blurb+'</p>'+
+      '<div class="meta"><span>⏱ par '+inc.par+'m</span><span>·</span><span>'+
+        Object.values(inc.scenes).filter(s=>!s.end).length+' decisions</span>'+
+        '<span class="stars">'+starStr(best)+'</span></div>';
+    c.addEventListener("click",()=>startIncident(inc.id));
+    wrap.appendChild(c);
+  });
+  show("menu");
+}
+
+/* ───────── game ───────── */
+function startIncident(id){
+  cur=INCIDENTS.find(i=>i.id===id);
+  sceneId=cur.start; mttr=0; wrongAttempts=0; picks=0; evidence=[]; usedMetrics=new Set(); wrongTried={};
+  $("g-title").textContent=cur.ic+"  "+cur.title;
+  $("g-par").textContent="(par "+cur.par+"m)";
+  renderEvidence(); renderScene(); show("game");
+}
+$("g-restart").addEventListener("click",()=>{ if(cur) startIncident(cur.id); });
+$("g-exit").addEventListener("click",renderMenu);
+
+function renderPhases(curPhase){
+  $("g-phases").innerHTML = PHASES.map((p,i)=>{
+    let cls="ph"; if(i<curPhase)cls+=" done"; if(i===curPhase)cls+=" cur";
+    return '<span class="'+cls+'">'+(i+1)+'. '+p+'</span>';
+  }).join("");
+}
+function renderScene(){
+  const sc=cur.scenes[sceneId];
+  if(sc.end){ return renderOutcome(sc); }
+  $("g-mttr").textContent=mttr;
+  $("g-phase").textContent=PHASES[sc.phase];
+  renderPhases(sc.phase);
+  if(!wrongTried[sceneId]) wrongTried[sceneId]=new Set();
+  const el=$("g-scene");
+  let html='';
+  if(sc.obs) html+='<div class="telemetry">'+sc.obs.replace(/`([^`]+)`/g,'<span class="k">$1</span>')+'</div>';
+  html+='<p class="q">'+sc.q+'</p>';
+  sc.choices.forEach((ch,i)=>{
+    const tried=wrongTried[sceneId].has(i);
+    const tag = ch.m ? '<span class="tag">'+titleOf(ch.m)+'</span>' : '';
+    html+='<button class="choice'+(tried?' no':'')+'" data-i="'+i+'"'+(tried?' disabled':'')+'>'+
+      '<span>'+ch.t+'</span>'+tag+
+      '<span class="fb">'+(tried?ch.fb:'')+'</span></button>';
+  });
+  el.innerHTML=html;
+  el.querySelectorAll(".choice").forEach(b=>{
+    if(b.disabled) return;
+    b.addEventListener("click",()=>pick(+b.dataset.i,b));
+  });
+}
+function pick(i,btn){
+  const sc=cur.scenes[sceneId]; const ch=sc.choices[i];
+  picks++; mttr+=ch.cost; $("g-mttr").textContent=mttr;
+  // lock all buttons momentarily
+  const all=$("g-scene").querySelectorAll(".choice");
+  if(ch.ok){
+    btn.classList.add("ok");
+    btn.querySelector(".fb").textContent=ch.fb; btn.querySelector(".fb").style.display="block";
+    if(ch.m){ usedMetrics.add(ch.m); }
+    evidence.push({phase:PHASES[sc.phase], tx:ch.fb, m:ch.m});
+    renderEvidence();
+    all.forEach(b=>b.disabled=true);
+    setTimeout(()=>goto(ch.next), 850);
+  } else if(ch.next){
+    // a "wrong fix" that still ends the incident
+    btn.classList.add("no"); btn.querySelector(".fb").textContent=ch.fb||""; btn.querySelector(".fb").style.display="block";
+    wrongAttempts++;
+    all.forEach(b=>b.disabled=true);
+    setTimeout(()=>goto(ch.next), 950);
+  } else {
+    // wrong investigation: penalty, stay
+    wrongAttempts++;
+    wrongTried[sceneId].add(i);
+    btn.classList.add("no","shake");
+    btn.querySelector(".fb").textContent=ch.fb; btn.querySelector(".fb").style.display="block";
+    btn.disabled=true;
+    setTimeout(()=>btn.classList.remove("shake"),400);
+  }
+}
+function goto(id){ sceneId=id; renderScene(); }
+
+function renderEvidence(){
+  const el=$("g-evidence");
+  if(!evidence.length){ el.innerHTML='<p class="none">Findings appear here as you investigate.</p>'; return; }
+  el.innerHTML=evidence.map(e=>'<div class="evi"><div class="ph">'+e.phase+
+    (e.m?' · '+titleOf(e.m):'')+'</div><div class="tx">'+e.tx+'</div></div>').join("");
+}
+
+/* ───────── outcome ───────── */
+function computeStars(sc){
+  if(sc.kind!=="resolved") return 1;
+  if(wrongAttempts===0 && mttr<=cur.par*1.2) return 3;
+  if(wrongAttempts<=1 || mttr<=cur.par*1.6) return 2;
+  return 1;
+}
+function renderOutcome(sc){
+  const stars=computeStars(sc);
+  if(stars>(bestStars[cur.id]||0)){ bestStars[cur.id]=stars; try{localStorage.setItem(LS_KEY,JSON.stringify(bestStars));}catch(e){} }
+  const v=$("outcome-view");
+  const verdicts={3:"Textbook. Root cause at minimal MTTR — that's a clean page.",2:"Solid resolution. A couple of detours cost you time, but you landed it at root cause.",1:sc.kind==="resolved"?"Resolved, but the long way round. Review the playbook and tighten the path.":"The incident is 'closed' — but not really. See why below."};
+  const chips=sc.lessons.map(id=>{
+    const href = LESSONS[id] ? "lesson.html#"+id : "agent-assessment.html#"+id;
+    const ls = LESSONS[id] ? '<span class="ls">lesson ✦</span>' : '';
+    return '<a href="'+href+'"><span class="d" style="color:'+colorOf(id)+'"></span>'+titleOf(id)+ls+'</a>';
+  }).join("");
+  const idx=INCIDENTS.indexOf(cur); const nxt=INCIDENTS[(idx+1)%INCIDENTS.length];
+  v.innerHTML='<div class="outcome '+sc.kind+'">'+
+    '<div class="bigstars">'+starStr(stars)+'</div>'+
+    '<h2>'+sc.title+'</h2>'+
+    '<p class="verdict">'+verdicts[stars]+'</p>'+
+    '<p class="verdict">'+sc.text+'</p>'+
+    '<div class="mtbox"><div><b>'+mttr+'m</b><span>your MTTR</span></div>'+
+      '<div><b>'+cur.par+'m</b><span>par</span></div>'+
+      '<div><b>'+picks+'</b><span>decisions</span></div>'+
+      '<div><b>'+wrongAttempts+'</b><span>missteps</span></div></div>'+
+    '<div class="studyttl">Metrics in play — study them</div>'+
+    '<div class="studychips">'+chips+'</div>'+
+    '<div class="obtns">'+
+      '<button class="primary" id="o-replay">↻ Replay</button>'+
+      '<button id="o-next">Next incident: '+nxt.title+' →</button>'+
+      '<button id="o-menu">All incidents</button></div>'+
+    '</div>';
+  show("outcome-view");
+  $("o-replay").addEventListener("click",()=>startIncident(cur.id));
+  $("o-next").addEventListener("click",()=>startIncident(nxt.id));
+  $("o-menu").addEventListener("click",renderMenu);
+}
+
+/* ───────── init ───────── */
+renderMenu();
+// deep link #<incidentId>
+const h=decodeURIComponent(location.hash.slice(1)).trim();
+if(h && INCIDENTS.find(i=>i.id===h)) startIncident(h);
+</script>
+</body>
+</html>

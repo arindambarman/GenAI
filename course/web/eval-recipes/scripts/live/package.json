@@ -1,0 +1,17 @@
+{
+  "name": "eval-live-schema-conformance",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end example: run the schema-conformance eval against the live proposal-pricing agent and compare to a baseline.",
+  "scripts": {
+    "eval": "tsx run.ts",
+    "baseline": "tsx run.ts --update-baseline"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "latest",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}

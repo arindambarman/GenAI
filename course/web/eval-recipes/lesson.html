@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson · Eval &amp; Observability · AdaptLearn</title>
+  <style>
+:root {
+  --bg: #fafafa; --surface: #ffffff;
+  --text: #1c2230; --text-muted: #5b6473;
+  --border: #e5e7eb; --accent: #2563eb; --accent-soft: #eff6ff;
+  --code-bg: #1e293b; --code-fg: #e2e8f0;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-size: 17px; line-height: 1.65; color: var(--text); background: var(--bg); }
+.container { max-width: 920px; margin: 0 auto; padding: 32px; }
+.breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.hero { padding: 32px; background: linear-gradient(135deg, #1c2230 0%, #2d3a55 100%);
+  color: #fff; border-radius: 14px; margin-bottom: 28px; }
+.hero h1 { margin: 0 0 8px; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.hero .lead { margin: 0; opacity: 0.85; font-size: 16px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+a.mastery-link { text-decoration: none; color: inherit; }
+a.mastery-link:hover { background: rgba(255,255,255,0.28); }
+.mark-studied { background: #fff; color: #1d4ed8; border: 1px solid #fff; cursor: pointer;
+  padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; transition: .15s; }
+.mark-studied:hover { transform: translateY(-1px); }
+.mark-studied.done { background: #16a34a; color: #fff; border-color: #16a34a; cursor: default; }
+.toc { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 20px; margin-bottom: 28px; }
+.toc .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted); font-weight: 700; margin-bottom: 8px; }
+.toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 32px; }
+.toc li { margin-bottom: 4px; font-size: 14px; }
+.toc a { color: var(--accent); text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+section { scroll-margin-top: 16px; }
+h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted); margin: 34px 0 12px; font-weight: 700;
+  border-top: 1px solid var(--border); padding-top: 22px; }
+h2.section .n { display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff;
+  font-size: 11px; margin-right: 8px; vertical-align: middle; }
+.card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px 22px; margin-bottom: 12px; }
+.prose { font-size: 16px; line-height: 1.7; }
+.prose p { margin: 0 0 12px; } .prose p:last-child { margin-bottom: 0; }
+.prose ul { margin: 8px 0; padding-left: 22px; } .prose li { margin-bottom: 6px; }
+.callout { background: var(--accent-soft); border-left: 3px solid var(--accent);
+  padding: 14px 18px; border-radius: 4px; font-size: 16px; margin: 0; }
+.callout strong { color: var(--accent); }
+.problem { background: #fff8f0; border-left: 3px solid #f59e0b; padding: 14px 18px;
+  border-radius: 4px; font-size: 16px; }
+.complexity { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 0 0 16px; }
+.steps li { position: relative; padding: 4px 0 4px 38px; margin-bottom: 8px; font-size: 15px; }
+.steps li::before { counter-increment: step; content: counter(step);
+  position: absolute; left: 0; top: 4px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 13px;
+  display: flex; align-items: center; justify-content: center; }
+.pitfall { background: #fff8f0; border-left: 3px solid #f59e0b; padding: 12px 16px;
+  margin-bottom: 8px; border-radius: 4px; }
+.pitfall .trap { font-weight: 600; font-size: 14px; }
+.pitfall .trap::before { content: "✗ "; color: #dc2626; }
+.pitfall .fix { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+.pitfall .fix::before { content: "✓ "; color: #16a34a; }
+.pitfall .fix strong { color: #16a34a; }
+.threshold { background: #f0fdf4; border-left: 3px solid #16a34a; padding: 14px 18px;
+  border-radius: 6px; font-size: 15px; }
+.threshold strong { color: #16a34a; }
+.diagram { background: #fafafa; border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px; overflow-x: auto; text-align: center; }
+.eq { background: #f8fafc; border: 1px solid var(--border); border-radius: 6px;
+  padding: 12px 18px; margin: 12px 0; font-family: "SF Mono", Monaco, Consolas, monospace;
+  font-size: 15px; text-align: center; overflow-x: auto; }
+pre.code { background: var(--code-bg); color: var(--code-fg); padding: 16px 20px;
+  border-radius: 8px; overflow-x: auto; font-family: "SF Mono", Monaco, Consolas, monospace;
+  font-size: 13px; line-height: 1.55; margin: 0; }
+pre.code .lang { display: block; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 8px; }
+.related { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.related a { display: inline-block; padding: 5px 12px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent); font-size: 14px;
+  text-decoration: none; border: 1px solid transparent; }
+.related a:hover { border-color: var(--accent); }
+.navfoot { display: flex; justify-content: space-between; gap: 12px; margin: 36px 0 0;
+  border-top: 1px solid var(--border); padding-top: 20px; }
+.navfoot a { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 15px;
+  max-width: 46%; }
+.navfoot a:hover { text-decoration: underline; }
+.navfoot .dir { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted); display: block; }
+.fallback { text-align: center; padding: 40px 20px; }
+.fallback h2 { font-size: 22px; margin: 0 0 10px; }
+.fallback p { color: var(--text-muted); max-width: 560px; margin: 0 auto 22px; }
+  </style>
+  <script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+window.__mermaid = mermaid;
+mermaid.initialize({ startOnLoad: false, theme: 'neutral', themeVariables: { fontFamily: 'inherit' } });
+</script>
+  <script src="lessons-data.js"></script>
+</head>
+<body>
+  <div class="container" id="root"></div>
+
+  <script>
+  const LESSONS = window.LESSONS || {};
+  // Canonical order used for prev/next — mirrors the authored sequence in lessons-data.js
+  const ORDER = Object.keys(LESSONS);
+
+  function getId() {
+    return decodeURIComponent(location.hash.slice(1)).trim();
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
+
+  function breadcrumb(label) {
+    return `<nav class="breadcrumb">
+      <a href="../book.html">Book</a><span class="sep">›</span>
+      <a href="dashboard.html">Eval &amp; Observability</a><span class="sep">›</span>
+      <a href="agent-assessment.html">Metrics</a><span class="sep">›</span>
+      <span>${esc(label)}</span>
+    </nav>`;
+  }
+
+  function sectionHead(n, title, id) {
+    return `<h2 class="section" id="${id}"><span class="n">${n}</span>${title}</h2>`;
+  }
+
+  function renderLesson(id, L) {
+    const sections = [
+      ["scenario",    "Business scenario"],
+      ["bridge",      "Why it matters"],
+      ["mindmap",     "Mind map"],
+      ["elaboration", "Elaboration"],
+      ["problem",     "Problem statement"],
+      ["solution",    "Solution"],
+      ["math",        "The math"],
+      ["tech",        "Technical details"],
+    ];
+
+    const toc = sections.map((s, i) =>
+      `<li><a href="#sec-${s[0]}">${s[1]}</a></li>`).join("");
+
+    const parts = [];
+    parts.push(breadcrumb(L.title));
+    parts.push(`<header class="hero">
+      <h1>${esc(L.title)}</h1>
+      <p class="lead">A full worked lesson — from a real Apex-desk failure to the math that prevents it.</p>
+      <div class="badges">
+        <span class="badge">${esc(L.category)}</span>
+        <span class="badge">${esc(L.complexity)}</span>
+        <span class="badge">${(L.covers || []).length} metric${(L.covers||[]).length===1?"":"s"} covered</span>
+        <button class="mark-studied" onclick="window.__markStudied('${esc(id)}')">Mark as studied</button>
+        <a class="badge mastery-link" href="mastery.html">Mastery tracker ↗</a>
+      </div>
+    </header>`);
+    parts.push(`<div class="toc"><div class="lbl">In this lesson</div><ol>${toc}</ol></div>`);
+
+    // 1 scenario
+    parts.push(sectionHead(1, "Business scenario", "sec-scenario"));
+    parts.push(`<div class="card prose">${L.scenario}</div>`);
+
+    // 2 bridge
+    parts.push(sectionHead(2, "Why it matters", "sec-bridge"));
+    parts.push(`<div class="callout prose">${L.bridge}</div>`);
+
+    // 3 mindmap
+    parts.push(sectionHead(3, "Mind map", "sec-mindmap"));
+    parts.push(`<div class="diagram"><pre class="mermaid">${esc(L.mindmap)}</pre></div>`);
+
+    // 4 elaboration
+    parts.push(sectionHead(4, "Elaboration", "sec-elaboration"));
+    parts.push(`<div class="card prose">${L.elaboration}</div>`);
+
+    // 5 problem
+    parts.push(sectionHead(5, "Problem statement", "sec-problem"));
+    parts.push(`<div class="problem prose">${L.problem}</div>`);
+
+    // 6 solution
+    parts.push(sectionHead(6, "Solution", "sec-solution"));
+    const steps = (L.solution.steps || []).map((s) => `<li>${s}</li>`).join("");
+    parts.push(`<div class="card"><ol class="steps">${steps}</ol>`);
+    if (L.solution.code) {
+      parts.push(`<pre class="code"><span class="lang">${esc(L.solution.code.lang)}</span>${esc(L.solution.code.src)}</pre>`);
+    }
+    parts.push(`</div>`);
+
+    // 7 math
+    parts.push(sectionHead(7, "The math", "sec-math"));
+    parts.push(`<div class="card prose">${L.math}</div>`);
+
+    // 8 tech
+    parts.push(sectionHead(8, "Technical details", "sec-tech"));
+    parts.push(`<div class="card prose">${L.tech}</div>`);
+    if (L.threshold) {
+      parts.push(`<div class="threshold"><strong>Acceptance gate.</strong> ${esc(L.threshold)}</div>`);
+    }
+    if (L.pitfalls && L.pitfalls.length) {
+      parts.push(`<h2 class="section">Pitfalls</h2>`);
+      for (const p of L.pitfalls) {
+        parts.push(`<div class="pitfall"><div class="trap">${esc(p.trap)}</div>
+          <div class="fix">${p.fix}</div></div>`);
+      }
+    }
+
+    // related links
+    parts.push(`<h2 class="section">Go deeper</h2>`);
+    parts.push(`<div class="related">
+      <a href="agent-assessment.html#${esc(id)}">Metric card ↗</a>
+      <a href="scripts/view.html#${esc(id)}">Test script ↗</a>
+      <a href="${esc(id)}.html">Recipe page ↗</a>
+      <a href="knowledge-path.html">Learning path ↗</a>
+    </div>`);
+
+    // prev / next
+    const idx = ORDER.indexOf(id);
+    const prev = idx > 0 ? ORDER[idx - 1] : null;
+    const next = idx >= 0 && idx < ORDER.length - 1 ? ORDER[idx + 1] : null;
+    parts.push(`<nav class="navfoot">
+      <a href="${prev ? "lesson.html#" + prev : "#"}" style="${prev ? "" : "visibility:hidden"}">
+        <span class="dir">‹ Previous lesson</span>${prev ? esc(LESSONS[prev].title) : ""}</a>
+      <a href="${next ? "lesson.html#" + next : "#"}" style="${next ? "text-align:right" : "visibility:hidden"}">
+        <span class="dir">Next lesson ›</span>${next ? esc(LESSONS[next].title) : ""}</a>
+    </nav>`);
+
+    return parts.join("\n");
+  }
+
+  function renderFallback(id) {
+    const safe = id || "(none)";
+    return `${breadcrumb("Lesson in progress")}
+      <header class="hero">
+        <h1>Lesson in progress</h1>
+        <p class="lead">A full worked lesson for <code>${esc(safe)}</code> hasn't been authored yet.</p>
+      </header>
+      <div class="fallback">
+        <h2>Coming soon</h2>
+        <p>This metric is fully covered by its assessment card, a runnable test script, and a recipe page.
+           The 8-section worked lesson is on its way. In the meantime, dive into the existing material:</p>
+        <div class="related" style="justify-content:center">
+          <a href="agent-assessment.html#${esc(safe)}">Metric card ↗</a>
+          <a href="scripts/view.html#${esc(safe)}">Test script ↗</a>
+          <a href="${esc(safe)}.html">Recipe page ↗</a>
+          <a href="knowledge-path.html">Learning path ↗</a>
+        </div>
+        <p style="margin-top:28px">Authored lessons so far:</p>
+        <div class="related" style="justify-content:center">
+          ${ORDER.map((k) => `<a href="lesson.html#${k}">${esc(LESSONS[k].title)}</a>`).join("")}
+        </div>
+      </div>`;
+  }
+
+  // ── study progress (read by mastery.html) ─────────────────────────────
+  const STUDY_KEY = "apex-studied";
+  function loadStudy() { try { return JSON.parse(localStorage.getItem(STUDY_KEY)) || {}; } catch { return {}; } }
+  function saveStudy(s) { try { localStorage.setItem(STUDY_KEY, JSON.stringify(s)); } catch {} }
+  function markViewed(id) {
+    const s = loadStudy();
+    if (!s[id]) s[id] = { firstViewed: Date.now(), completed: false };
+    s[id].lastViewed = Date.now();
+    saveStudy(s);
+  }
+  function markCompleted(id) {
+    const s = loadStudy();
+    if (!s[id]) s[id] = { firstViewed: Date.now() };
+    if (!s[id].completed) { s[id].completed = true; s[id].completedAt = Date.now(); saveStudy(s); }
+    document.querySelectorAll(".mark-studied").forEach((b) => { b.textContent = "✓ Studied"; b.classList.add("done"); });
+  }
+  let _scrollArmed = null;
+  function armScrollComplete(id) {
+    _scrollArmed = id;
+    const onScroll = () => {
+      if (_scrollArmed !== id) { window.removeEventListener("scroll", onScroll); return; }
+      const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 240;
+      if (nearBottom) { markCompleted(id); _scrollArmed = null; window.removeEventListener("scroll", onScroll); }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+  }
+  window.__markStudied = markCompleted; // used by in-page button
+
+  function run() {
+    const id = getId();
+    const L = LESSONS[id];
+    const root = document.getElementById("root");
+    root.innerHTML = L ? renderLesson(id, L) : renderFallback(id);
+    document.title = (L ? L.title : "Lesson in progress") + " · Eval & Observability · AdaptLearn";
+    if (L && window.__mermaid) {
+      window.__mermaid.run({ querySelector: ".mermaid" });
+    }
+    if (L) {
+      markViewed(id);
+      armScrollComplete(id);
+      const s = loadStudy();
+      if (s[id] && s[id].completed) {
+        document.querySelectorAll(".mark-studied").forEach((b) => { b.textContent = "✓ Studied"; b.classList.add("done"); });
+      }
+    }
+    if (location.hash && document.querySelector(location.hash)) {
+      // no auto-scroll; deep TOC links handle it
+    }
+  }
+
+  window.addEventListener("hashchange", () => { run(); window.scrollTo(0, 0); });
+  if (window.__mermaid) run();
+  else window.addEventListener("load", run);
+  </script>
+  <script src="tutor-widget.js" defer></script>
+</body>
+</html>

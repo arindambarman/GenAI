@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eval &amp; Observability — Dependency Flow · AdaptLearn</title>
+  <style>
+    :root {
+      --bg: #f4f6f9; --surface: #ffffff;
+      --text: #1c2230; --text-muted: #5b6473;
+      --border: #e5e7eb; --accent: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      color: var(--text); background: var(--bg); }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+      padding: 12px 22px; background: var(--surface); border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 20; }
+    .topbar h1 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
+    .crumb { font-size: 13px; color: var(--text-muted); }
+    .crumb a { color: var(--text-muted); text-decoration: none; }
+    .crumb a:hover { color: var(--accent); text-decoration: underline; }
+    .controls { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+    .btn { font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; padding: 6px 12px;
+      border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); text-decoration: none; }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .legend { display: flex; gap: 13px; flex-wrap: wrap; font-size: 12px; align-items: center; color: var(--text-muted); }
+    .legend .it { display: inline-flex; align-items: center; gap: 5px; }
+    .legend .ln { width: 22px; height: 0; border-top: 3px solid; display: inline-block; }
+    .legend .ln.dash { border-top-style: dashed; }
+    .hint { font-size: 12.5px; color: var(--text-muted); padding: 8px 22px; }
+    .hint strong { color: var(--text); }
+    .stage { width: 100%; overflow: auto; }
+    svg { display: block; font-family: inherit; }
+
+    .col-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; fill: var(--text-muted); }
+    .col-sub { font-size: 10.5px; fill: #9aa3b2; }
+
+    .edge { fill: none; stroke-opacity: 0.15; transition: stroke-opacity .1s; }
+    .edge.struct { stroke: #94a3b8; }
+    .edge.feed   { stroke: #2563eb; }
+    .edge.gate   { stroke: #7c3aed; }
+    .edge.ops    { stroke: #db2777; }
+    .edge.loop   { stroke: #d97706; stroke-dasharray: 6 5; }
+    .edge.hot  { stroke-opacity: 0.95; stroke-width: 2.4; }
+    .edge.cold { stroke-opacity: 0.035; }
+
+    .nodeg { cursor: default; transition: opacity .1s; }
+    .nodeg.link { cursor: pointer; }
+    .nodeg.faded { opacity: 0.16; }
+    .nbox { rx: 7; stroke-width: 1.5; }
+    .nlabel { font-size: 11px; font-weight: 600; }
+    .nbox-metric:hover { filter: brightness(0.96); }
+    .arrowdot { font-size: 9px; font-weight: 800; }
+    .footnote { font-size: 12px; color: var(--text-muted); padding: 8px 22px 26px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <div class="crumb"><a href="../book.html">Book</a> &nbsp;›&nbsp; <a href="dashboard.html">Dashboard</a> &nbsp;›&nbsp; Dependency Flow</div>
+      <h1>Eval &amp; Observability — Dependency Flow</h1>
+    </div>
+    <div class="controls">
+      <div class="legend" id="legend">
+        <span class="it"><span class="ln struct"></span>emit / carry</span>
+        <span class="it"><span class="ln feed"></span>feeds metric</span>
+        <span class="it"><span class="ln gate"></span>rolls up / gates</span>
+        <span class="it"><span class="ln ops"></span>alerts / ops</span>
+        <span class="it"><span class="ln loop dash"></span>feedback loop</span>
+      </div>
+      <a class="btn" href="dashboard.html">Dashboard →</a>
+      <a class="btn" href="mindmap.html">Mindmap →</a>
+    </div>
+  </div>
+  <div class="hint"><strong>Hover any node</strong> to trace its full dependency chain (what feeds it and what it feeds). <strong>Click a metric</strong> (colored nodes from column 3 on) to open its worked example. The flow runs left → right: a signal emitted by an agent component is captured as a span attribute, derived into a metric, rolled up into a gate or dashboard, and — on regression — loops back as a fix.</div>
+  <div class="stage"><svg id="flow"></svg></div>
+  <div class="footnote">All 41 eval &amp; observability metrics shown as nodes · 5 agent components · 11 captured parameters · single self-contained file.</div>
+
+  <script>
+    const SVG_NS = "http://www.w3.org/2000/svg";
+
+    // ── Column palette (reinforces the L→R flow) ─────────────────────────
+    const PAL = {
+      comp:  { stroke: "#334155", soft: "#e2e8f0", text: "#1e293b" }, // agent components
+      obs:   { stroke: "#0d9488", soft: "#ccfbf1", text: "#134e4a" }, // instrumentation
+      param: { stroke: "#475569", soft: "#eef2f7", text: "#1e293b" }, // captured parameters
+      evalm: { stroke: "#2563eb", soft: "#dbeafe", text: "#1e3a8a" }, // eval metrics
+      gate:  { stroke: "#7c3aed", soft: "#ede9fe", text: "#4c1d95" }, // aggregation & gates
+      ops:   { stroke: "#db2777", soft: "#fce7f3", text: "#831843" }, // ops & feedback
+    };
+
+    // ── Columns (the flow stages). Each id has [label, kind]. ────────────
+    const COLS = [
+      { title: "Agent components", sub: "signal sources", kind: "comp", nodes: [
+        ["comp-orch", "Orchestrator"], ["comp-sub", "6 subagents"], ["comp-tools", "Tools"],
+        ["comp-llm", "LLM calls"], ["comp-mem", "Memory / RAG"],
+      ]},
+      { title: "Instrumentation", sub: "observability (obs)", kind: "obs", nodes: [
+        ["obs-trace-tree", "Trace tree"], ["obs-spans", "Spans + attrs"], ["obs-events", "Events"],
+        ["obs-counters", "Counters"], ["obs-histograms", "Histograms"], ["obs-replay", "Replay"],
+      ]},
+      { title: "Captured parameters", sub: "span attributes", kind: "param", nodes: [
+        ["p-latency", "latency_ms"], ["p-cost", "cost_usd"], ["p-tokens", "tokens in/out"],
+        ["p-conf", "confidence"], ["p-seq", "tool sequence"], ["p-args", "tool args"],
+        ["p-schema", "schema_valid"], ["p-err", "error_type"], ["p-out", "output / claims"],
+        ["p-refusal", "refusal / escalation"], ["p-pii", "PII flags"],
+      ]},
+      { title: "Eval & derived metrics", sub: "scored per task", kind: "evalm", nodes: [
+        ["latency-percentiles", "Latency p50/95/99"], ["tail-latency-analysis", "Tail latency"],
+        ["cost-per-task", "Cost per task"], ["token-usage-attribution", "Token attribution"],
+        ["calibration-ece", "Calibration / ECE"], ["tool-trajectory", "Tool trajectory"],
+        ["tool-argument-validity", "Tool arg validity"], ["schema-conformance", "Schema conformance"],
+        ["tool-failure-recovery", "Tool failure recovery"], ["citation-faithfulness", "Citation faithfulness"],
+        ["hallucination-rate", "Hallucination rate"], ["exact-vs-semantic-match", "Exact/semantic match"],
+        ["llm-judge-rubric", "LLM-judge rubric"], ["pairwise-preference", "Pairwise preference"],
+        ["multi-turn-coherence", "Multi-turn coherence"], ["refusal-rate", "Refusal rate"],
+        ["pii-leakage", "PII leakage"], ["red-team-injection", "Prompt-injection"],
+        ["jailbreak-resistance", "Jailbreak resistance"], ["safety-guardrail-adherence", "Guardrail adherence"],
+      ]},
+      { title: "Aggregation & gates", sub: "rollups · CI", kind: "gate", nodes: [
+        ["obs-per-agent", "Per-agent breakdown"], ["obs-five-metrics", "5 metrics that matter"],
+        ["obs-dashboards", "Dashboards"], ["regression-eval-set", "Regression eval set"],
+        ["ci-eval-gate", "CI eval gate"], ["prompt-ab-eval", "Prompt A/B eval"],
+        ["sample-size-power", "Sample size / power"], ["obs-alert-thresholds", "Alert thresholds"],
+      ]},
+      { title: "Ops & feedback loop", sub: "act · refresh", kind: "ops", nodes: [
+        ["obs-alert-fatigue", "Alert fatigue"], ["obs-oncall-playbook", "On-call playbook"],
+        ["eval-set-freshness", "Eval set freshness"], ["obs-sample-failures", "Sample failures"],
+        ["obs-sample-routine", "Sample 1% routine"], ["obs-sample-rare", "Sample 100% rare"],
+        ["obs-sample-anomalous-cost", "Sample cost>2×P95"],
+      ]},
+    ];
+
+    // 41 real metric ids → clickable to worked example.
+    const METRIC_IDS = new Set([
+      "regression-eval-set","llm-judge-rubric","citation-faithfulness","exact-vs-semantic-match","schema-conformance",
+      "calibration-ece","multi-turn-coherence","pairwise-preference","tool-trajectory","tool-argument-validity",
+      "refusal-rate","safety-guardrail-adherence","tool-failure-recovery","cost-per-task","latency-percentiles",
+      "token-usage-attribution","tail-latency-analysis","red-team-injection","jailbreak-resistance","pii-leakage",
+      "hallucination-rate","eval-set-freshness","ci-eval-gate","sample-size-power","prompt-ab-eval",
+      "obs-trace-tree","obs-spans","obs-events","obs-replay","obs-counters","obs-histograms","obs-five-metrics",
+      "obs-per-agent","obs-dashboards","obs-alert-thresholds","obs-alert-fatigue","obs-oncall-playbook",
+      "obs-sample-failures","obs-sample-routine","obs-sample-rare","obs-sample-anomalous-cost",
+    ]);
+
+    // ── Edges: [source, target, type] ───────────────────────────────────
+    const fan = (s, arr, type) => arr.map(t => [s, t, type]);
+    const EDGES = [
+      // components emit into the trace
+      ...fan("comp-orch", ["obs-trace-tree"], "struct"),
+      ["comp-sub","obs-trace-tree","struct"], ["comp-tools","obs-trace-tree","struct"],
+      ["comp-llm","obs-trace-tree","struct"], ["comp-mem","obs-trace-tree","struct"],
+      // instrumentation internal
+      ["obs-trace-tree","obs-spans","struct"], ["obs-spans","obs-events","struct"],
+      ["obs-spans","obs-counters","struct"], ["obs-spans","obs-histograms","struct"],
+      ["obs-trace-tree","obs-replay","struct"],
+      // spans / events carry parameters
+      ...fan("obs-spans", ["p-latency","p-cost","p-tokens","p-conf","p-seq","p-args","p-schema","p-out","p-pii"], "struct"),
+      ...fan("obs-events", ["p-err","p-refusal"], "struct"),
+      // parameters feed metrics
+      ...fan("p-latency", ["latency-percentiles","tail-latency-analysis"], "feed"),
+      ...fan("p-cost", ["cost-per-task"], "feed"),
+      ...fan("p-tokens", ["token-usage-attribution"], "feed"),
+      ...fan("p-conf", ["calibration-ece"], "feed"),
+      ...fan("p-seq", ["tool-trajectory"], "feed"),
+      ...fan("p-args", ["tool-argument-validity"], "feed"),
+      ...fan("p-schema", ["schema-conformance"], "feed"),
+      ...fan("p-err", ["tool-failure-recovery"], "feed"),
+      ...fan("p-out", ["citation-faithfulness","hallucination-rate","exact-vs-semantic-match","llm-judge-rubric",
+                       "pairwise-preference","multi-turn-coherence","red-team-injection","jailbreak-resistance",
+                       "safety-guardrail-adherence"], "feed"),
+      ...fan("p-refusal", ["refusal-rate"], "feed"),
+      ...fan("p-pii", ["pii-leakage"], "feed"),
+      // rollups & gates
+      ["obs-counters","obs-per-agent","gate"], ["obs-histograms","obs-per-agent","gate"],
+      ...fan("calibration-ece", ["obs-five-metrics","obs-dashboards"], "gate"),
+      ...fan("cost-per-task", ["obs-five-metrics","obs-dashboards"], "gate"),
+      ...fan("latency-percentiles", ["obs-five-metrics","obs-dashboards"], "gate"),
+      ["refusal-rate","obs-five-metrics","gate"], ["llm-judge-rubric","obs-five-metrics","gate"],
+      ["schema-conformance","regression-eval-set","gate"], ["tool-trajectory","regression-eval-set","gate"],
+      ["exact-vs-semantic-match","regression-eval-set","gate"], ["llm-judge-rubric","regression-eval-set","gate"],
+      ["sample-size-power","regression-eval-set","gate"], ["sample-size-power","prompt-ab-eval","gate"],
+      ["regression-eval-set","ci-eval-gate","gate"], ["schema-conformance","ci-eval-gate","gate"],
+      ["regression-eval-set","prompt-ab-eval","gate"],
+      ["obs-five-metrics","obs-alert-thresholds","gate"], ["obs-histograms","obs-alert-thresholds","gate"],
+      // alerts & ops
+      ["obs-alert-thresholds","obs-alert-fatigue","ops"], ["obs-alert-fatigue","obs-oncall-playbook","ops"],
+      ["obs-dashboards","obs-oncall-playbook","ops"],
+      ["obs-events","obs-sample-failures","ops"], ["obs-spans","obs-sample-routine","ops"],
+      ["obs-spans","obs-sample-rare","ops"], ["p-cost","obs-sample-anomalous-cost","ops"],
+      ["obs-oncall-playbook","obs-sample-failures","ops"], ["obs-sample-routine","eval-set-freshness","ops"],
+      // feedback loops (back to the left)
+      ["obs-oncall-playbook","comp-orch","loop"], ["eval-set-freshness","comp-orch","loop"],
+      ["prompt-ab-eval","comp-sub","loop"], ["obs-sample-failures","obs-replay","loop"],
+    ];
+
+    // ── Layout ──────────────────────────────────────────────────────────
+    const COL_W = 232, NODE_W = 176, NODE_H = 32, V_GAP = 12, TOP = 78, LEFT = 28, BOTTOM_PAD = 130;
+
+    const pos = {};      // id -> {x, y, ci, kind, label}
+    let maxColH = 0;
+    COLS.forEach((c) => { const h = c.nodes.length * (NODE_H + V_GAP) - V_GAP; if (h > maxColH) maxColH = h; });
+    const totalH = TOP + maxColH + BOTTOM_PAD;
+    const totalW = LEFT + COLS.length * COL_W + 30;
+
+    COLS.forEach((c, ci) => {
+      const colH = c.nodes.length * (NODE_H + V_GAP) - V_GAP;
+      const startY = TOP + (maxColH - colH) / 2;
+      const x = LEFT + ci * COL_W;
+      c.nodes.forEach(([id, label], k) => {
+        pos[id] = { x, y: startY + k * (NODE_H + V_GAP), ci, kind: c.kind, label };
+      });
+    });
+
+    function el(name, attrs, text) {
+      const e = document.createElementNS(SVG_NS, name);
+      for (const k in attrs) e.setAttribute(k, attrs[k]);
+      if (text != null) e.textContent = text;
+      return e;
+    }
+
+    function edgePath(s, t) {
+      const sx = s.x + NODE_W, sy = s.y + NODE_H / 2;
+      const tx = t.x, ty = t.y + NODE_H / 2;
+      if (t.ci > s.ci) {            // forward
+        const mx = (sx + tx) / 2;
+        return `M${sx},${sy} C${mx},${sy} ${mx},${ty} ${tx},${ty}`;
+      }
+      // backward / loop → arc beneath the diagram
+      const bx = s.x + NODE_W / 2, by = s.y + NODE_H;
+      const arcY = totalH - 40;
+      return `M${bx},${by} C${bx},${arcY} ${tx},${arcY} ${tx},${ty}`;
+    }
+
+    // adjacency for hover highlight
+    const adj = {};
+    EDGES.forEach(([s, t]) => { (adj[s] ||= new Set()).add(t); (adj[t] ||= new Set()).add(s); });
+
+    const edgeEls = [];     // {el, s, t}
+    const nodeEls = {};     // id -> group element
+
+    function render() {
+      const svg = document.getElementById("flow");
+      svg.innerHTML = "";
+      svg.setAttribute("width", totalW);
+      svg.setAttribute("height", totalH);
+      svg.setAttribute("viewBox", `0 0 ${totalW} ${totalH}`);
+
+      // column headers
+      COLS.forEach((c, ci) => {
+        const x = LEFT + ci * COL_W;
+        svg.appendChild(el("text", { x, y: TOP - 34, class: "col-title" }, `${ci + 1}. ${c.title}`));
+        svg.appendChild(el("text", { x, y: TOP - 20, class: "col-sub" }, c.sub));
+      });
+
+      // edges first (under nodes)
+      EDGES.forEach(([s, t, type]) => {
+        const ps = pos[s], pt = pos[t];
+        if (!ps || !pt) return;
+        const p = el("path", { d: edgePath(ps, pt), class: `edge ${type}` });
+        svg.appendChild(p);
+        edgeEls.push({ el: p, s, t });
+      });
+
+      // nodes
+      COLS.forEach((c) => {
+        c.nodes.forEach(([id, label]) => {
+          const p = pos[id], col = PAL[p.kind];
+          const isMetric = METRIC_IDS.has(id);
+          const g = el(isMetric ? "a" : "g", isMetric
+            ? { href: `agent-assessment.html#${id}`, target: "_blank", rel: "noopener", class: "nodeg link" }
+            : { class: "nodeg" });
+          const tip = label + (isMetric ? "  —  click: open worked example" : "");
+          g.appendChild(el("title", {}, tip));
+          g.appendChild(el("rect", {
+            x: p.x, y: p.y, width: NODE_W, height: NODE_H, rx: 7,
+            fill: col.soft, stroke: col.stroke, "stroke-width": 1.5,
+            class: "nbox" + (isMetric ? " nbox-metric" : ""),
+          }));
+          g.appendChild(el("text", {
+            x: p.x + 11, y: p.y + NODE_H / 2 + 4, class: "nlabel",
+            fill: col.text, "font-family": p.kind === "param" ? "ui-monospace, Consolas, monospace" : "inherit",
+            "font-size": p.kind === "param" ? 10.5 : 11,
+          }, label));
+          // hover highlight
+          g.addEventListener("mouseenter", () => highlight(id));
+          g.addEventListener("mouseleave", () => highlight(null));
+          svg.appendChild(g);
+          nodeEls[id] = g;
+        });
+      });
+    }
+
+    function highlight(id) {
+      if (!id) {
+        edgeEls.forEach(e => e.el.classList.remove("hot", "cold"));
+        for (const k in nodeEls) nodeEls[k].classList.remove("faded");
+        return;
+      }
+      const keep = new Set([id, ...(adj[id] || [])]);
+      edgeEls.forEach(e => {
+        const inc = e.s === id || e.t === id;
+        e.el.classList.toggle("hot", inc);
+        e.el.classList.toggle("cold", !inc);
+      });
+      for (const k in nodeEls) nodeEls[k].classList.toggle("faded", !keep.has(k));
+    }
+
+    render();
+  </script>
+</body>
+</html>

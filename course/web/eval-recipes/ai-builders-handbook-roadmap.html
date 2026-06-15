@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The AI Builder's Handbook · Roadmap Landscape</title>
+<style>
+:root{
+  --bg0:#05070f; --panel:rgba(15,21,38,0.9); --line:rgba(120,140,190,0.18);
+  --txt:#e6ecff; --muted:#8b97b8; --faint:#5d6b8e; --accent:#38bdf8;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;min-height:100%;background:
+  radial-gradient(1200px 600px at 20% -10%, rgba(56,189,248,0.08), transparent 60%),
+  radial-gradient(1000px 500px at 90% 0%, rgba(167,139,250,0.08), transparent 55%), var(--bg0);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;color:var(--txt);}
+.wrap{max-width:1400px;margin:0 auto;padding:26px 22px 60px;}
+header h1{margin:0 0 3px;font-size:22px;font-weight:800;letter-spacing:-0.01em;
+  background:linear-gradient(90deg,#fcd34d,#a78bfa,#7dd3fc);-webkit-background-clip:text;background-clip:text;color:transparent;}
+header .sub{font-size:12.5px;color:var(--muted);letter-spacing:.05em;}
+.toolrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0 6px;}
+.toolrow .lbl{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.12em;margin-right:4px;}
+.tbtn{background:rgba(255,255,255,0.05);border:1px solid var(--line);color:var(--muted);border-radius:999px;
+  padding:6px 13px;font-size:12px;font-weight:700;cursor:pointer;transition:.13s;}
+.tbtn:hover{color:var(--txt);border-color:rgba(255,255,255,0.3);}
+.tbtn.active{background:rgba(56,189,248,0.16);border-color:var(--accent);color:#cdeafe;}
+.openlink{margin-left:auto;font-size:12px;font-weight:700;color:#c4b5fd;text-decoration:none;border:1px solid rgba(167,139,250,0.4);
+  background:rgba(167,139,250,0.12);border-radius:9px;padding:6px 12px;}
+.openlink:hover{background:rgba(167,139,250,0.24);}
+.tkey{font-size:11px;color:var(--muted);margin:2px 0 14px;}
+.tkey b{font-weight:800;}
+.lanes{display:flex;gap:14px;overflow-x:auto;padding-bottom:10px;align-items:flex-start;}
+.lane{flex:1 1 0;min-width:210px;display:flex;flex-direction:column;gap:10px;}
+.lanehead{position:sticky;top:0;border-radius:12px;padding:10px 12px;font-weight:800;font-size:13px;color:#0b1020;
+  display:flex;align-items:center;gap:8px;box-shadow:0 6px 18px rgba(0,0,0,0.35);}
+.lanehead .pn{font-size:10px;font-weight:800;opacity:0.75;}
+.lanehead .ph{display:flex;flex-direction:column;line-height:1.15;}
+.lanehead .pt{font-size:9.5px;font-weight:700;opacity:0.7;text-transform:uppercase;letter-spacing:.06em;}
+.arrow{align-self:center;color:var(--faint);font-size:18px;flex:0 0 auto;padding-top:30px;}
+.card{display:block;text-decoration:none;color:var(--txt);background:var(--panel);border:1px solid var(--line);
+  border-left-width:4px;border-radius:11px;padding:10px 12px;transition:.14s;position:relative;backdrop-filter:blur(6px);}
+.card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,0.35);box-shadow:0 12px 30px rgba(0,0,0,0.45);}
+.card .ch{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.card .num{flex:none;width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;color:#0b1020;}
+.card .ct{font-size:12.5px;font-weight:700;line-height:1.25;}
+.card .cg{font-size:11px;color:var(--muted);line-height:1.45;}
+.card .cp{position:absolute;top:9px;right:10px;font-size:9.5px;color:var(--faint);font-weight:700;}
+.card .mk{position:absolute;top:8px;right:10px;font-size:13px;font-weight:800;display:none;}
+.card.dim{opacity:0.28;filter:saturate(0.4);}
+.card.show-mk .cp{display:none;}
+.card.show-mk .mk{display:block;}
+.foot{margin-top:22px;font-size:11.5px;color:var(--faint);line-height:1.6;border-top:1px solid var(--line);padding-top:12px;}
+.foot b{color:var(--muted);}
+@media(max-width:880px){ .lanes{flex-wrap:wrap;} .lane{flex:1 1 260px;} .arrow{display:none;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>The AI Builder's Handbook — Roadmap Landscape</h1>
+    <div class="sub">LevelUp Labs, 2026 · the whole book at a glance — six parts, twenty chapters, left → right</div>
+  </header>
+
+  <div class="toolrow">
+    <span class="lbl">Reading track</span>
+    <button class="tbtn active" data-track="all">All chapters</button>
+    <button class="tbtn" data-track="pm">📊 Product Manager</button>
+    <button class="tbtn" data-track="ux">🎨 UX Designer</button>
+    <button class="tbtn" data-track="eng">🛠️ Engineer</button>
+    <button class="tbtn" data-track="leader">🧭 Leader</button>
+    <a class="openlink" href="ai-builders-handbook-graph-3d.html" target="_blank" rel="noopener">Open the 3D graph ↗</a>
+  </div>
+  <div class="tkey" id="tkey">Click any chapter to open it in the book. Pick a track to see your path: <b style="color:#34d399">▲ core read</b> · <b style="color:#fbbf24">◆ as-needed</b> · <b style="color:#f87171">▼ skip first pass</b>.</div>
+
+  <div class="lanes" id="lanes"></div>
+
+  <div class="foot">
+    <b>How to read this:</b> the six coloured lanes are the book's parts, in order — foundations on the left, production and what's next on the right. Each card is a chapter; the number is its place in the arc. The book's own throughline: <b>evaluation (Part 3)</b> underpins everything, and <b>production readiness (Ch 18)</b> is the gate at the end. Page numbers link into the source PDF.
+  </div>
+</div>
+
+<script>
+const PDF = "AI_Builders_Handbook.pdf", OFF = 9;
+const PARTS = [
+  { n:"Part 1", t:"The Landscape",            col:"#f59e0b", chs:[1,2,3] },
+  { n:"Part 2", t:"Designing AI Products",    col:"#38bdf8", chs:[4,5] },
+  { n:"Part 3", t:"The Evaluation Core",      col:"#a78bfa", chs:[6,7,8,9] },
+  { n:"Part 4", t:"Building Agentic Systems", col:"#34d399", chs:[10,11,12,13,14,15] },
+  { n:"Part 5", t:"Production & Long Arc",    col:"#fb923c", chs:[16,17,18] },
+  { n:"Part 6", t:"Where to Go Next",         col:"#f472b6", chs:[19,20] },
+];
+const CH = {
+  1:["The Language of Generative & Agentic AI",5,"The vocabulary you need before everything else."],
+  2:["What Enterprises Are Building",21,"Where AI value is landing — and what's failing."],
+  3:["Models: How to Choose",26,"No best model — a framework for choosing one."],
+  4:["Problem-First Design",32,"Start from the problem, not the technology."],
+  5:["Prompting & Context Engineering",38,"The designable surface: prompts, context, examples."],
+  6:["Why Evals Are the Real Work",44,"Evaluation is the muscle that matters most."],
+  7:["Code-Based Evals",49,"Deterministic checks you build first, always."],
+  8:["LLM-as-Judge & Calibration",54,"Measuring subjective quality — and calibrating it."],
+  9:["Guardrails: Input & Output",60,"The safety layer around the model."],
+  10:["From Single Calls to Agents",66,"The autonomy spectrum and when to move up."],
+  11:["Workflow & Router Patterns",71,"The shapes most systems should default to."],
+  12:["Tool Use & Actions",78,"How agents act — safely and reversibly."],
+  13:["Retrieval",84,"Grounding answers in your own documents."],
+  14:["Memory & Long-Running Agents",90,"Memory for agents that persist."],
+  15:["Multi-Agent Systems",96,"When several agents beat one — and the cost."],
+  16:["Observability & Tracing",102,"Seeing what your AI system actually did."],
+  17:["Protocols & Extensibility",108,"MCP, agent-to-agent protocols, and SDKs."],
+  18:["Production Readiness Checklist",114,"The launch gate before you ship."],
+  19:["Role-Based Learning Tracks",121,"How a PM, designer, engineer, or leader should read this."],
+  20:["The Horizon",127,"Where the field is heading — and what doesn't change."],
+};
+// per-track levels: core ▲, asneeded ◆, skip ▼  (unlisted = neutral)
+const TRACKS = {
+  pm:    { core:[1,2,3,4,6,8,10,11,18], skip:[7,12,13,14,15,16,17] },
+  ux:    { core:[1,4,5,8,9,11,12,13,18], skip:[3,7,10,14,15,16,17] },
+  eng:   { core:[1,3,5,6,7,9,10,11,12,13,16,17,18], asneeded:[14,15] },
+  leader:{ core:[2,6,10,18], skip:[1,3,4,5,7,8,9,11,12,13,14,15,16,17,19,20] },
+};
+const MK = { core:["▲","#34d399"], asneeded:["◆","#fbbf24"], skip:["▼","#f87171"] };
+
+let active = "all";
+const lanesEl = document.getElementById("lanes");
+
+function levelOf(track, ch){
+  if(track==="all") return null;
+  const t = TRACKS[track]; if(!t) return null;
+  if((t.core||[]).includes(ch)) return "core";
+  if((t.asneeded||[]).includes(ch)) return "asneeded";
+  if((t.skip||[]).includes(ch)) return "skip";
+  return "neutral";
+}
+
+function build(){
+  lanesEl.innerHTML = "";
+  PARTS.forEach((p, pi)=>{
+    const lane = document.createElement("div"); lane.className="lane";
+    const head = document.createElement("div"); head.className="lanehead";
+    head.style.background = p.col;
+    head.innerHTML = '<span class="ph"><span class="pt">'+p.n+'</span><span>'+p.t+'</span></span>';
+    lane.appendChild(head);
+    p.chs.forEach(ch=>{
+      const [title,page,gist] = CH[ch];
+      const a = document.createElement("a");
+      a.className="card"; a.style.borderLeftColor = p.col;
+      a.href = PDF+"#page="+(page+OFF); a.target="_blank"; a.rel="noopener";
+      a.dataset.ch = ch;
+      a.innerHTML =
+        '<div class="ch"><span class="num" style="background:'+p.col+'">'+ch+'</span>'+
+        '<span class="ct">'+title+'</span></div>'+
+        '<div class="cg">'+gist+'</div>'+
+        '<span class="cp">p.'+page+' ↗</span><span class="mk"></span>';
+      lane.appendChild(a);
+    });
+    lanesEl.appendChild(lane);
+    if(pi < PARTS.length-1){ const ar=document.createElement("div"); ar.className="arrow"; ar.textContent="→"; lanesEl.appendChild(ar); }
+  });
+  applyTrack();
+}
+
+function applyTrack(){
+  document.querySelectorAll(".card").forEach(card=>{
+    const ch = +card.dataset.ch;
+    const lvl = levelOf(active, ch);
+    card.classList.toggle("dim", lvl==="skip" || lvl==="neutral");
+    const mk = card.querySelector(".mk");
+    if(lvl && MK[lvl]){ card.classList.add("show-mk"); mk.textContent = MK[lvl][0]; mk.style.color = MK[lvl][1]; }
+    else { card.classList.remove("show-mk"); }
+  });
+}
+
+document.querySelectorAll(".tbtn").forEach(b=>{
+  b.addEventListener("click", ()=>{ active = b.dataset.track;
+    document.querySelectorAll(".tbtn").forEach(x=>x.classList.toggle("active", x===b));
+    applyTrack();
+  });
+});
+build();
+</script>
+</body>
+</html>

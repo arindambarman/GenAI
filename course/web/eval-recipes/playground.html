@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Concept Playground · Eval &amp; Observability · AdaptLearn</title>
+<style>
+:root{
+  --bg0:#05070f; --panel:rgba(15,21,38,0.86); --line:rgba(120,140,190,0.2);
+  --txt:#e6ecff; --muted:#8b97b8; --accent:#38bdf8; --good:#34d399;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg0);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;font-size:14px;}
+.app{display:grid;grid-template-columns:266px 1fr 322px;grid-template-rows:56px 1fr;height:100%;}
+.glow{position:fixed;inset:0;z-index:-1;background:
+  radial-gradient(900px 600px at 14% 10%, rgba(56,189,248,0.10), transparent 60%),
+  radial-gradient(800px 600px at 88% 86%, rgba(168,85,247,0.10), transparent 60%),
+  linear-gradient(180deg,#05070f,#080c18 55%,#05070f);}
+
+/* header */
+header{grid-column:1/4;display:flex;align-items:center;gap:16px;padding:0 18px;
+  border-bottom:1px solid var(--line);background:rgba(8,12,24,0.6);backdrop-filter:blur(8px);}
+header h1{margin:0;font-size:15px;font-weight:800;letter-spacing:-0.01em;
+  background:linear-gradient(90deg,#7dd3fc,#a78bfa,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent;}
+header .sub{font-size:10.5px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;}
+header .spacer{flex:1;}
+.stat{text-align:center;padding:0 12px;border-left:1px solid var(--line);}
+.stat b{display:block;font-size:17px;font-weight:800;line-height:1;}
+.stat span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+header a.link,header button.tool{background:rgba(255,255,255,0.05);border:1px solid var(--line);
+  color:var(--txt);border-radius:8px;padding:8px 11px;font-size:12px;text-decoration:none;cursor:pointer;
+  transition:.15s;}
+header a.link:hover,header button.tool:hover{border-color:var(--accent);color:#7dd3fc;}
+
+/* palette */
+.palette{border-right:1px solid var(--line);overflow-y:auto;padding:12px;background:rgba(8,12,24,0.35);}
+.palette .ps{position:sticky;top:0;background:rgba(8,12,24,0.9);padding-bottom:8px;z-index:2;}
+.palette .ps input{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);
+  border-radius:8px;padding:8px 11px;font-size:12.5px;outline:none;}
+.palette .ps input:focus{border-color:var(--accent);}
+.grp{margin-top:12px;}
+.grp h3{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--muted);cursor:pointer;user-select:none;}
+.grp h3 .dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 8px currentColor;}
+.grp h3 .c{margin-left:auto;font-size:9.5px;}
+.tile{display:flex;align-items:center;gap:8px;padding:7px 9px;margin-bottom:5px;border-radius:8px;
+  background:rgba(255,255,255,0.035);border:1px solid var(--line);font-size:12.5px;cursor:grab;
+  user-select:none;transition:transform .08s,border-color .12s,opacity .12s;}
+.tile:hover{border-color:var(--accent);transform:translateX(2px);}
+.tile.used{opacity:.38;}
+.tile .dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 7px currentColor;}
+.tile.hidden{display:none;}
+
+/* workspace */
+.ws-wrap{position:relative;overflow:hidden;}
+.kits{position:absolute;top:10px;left:12px;z-index:5;display:flex;flex-wrap:wrap;gap:6px;max-width:70%;}
+.kits .kit{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;
+  font-size:11.5px;cursor:pointer;color:var(--txt);transition:.12s;}
+.kits .kit:hover{border-color:var(--accent);color:#7dd3fc;}
+.ws{position:absolute;inset:0;}
+.ws svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;}
+.empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;color:var(--muted);pointer-events:none;z-index:0;padding:30px;}
+.empty .big{font-size:34px;margin-bottom:10px;opacity:.5;}
+.empty p{max-width:340px;line-height:1.6;}
+.node{position:absolute;z-index:2;display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:10px;
+  background:#0b1224;border:1.5px solid;cursor:grab;user-select:none;white-space:nowrap;
+  box-shadow:0 6px 20px rgba(0,0,0,0.4);transition:box-shadow .15s;}
+.node.dragging{cursor:grabbing;z-index:9;}
+.node .dot{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:0 0 8px currentColor;}
+.node .t{font-size:12.5px;font-weight:600;}
+.node .x{margin-left:4px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(255,255,255,0.08);
+  color:var(--muted);cursor:pointer;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;}
+.node .x:hover{background:#ef4444;color:#fff;}
+.node.formed{box-shadow:0 0 0 2px rgba(52,211,153,0.55),0 0 26px rgba(52,211,153,0.4);}
+.node.dim{opacity:.28;}
+.node.spotlight{box-shadow:0 0 0 2px var(--accent),0 0 28px rgba(56,189,248,0.5);}
+.node.pulse{animation:pulse .5s ease;}
+@keyframes pulse{0%{transform:scale(1);}40%{transform:scale(1.14);}100%{transform:scale(1);}}
+.ghost{position:fixed;z-index:99;pointer-events:none;padding:8px 12px;border-radius:10px;background:#0b1224;
+  border:1.5px solid var(--accent);font-size:12.5px;font-weight:600;opacity:.92;}
+
+/* formations rail */
+.rail{border-left:1px solid var(--line);overflow-y:auto;padding:14px;background:rgba(8,12,24,0.4);}
+.rail h2{margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+.rail .intro{font-size:11px;color:var(--muted);margin:0 0 12px;line-height:1.5;}
+.form{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:rgba(255,255,255,0.025);
+  transition:.18s;}
+.form.partial{border-color:rgba(56,189,248,0.4);}
+.form.unlocked{border-color:rgba(52,211,153,0.6);background:rgba(52,211,153,0.07);
+  box-shadow:0 0 22px rgba(52,211,153,0.12);}
+.form .fh{display:flex;align-items:center;gap:8px;}
+.form .ic{font-size:18px;}
+.form .nm{font-weight:800;font-size:13.5px;}
+.form .st{margin-left:auto;font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+  border:1px solid var(--line);border-radius:999px;padding:2px 8px;}
+.form.unlocked .st{color:var(--good);border-color:var(--good);}
+.form .forms{font-size:12px;color:#cfd8f5;margin:8px 0 0;line-height:1.5;}
+.form .forms b{color:#7dd3fc;font-weight:700;}
+.form.unlocked .forms b{color:var(--good);}
+.form .bar{height:5px;border-radius:3px;background:rgba(255,255,255,0.08);margin:9px 0 7px;overflow:hidden;}
+.form .bar i{display:block;height:100%;background:linear-gradient(90deg,#38bdf8,#34d399);width:0;transition:width .3s;}
+.form .miss{font-size:10.5px;color:var(--muted);line-height:1.6;}
+.form .miss b{color:#f0b659;}
+.form .act{display:flex;gap:6px;margin-top:9px;}
+.form .act button{flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--line);color:var(--txt);
+  border-radius:7px;padding:6px;font-size:11px;cursor:pointer;transition:.12s;}
+.form .act button:hover{border-color:var(--accent);color:#7dd3fc;}
+.capstone{border:1px dashed rgba(168,85,247,0.5);background:rgba(168,85,247,0.06);}
+.capstone.unlocked{border-style:solid;border-color:#c084fc;background:rgba(192,132,252,0.12);
+  box-shadow:0 0 28px rgba(192,132,252,0.2);}
+::-webkit-scrollbar{width:9px;}::-webkit-scrollbar-thumb{background:rgba(120,140,190,0.25);border-radius:6px;}
+@media(max-width:980px){.app{grid-template-columns:200px 1fr;}.rail{display:none;}}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="app">
+  <header>
+    <div>
+      <h1>Concept Playground</h1>
+      <div class="sub">drag · connect · discover what they form</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="stat"><b id="s-nodes">0</b><span>Pieces</span></div>
+    <div class="stat"><b id="s-links">0</b><span>Links</span></div>
+    <div class="stat"><b id="s-forms">0/0</b><span>Formations</span></div>
+    <button class="tool" id="btn-clear">Clear</button>
+    <a class="link" href="knowledge-graph.html">Graph</a>
+    <a class="link" href="dashboard.html">Dashboard</a>
+  </header>
+
+  <nav class="palette">
+    <div class="ps"><input id="psearch" type="text" placeholder="Search concepts…" autocomplete="off" /></div>
+    <div id="groups"></div>
+  </nav>
+
+  <div class="ws-wrap">
+    <div class="kits" id="kits"></div>
+    <div class="ws" id="ws">
+      <svg id="lines"></svg>
+      <div class="empty" id="empty">
+        <div class="big">🧩</div>
+        <p><b>Drag concepts</b> from the left onto this canvas. Related ideas auto-connect.
+           Combine the right pieces and they <b>form a capability</b> — watch the panel on the right.</p>
+      </div>
+    </div>
+  </div>
+
+  <aside class="rail">
+    <h2>Formations</h2>
+    <p class="intro">Each formation is a real capability you build by combining metrics. Drop the listed pieces and it unlocks. <b>Assemble</b> fills in what's missing; <b>Show</b> spotlights the pieces.</p>
+    <div id="forms"></div>
+  </aside>
+</div>
+
+<script src="lessons-data.js"></script>
+<script>
+"use strict";
+const LESSONS = window.LESSONS || {};
+const CATS = {
+  "Output correctness":"#38bdf8","Behavior & tool use":"#34d399","Cost & latency":"#fbbf24",
+  "Safety & robustness":"#f87171","Eval ops":"#a78bfa","Traces (obs)":"#22d3ee",
+  "Metrics (obs)":"#2dd4bf","Dashboards & alerts (obs)":"#f472b6","Trace sampling (obs)":"#c084fc",
+};
+const M = [
+  ["regression-eval-set","Regression eval set","Output correctness"],
+  ["llm-judge-rubric","LLM-judge with rubric","Output correctness"],
+  ["citation-faithfulness","Citation faithfulness","Output correctness"],
+  ["exact-vs-semantic-match","Exact vs semantic match","Output correctness"],
+  ["schema-conformance","Schema conformance","Output correctness"],
+  ["calibration-ece","Calibration / ECE","Output correctness"],
+  ["multi-turn-coherence","Multi-turn coherence","Output correctness"],
+  ["pairwise-preference","Pairwise preference","Output correctness"],
+  ["tool-trajectory","Tool trajectory","Behavior & tool use"],
+  ["tool-argument-validity","Tool argument validity","Behavior & tool use"],
+  ["refusal-rate","Refusal / over-refusal","Behavior & tool use"],
+  ["safety-guardrail-adherence","Safety guardrail adherence","Behavior & tool use"],
+  ["tool-failure-recovery","Tool failure recovery","Behavior & tool use"],
+  ["cost-per-task","Cost per task","Cost & latency"],
+  ["latency-percentiles","Latency p50/p95/p99","Cost & latency"],
+  ["token-usage-attribution","Token usage attribution","Cost & latency"],
+  ["tail-latency-analysis","Tail latency analysis","Cost & latency"],
+  ["red-team-injection","Red-team prompt-injection","Safety & robustness"],
+  ["jailbreak-resistance","Jailbreak resistance","Safety & robustness"],
+  ["pii-leakage","PII leakage","Safety & robustness"],
+  ["hallucination-rate","Hallucination rate","Safety & robustness"],
+  ["eval-set-freshness","Eval set freshness","Eval ops"],
+  ["ci-eval-gate","CI eval gate","Eval ops"],
+  ["sample-size-power","Sample size & power","Eval ops"],
+  ["prompt-ab-eval","Prompt A/B eval","Eval ops"],
+  ["obs-trace-tree","Per-task trace tree","Traces (obs)"],
+  ["obs-spans","Spans & attributes","Traces (obs)"],
+  ["obs-events","Events","Traces (obs)"],
+  ["obs-replay","Replay infrastructure","Traces (obs)"],
+  ["obs-counters","Counters","Metrics (obs)"],
+  ["obs-histograms","Histograms","Metrics (obs)"],
+  ["obs-five-metrics","The 5 metrics that matter","Metrics (obs)"],
+  ["obs-per-agent","Per-agent / per-tool breakdown","Metrics (obs)"],
+  ["obs-dashboards","4 dashboard widgets","Dashboards & alerts (obs)"],
+  ["obs-alert-thresholds","Alert thresholds","Dashboards & alerts (obs)"],
+  ["obs-alert-fatigue","Alert-fatigue rule","Dashboards & alerts (obs)"],
+  ["obs-oncall-playbook","On-call playbook","Dashboards & alerts (obs)"],
+  ["obs-sample-failures","Always sample failures","Trace sampling (obs)"],
+  ["obs-sample-routine","1% of routine successes","Trace sampling (obs)"],
+  ["obs-sample-rare","100% of rare task types","Trace sampling (obs)"],
+  ["obs-sample-anomalous-cost","Anomalous-cost capture","Trace sampling (obs)"],
+];
+const NODE = {}; M.forEach(([id,t,c])=>NODE[id]={id,t,cat:c});
+
+const RELS = [
+  ["obs-trace-tree","obs-spans","feeds"],["obs-spans","obs-events","feeds"],["obs-trace-tree","obs-replay","feeds"],
+  ["obs-spans","latency-percentiles","feeds"],["obs-spans","cost-per-task","feeds"],["obs-spans","token-usage-attribution","feeds"],
+  ["obs-spans","calibration-ece","feeds"],["obs-spans","tool-trajectory","feeds"],["obs-spans","tool-argument-validity","feeds"],
+  ["obs-spans","schema-conformance","feeds"],["obs-events","tool-failure-recovery","feeds"],["obs-events","refusal-rate","feeds"],
+  ["pairwise-preference","llm-judge-rubric","kin"],["citation-faithfulness","hallucination-rate","kin"],
+  ["red-team-injection","jailbreak-resistance","kin"],["jailbreak-resistance","safety-guardrail-adherence","kin"],
+  ["red-team-injection","safety-guardrail-adherence","kin"],["pii-leakage","safety-guardrail-adherence","kin"],
+  ["refusal-rate","safety-guardrail-adherence","kin"],["tool-argument-validity","tool-trajectory","kin"],
+  ["tool-failure-recovery","tool-trajectory","kin"],["schema-conformance","tool-argument-validity","kin"],
+  ["token-usage-attribution","cost-per-task","kin"],["tail-latency-analysis","latency-percentiles","kin"],
+  ["multi-turn-coherence","regression-eval-set","kin"],["exact-vs-semantic-match","llm-judge-rubric","kin"],
+  ["calibration-ece","obs-five-metrics","gates"],["cost-per-task","obs-five-metrics","gates"],
+  ["latency-percentiles","obs-five-metrics","gates"],["refusal-rate","obs-five-metrics","gates"],["llm-judge-rubric","obs-five-metrics","gates"],
+  ["calibration-ece","obs-dashboards","gates"],["cost-per-task","obs-dashboards","gates"],["latency-percentiles","obs-dashboards","gates"],
+  ["obs-per-agent","obs-dashboards","gates"],["obs-counters","obs-per-agent","gates"],["obs-histograms","obs-per-agent","gates"],
+  ["schema-conformance","regression-eval-set","gates"],["tool-trajectory","regression-eval-set","gates"],
+  ["exact-vs-semantic-match","regression-eval-set","gates"],["llm-judge-rubric","regression-eval-set","gates"],
+  ["sample-size-power","regression-eval-set","gates"],["sample-size-power","prompt-ab-eval","gates"],
+  ["regression-eval-set","ci-eval-gate","gates"],["schema-conformance","ci-eval-gate","gates"],["regression-eval-set","prompt-ab-eval","gates"],
+  ["obs-five-metrics","obs-alert-thresholds","gates"],["obs-histograms","obs-alert-thresholds","gates"],["obs-dashboards","obs-alert-thresholds","gates"],
+  ["obs-alert-thresholds","obs-alert-fatigue","feeds"],["obs-alert-fatigue","obs-oncall-playbook","feeds"],["obs-dashboards","obs-oncall-playbook","feeds"],
+  ["obs-events","obs-sample-failures","feeds"],["obs-spans","obs-sample-routine","feeds"],["obs-spans","obs-sample-rare","feeds"],
+  ["cost-per-task","obs-sample-anomalous-cost","feeds"],["obs-oncall-playbook","obs-sample-failures","feeds"],["obs-sample-routine","eval-set-freshness","feeds"],
+  ["obs-oncall-playbook","regression-eval-set","loop"],["eval-set-freshness","regression-eval-set","loop"],
+  ["prompt-ab-eval","llm-judge-rubric","loop"],["obs-sample-failures","obs-replay","loop"],
+];
+const EDGE_COLOR = {feeds:"#38bdf8",gates:"#a78bfa",kin:"#64748b",loop:"#fbbf24"};
+// quick relationship lookup
+const relOf = {};
+RELS.forEach(([a,b,t])=>{ relOf[a+"|"+b]=t; relOf[b+"|"+a]=t; });
+
+const FORMATIONS = [
+  {id:"contract",ic:"📐",nm:"Structured-output contract",need:["schema-conformance","tool-argument-validity"],
+   forms:"An agent whose every output and tool call is <b>machine-valid by construction</b> — no broken JSON reaching downstream systems."},
+  {id:"reliable-tools",ic:"🔧",nm:"Reliable tool-using agent",need:["tool-trajectory","tool-argument-validity","tool-failure-recovery"],
+   forms:"An agent that calls the <b>right tools, with valid args, and recovers</b> when a tool fails instead of hallucinating."},
+  {id:"release-gate",ic:"🚦",nm:"Trustworthy release gate",need:["regression-eval-set","ci-eval-gate","sample-size-power"],
+   forms:"A <b>statistically-sound CI gate</b> that blocks merges on regression and knows it has enough samples to trust the verdict."},
+  {id:"actionable-confidence",ic:"🎯",nm:"Confidence you can act on",need:["calibration-ece","refusal-rate"],
+   forms:"Confidence scores that <b>map to reality</b>, so auto-approve and escalate thresholds are safe to automate."},
+  {id:"grounded",ic:"📚",nm:"Grounded answers",need:["citation-faithfulness","hallucination-rate"],
+   forms:"Answers <b>backed by cited sources</b> with a measured, low fabrication rate."},
+  {id:"hardening",ic:"🛡️",nm:"Adversarial hardening",need:["red-team-injection","jailbreak-resistance","safety-guardrail-adherence","pii-leakage"],
+   forms:"A <b>security posture</b> resistant to injected instructions, jailbreaks, rule-breaking, and data leaks."},
+  {id:"perf",ic:"⚡",nm:"Cost & speed control",need:["cost-per-task","latency-percentiles","token-usage-attribution","tail-latency-analysis"],
+   forms:"A full <b>performance-economics picture</b> — what each task costs, how fast it is, and why the slow tail is slow."},
+  {id:"trace-obs",ic:"🔭",nm:"Trace-driven observability",need:["obs-trace-tree","obs-spans","obs-events"],
+   forms:"<b>Replayable per-task visibility</b> — every task is a tree of spans and events you can walk in 30 seconds."},
+  {id:"monitoring",ic:"📊",nm:"Production monitoring stack",need:["obs-five-metrics","obs-dashboards","obs-alert-thresholds","obs-per-agent"],
+   forms:"The <b>standing health system</b>: the five metrics that matter, on dashboards, with alerts attributed per agent."},
+  {id:"sampling",ic:"🎚️",nm:"Smart trace sampling",need:["obs-sample-failures","obs-sample-routine","obs-sample-rare","obs-sample-anomalous-cost"],
+   forms:"<b>Bounded-storage capture</b> that never loses signal: all failures + rare types, a 1% routine sample, and every cost spike."},
+  {id:"judging",ic:"⚖️",nm:"Quality at scale",need:["llm-judge-rubric","pairwise-preference"],
+   forms:"<b>Subjective quality scored automatically</b> — rubric grades plus head-to-head preference, without a human in every loop."},
+  {id:"feedback-loop",ic:"🔁",nm:"Closed feedback loop",need:["obs-oncall-playbook","eval-set-freshness","regression-eval-set","prompt-ab-eval"],
+   forms:"The <b>flywheel</b>: incidents → fresher eval sets → A/B-tested prompts → a regression gate that locks the gains in."},
+];
+const CAPSTONE = {id:"capstone",ic:"🏛️",nm:"Production-ready eval practice",needForms:6,
+  forms:"Assemble <b>6 formations</b> and you've built a <b>production-grade eval & observability practice</b> for the whole Apex desk — correctness, safety, cost, and the loop that keeps it healthy."};
+
+/* ───────── palette ───────── */
+const catList = Object.keys(CATS);
+const collapsed = {};
+const groupsEl = document.getElementById("groups");
+function buildPalette(){
+  groupsEl.innerHTML="";
+  catList.forEach(cat=>{
+    const ids = M.filter(m=>m[2]===cat).map(m=>m[0]);
+    const g=document.createElement("div"); g.className="grp"; g.dataset.cat=cat;
+    const h=document.createElement("h3");
+    h.innerHTML='<span class="dot" style="color:'+CATS[cat]+';background:'+CATS[cat]+'"></span>'+
+      '<span>'+cat.replace(" (obs)","")+'</span><span class="c">'+ids.length+'</span>';
+    h.addEventListener("click",()=>{ collapsed[cat]=!collapsed[cat]; render(); });
+    g.appendChild(h);
+    if(!collapsed[cat]) ids.forEach(id=>{
+      const t=document.createElement("div"); t.className="tile"; t.dataset.id=id;
+      t.innerHTML='<span class="dot" style="color:'+CATS[cat]+';background:'+CATS[cat]+'"></span><span>'+NODE[id].t+'</span>';
+      t.addEventListener("mousedown",e=>startNewDrag(e,id));
+      g.appendChild(t);
+    });
+    groupsEl.appendChild(g);
+  });
+  applySearch();
+  markUsed();
+}
+const psearch=document.getElementById("psearch");
+psearch.addEventListener("input",applySearch);
+function applySearch(){
+  const q=psearch.value.trim().toLowerCase();
+  document.querySelectorAll(".tile").forEach(t=>{
+    const id=t.dataset.id; const hit=!q||NODE[id].t.toLowerCase().includes(q)||id.includes(q);
+    t.classList.toggle("hidden",!hit);
+  });
+}
+function markUsed(){
+  document.querySelectorAll(".tile").forEach(t=>t.classList.toggle("used", !!placed[t.dataset.id]));
+}
+
+/* ───────── workspace state ───────── */
+const ws=document.getElementById("ws");
+const svg=document.getElementById("lines");
+const SVG_NS="http://www.w3.org/2000/svg";
+const placed={};         // id -> {el,x,y}
+let spotlightForm=null;
+
+function wsRect(){ return ws.getBoundingClientRect(); }
+
+function addNode(id,clientX,clientY,silent){
+  if(placed[id]){ pulse(placed[id].el); return; }
+  const r=wsRect();
+  let x = (clientX!=null? clientX-r.left-70 : 60+Math.random()*(r.width-200));
+  let y = (clientY!=null? clientY-r.top-18  : 60+Math.random()*(r.height-160));
+  x=Math.max(6,Math.min(r.width-160,x)); y=Math.max(6,Math.min(r.height-50,y));
+  const el=document.createElement("div"); el.className="node"; el.dataset.id=id;
+  el.style.left=x+"px"; el.style.top=y+"px"; el.style.borderColor=CATS[NODE[id].cat];
+  el.innerHTML='<span class="dot" style="color:'+CATS[NODE[id].cat]+';background:'+CATS[NODE[id].cat]+
+    '"></span><span class="t">'+NODE[id].t+'</span><button class="x" title="remove">×</button>';
+  el.querySelector(".x").addEventListener("click",ev=>{ ev.stopPropagation(); removeNode(id); });
+  el.addEventListener("mousedown",e=>startMoveDrag(e,id));
+  el.addEventListener("mouseenter",()=>highlight(id));
+  el.addEventListener("mouseleave",()=>highlight(null));
+  ws.appendChild(el);
+  placed[id]={el,x,y};
+  if(!silent) pulse(el);
+  update();
+}
+function removeNode(id){
+  if(!placed[id])return; placed[id].el.remove(); delete placed[id]; update();
+}
+function pulse(el){ el.classList.remove("pulse"); void el.offsetWidth; el.classList.add("pulse"); }
+function clearAll(){ Object.keys(placed).forEach(removeNode); }
+document.getElementById("btn-clear").addEventListener("click",clearAll);
+
+function center(id){ const p=placed[id]; const e=p.el; return {x:e.offsetLeft+e.offsetWidth/2,y:e.offsetTop+e.offsetHeight/2}; }
+
+/* ───────── drag: new from palette ───────── */
+let ghost=null,newId=null;
+function startNewDrag(e,id){
+  e.preventDefault(); newId=id;
+  ghost=document.createElement("div"); ghost.className="ghost"; ghost.textContent=NODE[id].t;
+  ghost.style.borderColor=CATS[NODE[id].cat]; document.body.appendChild(ghost);
+  moveGhost(e);
+  window.addEventListener("mousemove",moveGhost);
+  window.addEventListener("mouseup",dropNew);
+}
+function moveGhost(e){ if(ghost){ ghost.style.left=(e.clientX+8)+"px"; ghost.style.top=(e.clientY+8)+"px"; } }
+function dropNew(e){
+  window.removeEventListener("mousemove",moveGhost);
+  window.removeEventListener("mouseup",dropNew);
+  if(ghost){ ghost.remove(); ghost=null; }
+  const r=wsRect();
+  if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom){
+    addNode(newId,e.clientX,e.clientY);
+  }
+  newId=null;
+}
+
+/* ───────── drag: move existing ───────── */
+let moveId=null,moff={x:0,y:0},moved=false;
+function startMoveDrag(e,id){
+  if(e.target.classList.contains("x"))return;
+  e.preventDefault(); moveId=id; moved=false;
+  const p=placed[id]; p.el.classList.add("dragging");
+  const r=wsRect();
+  moff={x:e.clientX-(r.left+p.el.offsetLeft), y:e.clientY-(r.top+p.el.offsetTop)};
+  window.addEventListener("mousemove",moveNode);
+  window.addEventListener("mouseup",endMove);
+}
+function moveNode(e){
+  const p=placed[moveId]; if(!p)return; moved=true;
+  const r=wsRect();
+  let x=e.clientX-r.left-moff.x, y=e.clientY-r.top-moff.y;
+  x=Math.max(6,Math.min(r.width-p.el.offsetWidth-6,x));
+  y=Math.max(6,Math.min(r.height-p.el.offsetHeight-6,y));
+  p.el.style.left=x+"px"; p.el.style.top=y+"px"; p.x=x; p.y=y;
+  drawLines();
+}
+function endMove(){
+  if(moveId&&placed[moveId]) placed[moveId].el.classList.remove("dragging");
+  window.removeEventListener("mousemove",moveNode);
+  window.removeEventListener("mouseup",endMove);
+  moveId=null;
+}
+
+/* ───────── connections ───────── */
+function drawLines(){
+  svg.innerHTML="";
+  const ids=Object.keys(placed);
+  let count=0;
+  for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){
+    const a=ids[i],b=ids[j]; const t=relOf[a+"|"+b];
+    if(!t)continue;
+    const ca=center(a),cb=center(b);
+    const mx=(ca.x+cb.x)/2,my=(ca.y+cb.y)/2;
+    const nx=-(cb.y-ca.y),ny=(cb.x-ca.x); const len=Math.hypot(nx,ny)||1; const bow=16;
+    const path=document.createElementNS(SVG_NS,"path");
+    path.setAttribute("d","M"+ca.x+","+ca.y+" Q"+(mx+nx/len*bow)+","+(my+ny/len*bow)+" "+cb.x+","+cb.y);
+    path.setAttribute("fill","none");
+    path.setAttribute("stroke",EDGE_COLOR[t]);
+    path.setAttribute("stroke-width","2");
+    path.setAttribute("stroke-opacity","0.7");
+    if(t==="loop")path.setAttribute("stroke-dasharray","6 5");
+    path.dataset.a=a; path.dataset.b=b;
+    svg.appendChild(path);
+    count++;
+  }
+  document.getElementById("s-links").textContent=count;
+  return count;
+}
+function highlight(id){
+  if(!id){ Object.values(placed).forEach(p=>p.el.classList.remove("dim"));
+    svg.querySelectorAll("path").forEach(p=>p.setAttribute("stroke-opacity","0.7")); return; }
+  const nbr=new Set([id]);
+  svg.querySelectorAll("path").forEach(p=>{
+    const on=p.dataset.a===id||p.dataset.b===id;
+    p.setAttribute("stroke-opacity",on?"1":"0.08");
+    if(on){ nbr.add(p.dataset.a); nbr.add(p.dataset.b); }
+  });
+  Object.entries(placed).forEach(([k,p])=>p.el.classList.toggle("dim",!nbr.has(k)));
+}
+
+/* ───────── formations ───────── */
+const formsEl=document.getElementById("forms");
+function buildForms(){
+  formsEl.innerHTML="";
+  FORMATIONS.forEach(f=>{
+    const c=document.createElement("div"); c.className="form"; c.id="f-"+f.id; c.dataset.fid=f.id;
+    formsEl.appendChild(c);
+  });
+  const cap=document.createElement("div"); cap.className="form capstone"; cap.id="f-capstone";
+  formsEl.appendChild(cap);
+}
+function renderForms(){
+  let unlocked=0;
+  FORMATIONS.forEach(f=>{
+    const have=f.need.filter(id=>placed[id]);
+    const miss=f.need.filter(id=>!placed[id]);
+    const done=miss.length===0;
+    if(done)unlocked++;
+    const pct=Math.round(have.length/f.need.length*100);
+    const c=document.getElementById("f-"+f.id);
+    c.className="form"+(done?" unlocked":have.length>0?" partial":"");
+    c.innerHTML=
+      '<div class="fh"><span class="ic">'+f.ic+'</span><span class="nm">'+f.nm+'</span>'+
+        '<span class="st">'+(done?"unlocked ✓":have.length+"/"+f.need.length)+'</span></div>'+
+      '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
+      '<p class="forms">'+(done?"✦ ":"")+'Forms: '+f.forms+'</p>'+
+      (miss.length?'<p class="miss">Add: <b>'+miss.map(id=>NODE[id].t).join("</b>, <b>")+'</b></p>':'')+
+      '<div class="act"><button data-assemble="'+f.id+'">Assemble</button>'+
+        '<button data-show="'+f.id+'">Show</button></div>';
+  });
+  // capstone
+  const cap=document.getElementById("f-capstone");
+  const capDone=unlocked>=CAPSTONE.needForms;
+  cap.className="form capstone"+(capDone?" unlocked":unlocked>0?" partial":"");
+  cap.innerHTML='<div class="fh"><span class="ic">'+CAPSTONE.ic+'</span><span class="nm">'+CAPSTONE.nm+'</span>'+
+    '<span class="st">'+(capDone?"unlocked ✓":unlocked+"/"+CAPSTONE.needForms)+'</span></div>'+
+    '<div class="bar"><i style="width:'+Math.min(100,Math.round(unlocked/CAPSTONE.needForms*100))+'%"></i></div>'+
+    '<p class="forms">'+(capDone?"✦ ":"")+CAPSTONE.forms+'</p>';
+  document.getElementById("s-forms").textContent=unlocked+"/"+FORMATIONS.length;
+  // glow contributing nodes
+  const formed=new Set();
+  FORMATIONS.forEach(f=>{ if(f.need.every(id=>placed[id])) f.need.forEach(id=>formed.add(id)); });
+  Object.entries(placed).forEach(([id,p])=>p.el.classList.toggle("formed",formed.has(id)));
+  // wire buttons
+  formsEl.querySelectorAll("[data-assemble]").forEach(b=>b.onclick=()=>assemble(b.dataset.assemble));
+  formsEl.querySelectorAll("[data-show]").forEach(b=>b.onclick=()=>showForm(b.dataset.show));
+}
+function assemble(fid){
+  const f=FORMATIONS.find(x=>x.id===fid); if(!f)return;
+  f.need.forEach((id,i)=>{ if(!placed[id]) setTimeout(()=>addNode(id),i*90); });
+  setTimeout(()=>showForm(fid),f.need.length*90+120);
+}
+function showForm(fid){
+  const f=FORMATIONS.find(x=>x.id===fid); if(!f)return;
+  Object.values(placed).forEach(p=>p.el.classList.remove("spotlight"));
+  f.need.forEach(id=>{ if(placed[id]){ placed[id].el.classList.add("spotlight"); pulse(placed[id].el); } });
+  setTimeout(()=>Object.values(placed).forEach(p=>p.el.classList.remove("spotlight")),1600);
+}
+
+/* ───────── kits (quick-load) ───────── */
+const KITS=["reliable-tools","release-gate","hardening","monitoring"];
+const kitsEl=document.getElementById("kits");
+KITS.forEach(fid=>{
+  const f=FORMATIONS.find(x=>x.id===fid);
+  const b=document.createElement("div"); b.className="kit"; b.textContent=f.ic+" Try: "+f.nm;
+  b.onclick=()=>assemble(fid); kitsEl.appendChild(b);
+});
+
+/* ───────── glue ───────── */
+function update(){
+  document.getElementById("s-nodes").textContent=Object.keys(placed).length;
+  document.getElementById("empty").style.display=Object.keys(placed).length?"none":"flex";
+  drawLines(); renderForms(); markUsed();
+}
+function render(){ buildPalette(); }
+buildPalette(); buildForms(); update();
+window.addEventListener("resize",drawLines);
+</script>
+</body>
+</html>

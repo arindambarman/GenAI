@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Citation faithfulness eval · Eval Recipe · AdaptLearn</title>
+  <style>
+:root {
+  --bg: #fafafa; --surface: #ffffff;
+  --text: #1c2230; --text-muted: #5b6473;
+  --border: #e5e7eb; --accent: #2563eb; --accent-soft: #eff6ff;
+  --code-bg: #1e293b; --code-fg: #e2e8f0;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-size: 17px; line-height: 1.65; color: var(--text); background: var(--bg); }
+.container { max-width: 920px; margin: 0 auto; padding: 32px; }
+.breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.hero { padding: 32px; background: linear-gradient(135deg, #1c2230 0%, #2d3a55 100%);
+  color: #fff; border-radius: 14px; margin-bottom: 28px; }
+.hero h1 { margin: 0 0 8px; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.hero p { margin: 0; opacity: 0.85; font-size: 16px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted); margin: 28px 0 10px; font-weight: 700; }
+.card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px 22px; margin-bottom: 12px; }
+.prose { font-size: 16px; line-height: 1.7; }
+.callout { background: var(--accent-soft); border-left: 3px solid var(--accent);
+  padding: 12px 16px; border-radius: 4px; font-size: 15px; margin-bottom: 12px; }
+.callout strong { color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-block; padding: 4px 10px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent); font-size: 13px;
+  text-decoration: none; border: 1px solid transparent; }
+.chip:hover { border-color: var(--accent); }
+.subarea-pill { display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; margin-right: 8px; }
+.complexity { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 700; color: var(--text-muted); }
+.steps ol { padding-left: 22px; margin: 0; }
+.steps li { margin-bottom: 8px; font-size: 15px; }
+.pitfall { background: #fff8f0; border-left: 3px solid #f59e0b; padding: 12px 16px;
+  margin-bottom: 8px; border-radius: 4px; }
+.pitfall .trap { font-weight: 600; font-size: 14px; }
+.pitfall .fix { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+.pitfall .fix strong { color: #16a34a; }
+.success { background: #f0fdf4; border-left: 3px solid #16a34a; padding: 14px 18px;
+  border-radius: 6px; font-size: 15px; }
+.lesson-link { display: inline-block; margin-right: 6px; padding: 3px 9px;
+  background: var(--accent-soft); color: var(--accent); border-radius: 6px;
+  font-size: 13px; text-decoration: none; font-variant-numeric: tabular-nums; }
+.lesson-link:hover { background: var(--accent); color: #fff; }
+.diagram { background: #fafafa; border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px; overflow-x: auto; margin-bottom: 12px; }
+pre.code { background: var(--code-bg); color: var(--code-fg); padding: 16px 20px;
+  border-radius: 8px; overflow-x: auto; font-family: "SF Mono", Monaco, Consolas, monospace;
+  font-size: 13px; line-height: 1.55; margin: 0; }
+pre.code .lang { display: block; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 8px; }
+.toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.toc-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid;
+  border-radius: 10px; padding: 16px 20px; text-decoration: none; color: inherit;
+  transition: border-color 0.15s; display: block; }
+.toc-card:hover { border-color: var(--accent); }
+.toc-card .title { font-weight: 700; font-size: 16px; margin: 6px 0; }
+.toc-card .summary { color: var(--text-muted); font-size: 13px; margin: 0; }
+.section-divider { color: var(--text-muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.1em; font-weight: 700; margin: 28px 0 10px; }
+</style>
+  <script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: true, theme: 'neutral', themeVariables: { fontFamily: 'inherit' } });
+</script>
+</head>
+<body>
+  <div class="container">
+    <nav class="breadcrumb">
+      <a href="../book.html">Book</a>
+      <span class="sep">›</span>
+      <a href="index.html">Eval Recipes</a>
+      <span class="sep">›</span>
+      <span>Citation faithfulness eval</span>
+    </nav>
+
+    <header class="hero">
+      <h1>Citation faithfulness eval</h1>
+      <p>Output correctness</p>
+      <div class="badges">
+        <span class="badge">correctness</span>
+        <span class="badge">intermediate</span>
+      </div>
+    </header>
+
+    <div class="callout"><strong>When to use:</strong> Any RAG, document-grounded, or citation-emitting agent — before shipping and on every prompt change.</div>
+    <div class="callout"><strong>What it measures:</strong> The fraction of model claims that are verifiable against the cited source span.</div>
+
+    <h2 class="section">Setup</h2>
+    <div class="card steps"><ol>
+      <li>Sample 200 production queries stratified by topic and answer length.</li>
+      <li>Parse each output into (claim, citation_span) pairs.</li>
+      <li>Use LLM-judge to label each pair: verified | partially_verified | unsupported | contradicted.</li>
+      <li>Compute weighted score: verified=1.0, partial=0.5, unsupported=0, contradicted=-1.</li>
+      <li>Calibrate against human raters on 50 pairs; re-calibrate after every retrieval index change.</li>
+    </ol></div>
+
+    <h2 class="section">Code template</h2>
+    <pre class="code"><span class="lang">typescript</span>const CitationVerdict = z.enum([&quot;verified&quot;, &quot;partial&quot;, &quot;unsupported&quot;, &quot;contradicted&quot;]);
+const ClaimResult = z.object({
+  claim: z.string(),
+  source_span: z.string(),
+  verdict: CitationVerdict,
+  note: z.string().optional(),
+});
+
+export async function evalCitations(answer: AgentAnswer): Promise&lt;number&gt; {
+  const pairs = extractClaimCitationPairs(answer);
+  const verdicts = await Promise.all(pairs.map((p) =&gt;
+    judgeClaim(p.claim, p.source_span)
+  ));
+  const score = verdicts.reduce((acc, v) =&gt; acc + {
+    verified: 1, partial: 0.5, unsupported: 0, contradicted: -1,
+  }[v.verdict], 0) / Math.max(verdicts.length, 1);
+  return score;  // [-1, 1]
+}</pre>
+
+    <h2 class="section">Flow</h2>
+    <div class="diagram">
+      <pre class="mermaid">graph LR
+  ANS[Agent answer&lt;br/&gt;+ citations] --&gt; EXT[Extract&lt;br/&gt;claim/source pairs]
+  EXT --&gt; JUDGE[LLM Judge&lt;br/&gt;per pair verdict]
+  JUDGE --&gt; SCORE[Weighted score]
+  SCORE --&gt; GATE{&gt;= 0.95?}
+  GATE --&gt;|yes| SHIP[Ship]
+  GATE --&gt;|no| BLOCK[Block + alert]</pre>
+    </div>
+
+    <h2 class="section">Acceptance threshold</h2>
+    <div class="success">Weighted score ≥ 0.95; zero contradicted claims; ≤ 1% unsupported.</div>
+
+    <h2 class="section">Pitfalls</h2>
+    <div class="pitfall">
+      <div class="trap">⚠️ Citations point to right doc, wrong page</div>
+      <div class="fix"><strong>Fix:</strong> Score at page+character granularity, not document-level.</div>
+    </div>
+    <div class="pitfall">
+      <div class="trap">⚠️ Drift after retrieval index rebuild</div>
+      <div class="fix"><strong>Fix:</strong> Make citation faithfulness eval a required gate on the indexing pipeline, not just the agent.</div>
+    </div>
+    <div class="pitfall">
+      <div class="trap">⚠️ Multi-sentence claims with partial support score as verified</div>
+      <div class="fix"><strong>Fix:</strong> Split into atomic claims before judging.</div>
+    </div>
+
+    <h2 class="section">Concepts applied</h2>
+    <div class="card"><div class="chips"><a class="chip" href="../concepts/citation-faithfulness.html">Citation Faithfulness</a><a class="chip" href="../concepts/citations-api.html">Citations API (grounded output)</a><a class="chip" href="../concepts/agentic-rag.html">Agentic RAG (multi-hop)</a><a class="chip" href="../concepts/llm-judge.html">LLM as Judge</a></div></div>
+
+    <h2 class="section">Related recipes</h2>
+    <div class="card"><div class="chips"><a class="chip" href="llm-judge-rubric.html">LLM-judge with structured rubric</a><a class="chip" href="hallucination-rate.html">Hallucination rate (free-form)</a></div></div>
+
+    <h2 class="section">Read next</h2>
+    <div class="card"><a class="lesson-link" href="../m05/lesson-5.5.html">§5.5</a><a class="lesson-link" href="../m14/lesson-14.4.html">§14.4</a><a class="lesson-link" href="../m08/lesson-8.3.html">§8.3</a></div>
+  </div>
+</body>
+</html>

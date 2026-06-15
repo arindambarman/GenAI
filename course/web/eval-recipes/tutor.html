@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tutor · Eval & Observability · AdaptLearn</title>
+<script src="lessons-data.js"></script>
+<script src="tutor-engine.js" defer></script>
+<style>
+  :root{
+    --bg0:#05070f; --panel:rgba(15,21,38,0.86); --panel2:rgba(20,28,48,0.7);
+    --border:rgba(120,150,210,0.18); --border2:rgba(120,150,210,0.34);
+    --txt:#e6ecf7; --muted:#8b9bc0; --faint:#5d6b8e;
+    --accent:#38bdf8; --good:#34d399; --warn:#fbbf24; --bad:#f87171; --violet:#a78bfa;
+    --cyan:#22d3ee; --code:#0b1120;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1100px 700px at 10% -8%, rgba(56,189,248,0.10), transparent 60%),
+      radial-gradient(1000px 700px at 100% 0%, rgba(167,139,250,0.10), transparent 55%),
+      var(--bg0);
+    color:var(--txt);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    min-height:100vh;
+  }
+  a{color:inherit;}
+  code,.mono{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;}
+
+  .topnav{display:flex;align-items:center;gap:18px;padding:16px 24px;flex-wrap:wrap;}
+  .brand{font-weight:800;font-size:15px;}
+  .brand .dot{color:var(--accent);}
+  .topnav .links{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;}
+  .topnav .links a{font-size:13px;text-decoration:none;color:var(--muted);padding:6px 12px;border-radius:999px;
+    border:1px solid transparent;transition:.15s;font-weight:600;}
+  .topnav .links a:hover{color:var(--txt);border-color:var(--border2);background:var(--panel2);}
+  .topnav .links a.active{color:#06121f;background:var(--accent);}
+
+  .layout{display:grid;grid-template-columns:1fr 300px;gap:20px;max-width:1240px;margin:0 auto;padding:6px 24px 40px;}
+  @media(max-width:940px){.layout{grid-template-columns:1fr;}}
+
+  .chatwrap{display:flex;flex-direction:column;min-height:70vh;}
+  .intro{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px 20px;margin-bottom:14px;}
+  .intro h1{margin:0 0 6px;font-size:21px;font-weight:800;}
+  .intro p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55;}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px;}
+  .chip{font-size:12px;font-weight:600;padding:6px 11px;border-radius:999px;border:1px solid var(--border2);
+    background:var(--panel2);color:var(--muted);cursor:pointer;transition:.13s;}
+  .chip:hover{color:var(--accent);border-color:var(--accent);}
+
+  .transcript{display:flex;flex-direction:column;gap:14px;flex:1;}
+  .msg{display:flex;gap:11px;}
+  .msg .av{width:30px;height:30px;border-radius:9px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:800;}
+  .msg.user .av{background:var(--panel2);border:1px solid var(--border2);color:var(--accent);}
+  .msg.bot .av{background:linear-gradient(135deg,var(--accent),var(--violet));color:#06121f;}
+  .msg .bubble{flex:1;border-radius:14px;padding:13px 16px;font-size:14px;line-height:1.55;}
+  .msg.user .bubble{background:var(--panel2);border:1px solid var(--border);max-width:80%;}
+  .msg.bot .bubble{background:var(--panel);border:1px solid var(--border);}
+
+  /* answer content */
+  .tut-h{margin-bottom:8px;}
+  .tut-h h3{margin:2px 0 0;font-size:17px;font-weight:800;}
+  .tut-cat{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--violet);font-weight:700;}
+  .tut-sub{margin:5px 0 0;color:var(--muted);font-size:12.5px;}
+  .tut-body{font-size:13.5px;line-height:1.6;color:var(--txt);}
+  .tut-body p{margin:8px 0;} .tut-body ul,.tut-body ol{margin:8px 0;padding-left:20px;}
+  .tut-body li{margin:4px 0;} .tut-body code{background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:11.5px;color:var(--accent);}
+  .tut-body strong,.tut-body b{color:var(--txt);} .tut-body em,.tut-body i{color:var(--muted);}
+  .tut-body .eq{background:var(--code);border:1px solid var(--border);border-radius:9px;padding:9px 13px;margin:8px 0;
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#cfe3ff;overflow-x:auto;}
+  .tut-gate{margin:10px 0;background:linear-gradient(135deg,rgba(56,189,248,.1),rgba(167,139,250,.07));
+    border:1px solid var(--border2);border-radius:11px;padding:10px 13px;font-size:13px;line-height:1.5;}
+  .tut-gate-l{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);font-weight:700;margin-bottom:3px;}
+  .tut-code{background:var(--code);border:1px solid var(--border);border-radius:11px;padding:13px 15px;overflow-x:auto;
+    font-size:12px;line-height:1.5;color:#cfe3ff;margin:10px 0;}
+  .tut-steps li{margin:6px 0;font-size:13px;line-height:1.5;} .tut-steps code{background:var(--panel2);border-radius:4px;padding:1px 5px;color:var(--accent);}
+  .tut-pit{list-style:none;padding:0;margin:6px 0;} .tut-pit li{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:7px 0;font-size:13px;line-height:1.5;}
+  .tut-pit b{color:var(--bad);} .tut-fix b{color:var(--good);}
+  .tut-more{margin:8px 0;} .tut-more summary{cursor:pointer;color:var(--accent);font-size:12.5px;font-weight:700;}
+  .tut-cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;}
+  @media(max-width:600px){.tut-cmp{grid-template-columns:1fr;}}
+  .tut-col{background:var(--panel2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;}
+  .tut-col h4{margin:0 0 6px;font-size:14px;color:var(--accent);}
+  .tut-ovw{list-style:none;padding:0;margin:6px 0;} .tut-ovw li{padding:8px 0;border-bottom:1px dashed var(--border);font-size:12.5px;line-height:1.7;}
+  .tut-count{font-size:11px;color:var(--faint);font-weight:700;}
+  .tut-llink{color:var(--accent);text-decoration:none;font-weight:600;font-size:12.5px;}
+  .tut-llink:hover{text-decoration:underline;}
+
+  /* per-answer eval strip */
+  .evalstrip{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:11px;border-top:1px dashed var(--border);align-items:center;}
+  .evalstrip .el{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);font-weight:700;margin-right:2px;}
+  .estat{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid var(--border);background:var(--panel2);}
+  .estat.good{color:var(--good);border-color:rgba(52,211,153,.35);}
+  .estat.warn{color:var(--warn);border-color:rgba(251,191,36,.35);}
+  .estat b{color:var(--txt);}
+  .citerow{margin-top:9px;font-size:12px;color:var(--muted);}
+  .citerow a{color:var(--accent);text-decoration:none;font-weight:600;}
+  .sugg{margin-top:7px;font-size:12px;color:var(--faint);}
+  .sugg a{color:var(--muted);text-decoration:none;border-bottom:1px dotted var(--border2);}
+  .sugg a:hover{color:var(--accent);}
+
+  .composer{display:flex;gap:10px;margin-top:16px;position:sticky;bottom:14px;}
+  .composer textarea{flex:1;min-height:48px;max-height:160px;resize:vertical;background:var(--code);color:#cfe3ff;
+    border:1px solid var(--border2);border-radius:12px;padding:13px 14px;font-family:inherit;font-size:14px;line-height:1.5;}
+  .composer textarea:focus{outline:none;border-color:var(--accent);}
+  .composer button{font-weight:800;font-size:14px;padding:0 20px;border-radius:12px;border:1px solid var(--accent);
+    background:var(--accent);color:#06121f;cursor:pointer;transition:.15s;}
+  .composer button:hover{filter:brightness(1.08);}
+
+  /* side scorecard */
+  .side{display:flex;flex-direction:column;gap:16px;position:sticky;top:14px;height:max-content;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px 18px;}
+  .card h2{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 12px;}
+  .score{display:flex;align-items:baseline;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px dashed var(--border);}
+  .score:last-child{border-bottom:none;}
+  .score .k{color:var(--muted);} .score .v{font-weight:800;font-variant-numeric:tabular-nums;}
+  .score .v.good{color:var(--good);} .score .v.warn{color:var(--warn);} .score .v.bad{color:var(--bad);}
+  .tracelink{display:block;margin-top:12px;text-align:center;font-size:12.5px;font-weight:700;text-decoration:none;
+    color:var(--accent);background:var(--panel2);border:1px solid var(--border2);border-radius:10px;padding:9px;transition:.15s;}
+  .tracelink:hover{border-color:var(--accent);}
+  .note{font-size:11.5px;color:var(--faint);line-height:1.55;margin-top:10px;}
+  .note b{color:var(--muted);}
+</style>
+</head>
+<body>
+  <nav class="topnav">
+    <span class="brand">Apex<span class="dot">·</span>Tutor</span>
+    <div class="links">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="knowledge-graph.html">Graph</a>
+      <a href="incident-simulator.html">Incidents</a>
+      <a href="eval-studio.html">Studio</a>
+      <a href="trace-explorer.html">Traces</a>
+      <a href="tutor.html" class="active">Tutor</a>
+      <a href="my-sessions.html">My Sessions</a>
+      <a href="mastery.html">Mastery</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="journey.html">Journey</a>
+    </div>
+  </nav>
+
+  <div class="layout">
+    <div class="chatwrap">
+      <div class="intro">
+        <h1>Ask the Eval &amp; Observability tutor</h1>
+        <p>Grounded in all 41 course metrics. Ask what a metric <i>is</i>, its <i>threshold</i>, common <i>pitfalls</i>, the <i>code</i> to measure it, or the <i>math</i> behind it — or compare two. Every answer cites the lessons it came from, and is <b>self-evaluated by the course's own metrics</b> (see the scorecard →).</p>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="transcript" id="transcript"></div>
+      <div class="composer">
+        <textarea id="q" placeholder="e.g. Explain ECE simply · What's the threshold for schema conformance? · exact vs semantic match · pitfalls of p95 latency · list the metrics"></textarea>
+        <button id="send">Ask</button>
+      </div>
+    </div>
+
+    <aside class="side">
+      <div class="card">
+        <h2>Last answer · self-eval</h2>
+        <div id="scores">
+          <div class="score"><span class="k">citation-faithfulness</span><span class="v">—</span></div>
+          <div class="score"><span class="k">schema-conformance</span><span class="v">—</span></div>
+          <div class="score"><span class="k">in-scope / refusal</span><span class="v">—</span></div>
+          <div class="score"><span class="k">confidence</span><span class="v">—</span></div>
+          <div class="score"><span class="k">latency</span><span class="v">—</span></div>
+          <div class="score"><span class="k">cost</span><span class="v">—</span></div>
+        </div>
+        <a class="tracelink" id="tracelink" href="trace-explorer.html">▶ Open this answer in Trace Explorer</a>
+        <p class="note">The tutor is itself an Apex-style agent. It runs <b>intent-router → retriever → answer-composer → self-evaluator</b>, and every run is traced — open Trace Explorer to inspect its spans.</p>
+      </div>
+      <div class="card">
+        <h2>Session scorecard</h2>
+        <div id="session">
+          <div class="score"><span class="k">questions</span><span class="v" id="s-q">0</span></div>
+          <div class="score"><span class="k">answered in-scope</span><span class="v" id="s-ans">0</span></div>
+          <div class="score"><span class="k">refused (out of scope)</span><span class="v" id="s-ref">0</span></div>
+          <div class="score"><span class="k">mean citation-faithfulness</span><span class="v" id="s-cf">—</span></div>
+          <div class="score"><span class="k">p95 latency</span><span class="v" id="s-p95">—</span></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var QUICK=[
+    "Explain ECE simply",
+    "What's the threshold for schema conformance?",
+    "exact vs semantic match",
+    "pitfalls of p95 latency",
+    "how do I measure hallucination rate?",
+    "when does refusal rate matter?",
+    "the math behind sample size / power",
+    "list the metrics"
+  ];
+  var sess={q:0,ans:0,ref:0,cf:[],lat:[]};
+
+  function ready(){ return window.ApexTutor && window.ApexTutor.ready(); }
+
+  function chipRow(){
+    $("chips").innerHTML=QUICK.map(function(q){return '<span class="chip">'+q.replace(/</g,"&lt;")+'</span>';}).join("");
+    [].forEach.call(document.querySelectorAll("#chips .chip"),function(c){
+      c.onclick=function(){ $("q").value=c.textContent; submit(); };
+    });
+  }
+
+  function addMsg(role, html){
+    var d=document.createElement("div");
+    d.className="msg "+role;
+    d.innerHTML='<div class="av">'+(role==="user"?"You":"AT")+'</div><div class="bubble">'+html+'</div>';
+    $("transcript").appendChild(d);
+    d.scrollIntoView({behavior:"smooth",block:"end"});
+    return d;
+  }
+
+  function pct(x){ return Math.round(x*100)+"%"; }
+  function cls(ok){ return ok?"good":"warn"; }
+
+  function renderScores(r){
+    var e=r.evals;
+    var rows=[
+      ["citation-faithfulness", pct(e.citation_faithfulness), e.citation_faithfulness>=0.999],
+      ["schema-conformance", pct(e.schema_conformance), e.schema_conformance>=0.999],
+      ["in-scope / refusal", r.in_scope?"in-scope":"refused ✓", true],
+      ["confidence", pct(r.confidence), r.confidence>=0.7],
+      ["latency", e.latency_ms.toFixed(2)+" ms", e.latency_ms<50],
+      ["cost", "$"+e.cost_usd.toFixed(2)+" (retrieval)", true]
+    ];
+    $("scores").innerHTML=rows.map(function(x){
+      return '<div class="score"><span class="k">'+x[0]+'</span><span class="v '+cls(x[2])+'">'+x[1]+'</span></div>';
+    }).join("");
+    $("tracelink").href="trace-explorer.html#"+encodeURIComponent(r.trace.id);
+  }
+
+  function updateSession(r){
+    sess.q++;
+    if(r.in_scope) sess.ans++; else sess.ref++;
+    sess.cf.push(r.evals.citation_faithfulness);
+    sess.lat.push(r.evals.latency_ms);
+    $("s-q").textContent=sess.q;
+    $("s-ans").textContent=sess.ans;
+    $("s-ref").textContent=sess.ref;
+    var mean=sess.cf.reduce(function(a,b){return a+b;},0)/sess.cf.length;
+    $("s-cf").textContent=Math.round(mean*100)+"%";
+    var sorted=sess.lat.slice().sort(function(a,b){return a-b;});
+    var idx=Math.max(0,Math.ceil(0.95*sorted.length)-1);
+    $("s-p95").textContent=sorted[idx].toFixed(1)+" ms";
+  }
+
+  function answerBlock(r){
+    var html=r.answer_html;
+    // citation row
+    if(r.citations && r.citations.length){
+      html+='<div class="citerow">Cited: '+r.citations.map(function(c){
+        return '<a href="lesson.html#'+c.metricId+'" target="_blank">'+(c.title||c.metricId)+' ↗</a>';
+      }).join(" · ")+'</div>';
+    }
+    if(r.suggested && r.suggested.length){
+      html+='<div class="sugg">Related: '+r.suggested.map(function(id){
+        var le=window.LESSONS[id]||{};
+        return '<a href="#" data-ask="'+ (le.title||id).replace(/"/g,"&quot;") +'">'+(le.title||id)+'</a>';
+      }).join(" · ")+'</div>';
+    }
+    // eval strip
+    var e=r.evals;
+    html+='<div class="evalstrip"><span class="el">self-eval</span>'+
+      '<span class="estat '+cls(e.citation_faithfulness>=0.999)+'">faithfulness <b>'+pct(e.citation_faithfulness)+'</b></span>'+
+      '<span class="estat '+cls(e.schema_conformance>=0.999)+'">schema <b>'+pct(e.schema_conformance)+'</b></span>'+
+      '<span class="estat good">'+(r.in_scope?"in-scope":"refused ✓")+'</span>'+
+      '<span class="estat '+cls(e.latency_ms<50)+'">'+e.latency_ms.toFixed(1)+' ms</span></div>';
+    return html;
+  }
+
+  function submit(){
+    var q=$("q").value.trim();
+    if(!q) return;
+    if(!ready()){ addMsg("bot","<p class=\"tut-body\">Loading course content… try again in a moment.</p>"); return; }
+    addMsg("user", q.replace(/</g,"&lt;"));
+    $("q").value="";
+    var r=window.ApexTutor.ask(q);
+    var bot=addMsg("bot", answerBlock(r));
+    // wire related-link re-asks
+    [].forEach.call(bot.querySelectorAll('a[data-ask]'),function(a){
+      a.onclick=function(ev){ ev.preventDefault(); $("q").value=a.getAttribute("data-ask"); submit(); };
+    });
+    renderScores(r);
+    updateSession(r);
+  }
+
+  function init(){
+    if(!ready()){ setTimeout(init,80); return; }
+    chipRow();
+    addMsg("bot",'<div class="tut-h"><h3>Hi — I\'m the Apex eval &amp; observability tutor.</h3>'+
+      '<p class="tut-sub">Ask me anything about the 41 metrics. I answer only from the course, cite my sources, and refuse when something is out of scope.</p></div>'+
+      '<p class="tut-body">Try a quick-prompt above, or ask in your own words.</p>');
+    $("send").onclick=submit;
+    $("q").addEventListener("keydown",function(e){
+      if(e.key==="Enter" && (e.ctrlKey||e.metaKey)){ e.preventDefault(); submit(); }
+    });
+  }
+  init();
+})();
+</script>
+</body>
+</html>

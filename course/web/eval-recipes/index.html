@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eval &amp; Observability Recipes · AdaptLearn</title>
+  <style>
+:root {
+  --bg: #fafafa; --surface: #ffffff;
+  --text: #1c2230; --text-muted: #5b6473;
+  --border: #e5e7eb; --accent: #2563eb; --accent-soft: #eff6ff;
+  --code-bg: #1e293b; --code-fg: #e2e8f0;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-size: 17px; line-height: 1.65; color: var(--text); background: var(--bg); }
+.container { max-width: 920px; margin: 0 auto; padding: 32px; }
+.breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+.breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+.hero { padding: 32px; background: linear-gradient(135deg, #1c2230 0%, #2d3a55 100%);
+  color: #fff; border-radius: 14px; margin-bottom: 28px; }
+.hero h1 { margin: 0 0 8px; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.hero p { margin: 0; opacity: 0.85; font-size: 16px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted); margin: 28px 0 10px; font-weight: 700; }
+.card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px 22px; margin-bottom: 12px; }
+.prose { font-size: 16px; line-height: 1.7; }
+.callout { background: var(--accent-soft); border-left: 3px solid var(--accent);
+  padding: 12px 16px; border-radius: 4px; font-size: 15px; margin-bottom: 12px; }
+.callout strong { color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-block; padding: 4px 10px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent); font-size: 13px;
+  text-decoration: none; border: 1px solid transparent; }
+.chip:hover { border-color: var(--accent); }
+.subarea-pill { display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; margin-right: 8px; }
+.complexity { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 700; color: var(--text-muted); }
+.steps ol { padding-left: 22px; margin: 0; }
+.steps li { margin-bottom: 8px; font-size: 15px; }
+.pitfall { background: #fff8f0; border-left: 3px solid #f59e0b; padding: 12px 16px;
+  margin-bottom: 8px; border-radius: 4px; }
+.pitfall .trap { font-weight: 600; font-size: 14px; }
+.pitfall .fix { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+.pitfall .fix strong { color: #16a34a; }
+.success { background: #f0fdf4; border-left: 3px solid #16a34a; padding: 14px 18px;
+  border-radius: 6px; font-size: 15px; }
+.lesson-link { display: inline-block; margin-right: 6px; padding: 3px 9px;
+  background: var(--accent-soft); color: var(--accent); border-radius: 6px;
+  font-size: 13px; text-decoration: none; font-variant-numeric: tabular-nums; }
+.lesson-link:hover { background: var(--accent); color: #fff; }
+.diagram { background: #fafafa; border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px; overflow-x: auto; margin-bottom: 12px; }
+pre.code { background: var(--code-bg); color: var(--code-fg); padding: 16px 20px;
+  border-radius: 8px; overflow-x: auto; font-family: "SF Mono", Monaco, Consolas, monospace;
+  font-size: 13px; line-height: 1.55; margin: 0; }
+pre.code .lang { display: block; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 8px; }
+.toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.toc-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid;
+  border-radius: 10px; padding: 16px 20px; text-decoration: none; color: inherit;
+  transition: border-color 0.15s; display: block; }
+.toc-card:hover { border-color: var(--accent); }
+.toc-card .title { font-weight: 700; font-size: 16px; margin: 6px 0; }
+.toc-card .summary { color: var(--text-muted); font-size: 13px; margin: 0; }
+.section-divider { color: var(--text-muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.1em; font-weight: 700; margin: 28px 0 10px; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <nav class="breadcrumb">
+      <a href="../book.html">Book</a>
+      <span class="sep">›</span>
+      <span>Eval Recipes</span>
+    </nav>
+    <header class="hero">
+      <h1>Eval &amp; Observability Recipes</h1>
+      <p>Actionable patterns for measuring agent quality, behavior, cost, safety, and ops health. Each recipe has setup steps, runnable code, acceptance thresholds, and known pitfalls.</p>
+      <p class="badges"><span class="badge">25 recipes</span> <span class="badge">5 categories</span></p>
+    </header>
+
+    <div class="section-divider">Output correctness · 8 recipes</div>
+    <div class="toc-grid">
+        <a class="toc-card" href="regression-eval-set.html" style="border-left-color: #2563eb;">
+          <span class="subarea-pill" style="background: #dbeafe; color: #1e3a8a; border: 1px solid #2563eb;">Output correctness</span>
+          <span class="complexity">starter</span>
+          <div class="title">Regression eval set</div>
+          <p class="summary">Whether code or prompt changes silently break previously-passing cases.</p>
+        </a>
+        <a class="toc-card" href="llm-judge-rubric.html" style="border-left-color: #2563eb;">
+          <span class="subarea-pill" style="background: #dbeafe; color: #1e3a8a; border: 1px solid #2563eb;">Output correctness</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">LLM-judge with structured rubric</div>
+          <p class="summary">Subjective quality dimensions reduced to discrete scores via a judge model + rubric.</p>
+        </a>
+        <a class="toc-card" href="citation-faithfulness.html" style="border-left-color: #2563eb;">
+          <span class="subarea-pill" style="background: #dbeafe; color: #1e3a8a; border: 1px solid #2563eb;">Output correctness</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">Citation faithfulness eval</div>
+          <p class="summary">The fraction of model claims that are verifiable against the cited source span.</p>
+        </a>
+        <a class="toc-card" href="exact-vs-semantic-match.html" style="border-left-color: #2563eb;">
+          <span class="subarea-pill" style="background: #dbeafe; color: #1e3a8a; border: 1px solid #2563eb;">Output correctness</span>
+          <span class="complexity">starter</span>
+          <div class="title">Exact-match vs semantic-match scoring</div>
+          <p class="summary">Output equivalence, with different tolerances for surface variation.</p>
+        </a>
+        <a class="toc-card" href="schema-conformance.html" style="border-left-color: #2563eb;">
+          <span class="subarea-pill" style="background: #dbeafe; color: #1e3a8a; border: 1px solid #2563eb;">Output correctness</span>
+          <span class="complexity">starter</span>
+          <div class="title">Schema conformance eval</div>
+          <p class="summary">The rate at which raw model output validates against the declared schema before any retry/repair.</p>
+        </a>
+        <a class="toc-card" href="calibration-ece.html" style="border-left-color: #2563eb;">
+          <span class="subarea-pill" style="background: #dbeafe; color: #1e3a8a; border: 1px solid #2563eb;">Output correctness</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">Calibration / ECE</div>
+          <p class="summary">Expected Calibration Error — gap between stated confidence and actual accuracy.</p>
+        </a>
+        <a class="toc-card" href="multi-turn-coherence.html" style="border-left-color: #2563eb;">
+          <span class="subarea-pill" style="background: #dbeafe; color: #1e3a8a; border: 1px solid #2563eb;">Output correctness</span>
+          <span class="complexity">advanced</span>
+          <div class="title">Multi-turn coherence eval</div>
+          <p class="summary">Whether the agent maintains state, doesn't contradict itself, and tracks references across turns.</p>
+        </a>
+        <a class="toc-card" href="pairwise-preference.html" style="border-left-color: #2563eb;">
+          <span class="subarea-pill" style="background: #dbeafe; color: #1e3a8a; border: 1px solid #2563eb;">Output correctness</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">Pairwise preference eval</div>
+          <p class="summary">Which of two candidate outputs a (human or LLM) judge prefers, per query.</p>
+        </a>
+    </div>
+    <div class="section-divider">Behavior &amp; tool use · 5 recipes</div>
+    <div class="toc-grid">
+        <a class="toc-card" href="tool-trajectory.html" style="border-left-color: #16a34a;">
+          <span class="subarea-pill" style="background: #dcfce7; color: #14532d; border: 1px solid #16a34a;">Behavior &amp; tool use</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">Tool trajectory eval</div>
+          <p class="summary">Whether the sequence of tool calls matches expectations (loose match — order may vary, but key tools must be invoked).</p>
+        </a>
+        <a class="toc-card" href="tool-argument-validity.html" style="border-left-color: #16a34a;">
+          <span class="subarea-pill" style="background: #dcfce7; color: #14532d; border: 1px solid #16a34a;">Behavior &amp; tool use</span>
+          <span class="complexity">starter</span>
+          <div class="title">Tool argument validity eval</div>
+          <p class="summary">Whether tool calls have valid arguments against the declared input_schema.</p>
+        </a>
+        <a class="toc-card" href="refusal-rate.html" style="border-left-color: #16a34a;">
+          <span class="subarea-pill" style="background: #dcfce7; color: #14532d; border: 1px solid #16a34a;">Behavior &amp; tool use</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">Refusal / over-refusal eval</div>
+          <p class="summary">Two rates: (a) over-refusals on benign queries, (b) under-refusals on truly unsafe queries.</p>
+        </a>
+        <a class="toc-card" href="safety-guardrail-adherence.html" style="border-left-color: #16a34a;">
+          <span class="subarea-pill" style="background: #dcfce7; color: #14532d; border: 1px solid #16a34a;">Behavior &amp; tool use</span>
+          <span class="complexity">advanced</span>
+          <div class="title">Safety guardrail adherence</div>
+          <p class="summary">Whether the agent follows declared hard rules in every response.</p>
+        </a>
+        <a class="toc-card" href="tool-failure-recovery.html" style="border-left-color: #16a34a;">
+          <span class="subarea-pill" style="background: #dcfce7; color: #14532d; border: 1px solid #16a34a;">Behavior &amp; tool use</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">Tool failure recovery eval</div>
+          <p class="summary">Whether the agent gracefully handles tool failures (retries, alternative tools, user-visible degradation) instead of crashing or hallucinating.</p>
+        </a>
+    </div>
+    <div class="section-divider">Cost &amp; latency · 4 recipes</div>
+    <div class="toc-grid">
+        <a class="toc-card" href="cost-per-task.html" style="border-left-color: #b45309;">
+          <span class="subarea-pill" style="background: #fef3c7; color: #78350f; border: 1px solid #b45309;">Cost &amp; latency</span>
+          <span class="complexity">starter</span>
+          <div class="title">Cost per task tracking</div>
+          <p class="summary">Total API cost per logical task (input + output tokens, by model, with cache savings).</p>
+        </a>
+        <a class="toc-card" href="latency-percentiles.html" style="border-left-color: #b45309;">
+          <span class="subarea-pill" style="background: #fef3c7; color: #78350f; border: 1px solid #b45309;">Cost &amp; latency</span>
+          <span class="complexity">starter</span>
+          <div class="title">Latency p50/p95/p99</div>
+          <p class="summary">End-to-end response time distribution from user input to final response.</p>
+        </a>
+        <a class="toc-card" href="token-usage-attribution.html" style="border-left-color: #b45309;">
+          <span class="subarea-pill" style="background: #fef3c7; color: #78350f; border: 1px solid #b45309;">Cost &amp; latency</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">Token usage attribution</div>
+          <p class="summary">Token breakdown by phase (system prompt, history, tool results, retrieval context, output).</p>
+        </a>
+        <a class="toc-card" href="tail-latency-analysis.html" style="border-left-color: #b45309;">
+          <span class="subarea-pill" style="background: #fef3c7; color: #78350f; border: 1px solid #b45309;">Cost &amp; latency</span>
+          <span class="complexity">advanced</span>
+          <div class="title">Tail latency analysis</div>
+          <p class="summary">What's happening in the slow 1% — long agent loops, retries, slow tools, cold caches.</p>
+        </a>
+    </div>
+    <div class="section-divider">Safety &amp; robustness · 4 recipes</div>
+    <div class="toc-grid">
+        <a class="toc-card" href="red-team-injection.html" style="border-left-color: #b91c1c;">
+          <span class="subarea-pill" style="background: #fee2e2; color: #7f1d1d; border: 1px solid #b91c1c;">Safety &amp; robustness</span>
+          <span class="complexity">advanced</span>
+          <div class="title">Red-team prompt-injection eval</div>
+          <p class="summary">Whether the agent follows attacker-injected instructions hidden in retrieved content.</p>
+        </a>
+        <a class="toc-card" href="jailbreak-resistance.html" style="border-left-color: #b91c1c;">
+          <span class="subarea-pill" style="background: #fee2e2; color: #7f1d1d; border: 1px solid #b91c1c;">Safety &amp; robustness</span>
+          <span class="complexity">advanced</span>
+          <div class="title">Jailbreak resistance eval</div>
+          <p class="summary">Whether known jailbreak techniques (DAN-style, role-play, gradual escalation) successfully bypass safety prompting.</p>
+        </a>
+        <a class="toc-card" href="pii-leakage.html" style="border-left-color: #b91c1c;">
+          <span class="subarea-pill" style="background: #fee2e2; color: #7f1d1d; border: 1px solid #b91c1c;">Safety &amp; robustness</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">PII leakage eval</div>
+          <p class="summary">Whether the agent inadvertently echoes, logs, or transmits PII outside intended boundaries.</p>
+        </a>
+        <a class="toc-card" href="hallucination-rate.html" style="border-left-color: #b91c1c;">
+          <span class="subarea-pill" style="background: #fee2e2; color: #7f1d1d; border: 1px solid #b91c1c;">Safety &amp; robustness</span>
+          <span class="complexity">advanced</span>
+          <div class="title">Hallucination rate (free-form)</div>
+          <p class="summary">Fraction of factual claims in agent output that are not verifiable.</p>
+        </a>
+    </div>
+    <div class="section-divider">Eval ops · 4 recipes</div>
+    <div class="toc-grid">
+        <a class="toc-card" href="eval-set-freshness.html" style="border-left-color: #7c3aed;">
+          <span class="subarea-pill" style="background: #ede9fe; color: #4c1d95; border: 1px solid #7c3aed;">Eval ops</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">Eval set freshness &amp; rotation</div>
+          <p class="summary">How well the eval set still reflects production traffic distribution.</p>
+        </a>
+        <a class="toc-card" href="ci-eval-gate.html" style="border-left-color: #7c3aed;">
+          <span class="subarea-pill" style="background: #ede9fe; color: #4c1d95; border: 1px solid #7c3aed;">Eval ops</span>
+          <span class="complexity">starter</span>
+          <div class="title">CI eval gate (block-on-regression)</div>
+          <p class="summary">Whether the regression eval still passes — and blocks merging if not.</p>
+        </a>
+        <a class="toc-card" href="sample-size-power.html" style="border-left-color: #7c3aed;">
+          <span class="subarea-pill" style="background: #ede9fe; color: #4c1d95; border: 1px solid #7c3aed;">Eval ops</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">Sample size &amp; statistical power</div>
+          <p class="summary">Minimum number of eval cases needed to detect an effect of given size at given confidence.</p>
+        </a>
+        <a class="toc-card" href="prompt-ab-eval.html" style="border-left-color: #7c3aed;">
+          <span class="subarea-pill" style="background: #ede9fe; color: #4c1d95; border: 1px solid #7c3aed;">Eval ops</span>
+          <span class="complexity">intermediate</span>
+          <div class="title">Prompt A/B eval</div>
+          <p class="summary">Difference in scoring metric between prompt A and prompt B over the same eval set.</p>
+        </a>
+    </div>
+
+    <h2 class="section">How to add more</h2>
+    <div class="card prose">
+      <p>Edit <code>scripts/course-agent/src/eval-recipe-data.ts</code> and run <code>npx tsx scripts/course-agent/src/index.ts eval-recipes</code> to regenerate.</p>
+    </div>
+  </div>
+</body>
+</html>

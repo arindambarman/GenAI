@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Test script · Eval Recipe · AdaptLearn</title>
+  <style>
+    :root {
+      --bg: #fafafa; --surface: #ffffff;
+      --text: #1c2230; --text-muted: #5b6473;
+      --border: #e5e7eb; --accent: #2563eb; --accent-soft: #eff6ff;
+      --code-bg: #1e293b; --code-fg: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      font-size: 16px; line-height: 1.6; color: var(--text); background: var(--bg); }
+    .container { max-width: 980px; margin: 0 auto; padding: 32px; }
+    .breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+    .breadcrumb a { color: var(--text-muted); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+    .breadcrumb .sep { margin: 0 6px; opacity: 0.5; }
+    .hero { padding: 26px 32px; background: linear-gradient(135deg, #1c2230 0%, #2d3a55 100%);
+      color: #fff; border-radius: 14px; margin-bottom: 22px; }
+    .hero h1 { margin: 0 0 6px; font-size: 22px; font-weight: 800; letter-spacing: -0.02em;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+    .hero p { margin: 0; opacity: 0.85; font-size: 15px; }
+    .runbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 16px; }
+    .runbar code { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      background: #f1f5f9; padding: 5px 10px; border-radius: 6px; font-size: 14px; color: #0f172a; }
+    .btn { font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface); color: var(--accent);
+      padding: 6px 12px; border-radius: 8px; text-decoration: none; }
+    .btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .spacer { flex: 1; }
+    .codewrap { background: var(--code-bg); border-radius: 12px; overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+    .codehead { display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08); color: #94a3b8; font-size: 13px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+    .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+    pre { margin: 0; padding: 18px 0; overflow-x: auto; }
+    pre code { display: block; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13.5px; line-height: 1.6; color: var(--code-fg); }
+    .ln { display: inline-block; width: 3em; padding-right: 1.2em; margin-right: 1em;
+      text-align: right; color: #475569; border-right: 1px solid rgba(255,255,255,0.07);
+      user-select: none; }
+    .row { padding: 0 18px; white-space: pre; }
+    .row:hover { background: rgba(255,255,255,0.04); }
+    .tok-com { color: #94a3b8; font-style: italic; }
+    .tok-str { color: #86efac; }
+    .tok-kw  { color: #93c5fd; }
+    .tok-num { color: #fca5a5; }
+    .err { background: #fff8f0; border-left: 3px solid #f59e0b; padding: 14px 18px;
+      border-radius: 6px; font-size: 15px; }
+    .err code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+    .copied { color: #16a34a; font-size: 13px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="../../book.html">Book</a><span class="sep">›</span>
+      <a href="../index.html">Eval Recipes</a><span class="sep">›</span>
+      <a href="../agent-assessment.html">Worked examples</a><span class="sep">›</span>
+      <span id="crumb">Test script</span>
+    </div>
+
+    <div class="hero">
+      <h1 id="title">…</h1>
+      <p id="subtitle">Runnable test script — loads healthy fixtures, prints PASS ✓ / FAIL ✗, exits 0/1 (CI-ready).</p>
+    </div>
+
+    <div class="runbar">
+      <span>Run:</span>
+      <code id="runcmd">npx tsx …</code>
+      <button class="btn" id="copyCmd">Copy command</button>
+      <span class="spacer"></span>
+      <button class="btn" id="copyCode">Copy code</button>
+      <a class="btn" id="rawLink" href="#" download>Download .ts</a>
+    </div>
+
+    <div id="mount"></div>
+  </div>
+
+  <script>
+    // Read the script id from the hash (survives the server's clean-URL redirect),
+    // falling back to a ?s= query param.
+    const qs = new URLSearchParams(location.search);
+    const raw = location.hash.slice(1) || qs.get("s") || "";
+    const id = raw.replace(/[^a-z0-9-]/gi, "");
+    const file = id + ".eval.ts";
+    const mount = document.getElementById("mount");
+
+    const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    const KW = /\b(const|let|var|function|return|if|else|for|of|in|type|interface|import|from|export|new|typeof|true|false|null|process|console)\b/g;
+
+    // Highlight a single already-escaped line. Comments/strings take priority.
+    function highlight(line) {
+      // full-line comment
+      if (/^\s*\/\//.test(line) || /^\s*\*/.test(line) || /^\s*\/\*/.test(line))
+        return '<span class="tok-com">' + line + '</span>';
+      // strings (single, double, backtick) — escaped text so quotes are literal
+      line = line.replace(/(&quot;|&#39;|'|"|`)(?:\\.|(?!\1).)*\1/g, m => '<span class="tok-str">' + m + '</span>');
+      // trailing // comment (avoid touching inside spans)
+      line = line.replace(/(\/\/[^<]*)$/, '<span class="tok-com">$1</span>');
+      // numbers
+      line = line.replace(/\b(\d[\d_]*\.?\d*)\b/g, '<span class="tok-num">$1</span>');
+      // keywords
+      line = line.replace(KW, '<span class="tok-kw">$&</span>');
+      return line;
+    }
+
+    function render(src) {
+      const lines = src.replace(/\n$/, "").split("\n");
+      const body = lines.map((ln, i) =>
+        '<div class="row"><span class="ln">' + (i + 1) + '</span>' + highlight(esc(ln)) + '</div>'
+      ).join("");
+      mount.innerHTML =
+        '<div class="codewrap">' +
+          '<div class="codehead">' +
+            '<span class="dot" style="background:#ef4444"></span>' +
+            '<span class="dot" style="background:#f59e0b"></span>' +
+            '<span class="dot" style="background:#22c55e"></span>' +
+            '<span style="margin-left:8px">scripts/' + file + '</span>' +
+          '</div>' +
+          '<pre><code>' + body + '</code></pre>' +
+        '</div>';
+      window.__src = src;
+    }
+
+    function fail(msg) {
+      mount.innerHTML = '<div class="err">' + msg + '</div>';
+    }
+
+    if (!id) {
+      document.getElementById("title").textContent = "No script selected";
+      fail('Add <code>#&lt;metric-id&gt;</code> to the URL, e.g. <code>view.html#regression-eval-set</code>.');
+    } else {
+      const pretty = id.replace(/-/g, " ");
+      document.getElementById("title").textContent = file;
+      document.getElementById("crumb").textContent = id;
+      document.title = id + " · Test script · AdaptLearn";
+      const cmd = "npx tsx scripts/" + file;
+      document.getElementById("runcmd").textContent = cmd;
+      document.getElementById("rawLink").setAttribute("href", file);
+
+      document.getElementById("copyCmd").addEventListener("click", (e) => {
+        navigator.clipboard.writeText(cmd).then(() => { e.target.textContent = "Copied ✓"; setTimeout(() => e.target.textContent = "Copy command", 1500); });
+      });
+      document.getElementById("copyCode").addEventListener("click", (e) => {
+        navigator.clipboard.writeText(window.__src || "").then(() => { e.target.textContent = "Copied ✓"; setTimeout(() => e.target.textContent = "Copy code", 1500); });
+      });
+
+      fetch(file)
+        .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+        .then(render)
+        .catch(err => fail(
+          'Could not load <code>' + esc(file) + '</code> (' + esc(String(err.message || err)) + ').<br>' +
+          'This viewer fetches the script, so open the page through a local server ' +
+          '(e.g. <code>npx serve course/web</code>) rather than a <code>file://</code> path.'
+        ));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Journey · Book × Eval &amp; Observability · AdaptLearn</title>
+<style>
+  :root{
+    --bg0:#05070f; --panel:rgba(15,21,38,0.86); --panel2:rgba(20,28,48,0.7);
+    --border:rgba(120,150,210,0.18); --border2:rgba(120,150,210,0.34);
+    --txt:#e6ecf7; --muted:#8b9bc0; --faint:#5d6b8e;
+    --accent:#38bdf8; --good:#34d399; --warn:#fbbf24; --bad:#f87171; --violet:#a78bfa;
+    --cyan:#22d3ee; --code:#0b1120; --book:#f59e0b;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1100px 700px at 10% -8%, rgba(56,189,248,0.10), transparent 60%),
+      radial-gradient(1000px 700px at 100% 0%, rgba(167,139,250,0.10), transparent 55%),
+      var(--bg0);
+    color:var(--txt);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    min-height:100vh;
+  }
+  a{color:inherit;}
+  code,.mono{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;}
+
+  .topnav{display:flex;align-items:center;gap:18px;padding:16px 24px;flex-wrap:wrap;}
+  .brand{font-weight:800;font-size:15px;}
+  .brand .dot{color:var(--accent);}
+  .topnav .links{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;}
+  .topnav .links a{font-size:13px;text-decoration:none;color:var(--muted);padding:6px 12px;border-radius:999px;
+    border:1px solid transparent;transition:.15s;font-weight:600;}
+  .topnav .links a:hover{color:var(--txt);border-color:var(--border2);background:var(--panel2);}
+  .topnav .links a.active{color:#06121f;background:var(--accent);}
+  .topnav .links a.book{color:var(--book);border-color:rgba(245,158,11,0.4);}
+  .topnav .links a.book:hover{background:rgba(245,158,11,0.12);}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:6px 24px 60px;}
+  .intro{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px 24px;margin-bottom:20px;}
+  .intro h1{margin:0 0 8px;font-size:24px;font-weight:800;letter-spacing:-0.01em;}
+  .intro h1 .x{color:var(--faint);font-weight:600;margin:0 6px;}
+  .intro p{margin:0;color:var(--muted);font-size:14px;line-height:1.6;max-width:880px;}
+  .facts{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px;}
+  .fact{font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;border:1px solid var(--border2);
+    background:var(--panel2);color:var(--muted);}
+  .fact b{color:var(--accent);}
+  .fact.b b{color:var(--book);}
+
+  /* the two-door hero */
+  .doors{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px;}
+  @media(max-width:720px){.doors{grid-template-columns:1fr;}}
+  .door{display:block;text-decoration:none;border-radius:14px;padding:18px 20px;border:1px solid var(--border2);
+    background:var(--panel2);transition:.15s;}
+  .door:hover{transform:translateY(-2px);}
+  .door .k{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;}
+  .door h3{margin:7px 0 5px;font-size:17px;font-weight:800;color:var(--txt);}
+  .door p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.5;}
+  .door.bk{background:linear-gradient(135deg,rgba(245,158,11,0.14),rgba(245,158,11,0.04));border-color:rgba(245,158,11,0.4);}
+  .door.bk .k{color:var(--book);}
+  .door.cs{background:linear-gradient(135deg,rgba(56,189,248,0.14),rgba(167,139,250,0.10));border-color:var(--border2);}
+  .door.cs .k{color:var(--accent);}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px 22px;margin-bottom:20px;}
+  .phead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
+  .phead .num{font-size:12px;font-weight:800;color:#06121f;background:var(--accent);width:22px;height:22px;border-radius:7px;
+    display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;align-self:center;}
+  .phead h2{margin:0;font-size:18px;font-weight:800;}
+  .phead .tag{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--violet);font-weight:700;}
+  .pdesc{color:var(--muted);font-size:13px;line-height:1.55;margin:6px 0 16px;max-width:900px;}
+  .pdesc b{color:var(--txt);} .pdesc code{background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:11.5px;color:var(--accent);}
+
+  .diagram{background:var(--code);border:1px solid var(--border);border-radius:12px;padding:18px;overflow:auto;}
+  .diagram svg{display:block;margin:0 auto;}
+  .scrollhint{font-size:11px;color:var(--faint);margin:8px 2px 0;}
+  .loading{color:var(--faint);font-size:13px;text-align:center;padding:30px;}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:12px;color:var(--muted);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block;}
+
+  /* the connections table */
+  .maptbl{width:100%;border-collapse:collapse;margin-top:6px;font-size:12.5px;}
+  .maptbl th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;
+    padding:8px 10px;border-bottom:1px solid var(--border2);font-weight:700;}
+  .maptbl td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+  .maptbl tr:last-child td{border-bottom:none;}
+  .maptbl .mod{font-weight:700;color:var(--book);white-space:nowrap;}
+  .maptbl .mod a{text-decoration:none;}
+  .maptbl .mod a:hover{text-decoration:underline;}
+  .mchip{display:inline-block;font-size:11px;font-weight:600;color:var(--txt);background:var(--panel2);
+    border:1px solid var(--border);border-radius:6px;padding:2px 8px;margin:2px 3px 2px 0;text-decoration:none;transition:.15s;}
+  .mchip:hover{border-color:var(--accent);color:var(--accent);}
+
+  .footnote{font-size:12px;color:var(--faint);line-height:1.6;margin-top:8px;}
+  .footnote b{color:var(--muted);}
+</style>
+</head>
+<body>
+  <nav class="topnav">
+    <span class="brand">Apex<span class="dot">·</span>Journey</span>
+    <div class="links">
+      <a href="../book.html" class="book">📖 The Book</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="knowledge-graph.html">Graph</a>
+      <a href="eval-studio.html">Studio</a>
+      <a href="trace-explorer.html">Traces</a>
+      <a href="tutor.html">Tutor</a>
+      <a href="my-sessions.html">My Sessions</a>
+      <a href="mastery.html">Mastery</a>
+      <a href="journey.html" class="active">Journey</a>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <div class="intro">
+      <h1>The Agentic Systems Book <span class="x">×</span> Eval &amp; Observability</h1>
+      <p>One product, two rooms. The <b>Book</b> teaches the theory of building agents across 14 modules; the
+      <b>Eval &amp; Observability Console</b> makes that theory <em>measurable and observable</em> — 41 metrics and 15 interactive
+      tools mapped onto the Meridian "Apex" sales-desk scenario. This page is the seam between them: where each chapter you read
+      turns into something you can run, trace, and master.</p>
+      <div class="facts">
+        <span class="fact b"><b>14</b> book modules + capstones</span>
+        <span class="fact"><b>41</b> metrics / <b>9</b> categories</span>
+        <span class="fact"><b>15</b> interactive tools</span>
+        <span class="fact"><b>4</b> moves · learn → practice → observe → master</span>
+      </div>
+      <div class="doors">
+        <a class="door bk" href="../book.html">
+          <div class="k">📖 Learn — the theory</div>
+          <h3>The Agentic Systems Book</h3>
+          <p>14 modules from Foundations to Claude-specific architecture, plus capstones, scenarios, concept notes — and the <a href="book-graph.html" style="color:var(--book);font-weight:700;">interactive Concept Graph</a>. Read first.</p>
+        </a>
+        <a class="door cs" href="dashboard.html">
+          <div class="k">🛰️ Practise &amp; observe — the console</div>
+          <h3>Eval &amp; Observability suite</h3>
+          <p>Knowledge graph, live Eval Studio, Trace Explorer, Incident Simulator, the grounded Tutor, My Sessions, Mastery.</p>
+        </a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><span class="num">1</span><h2>Two rooms, one journey</h2><span class="tag">learn → practice → observe → master</span></div>
+      <p class="pdesc">The <b style="color:var(--book)">Book</b> and the <b style="color:var(--accent)">Console</b> aren't separate sites — they're
+      two halves of a single loop. You read a module, run its metric live, watch the agent's own trace, and track recall until it sticks.
+      The <b>grounded Tutor</b> is ambient across both, always one tap away to cite a lesson or open a trace.</p>
+      <div class="diagram" id="d1"><div class="loading">rendering diagram…</div></div>
+      <div class="legend">
+        <span><i style="background:#f59e0b"></i> the Book (theory)</span>
+        <span><i style="background:#38bdf8"></i> the Console (tools)</span>
+        <span><i style="background:#22d3ee"></i> ambient Tutor</span>
+        <span><i style="background:#34d399"></i> outcome</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><span class="num">2</span><h2>Which chapter teaches which metric</h2><span class="tag">the real wiring</span></div>
+      <p class="pdesc">These edges are taken from the actual cross-links in the codebase — the eval lessons already deep-link <b>back</b> into
+      these book modules. Module <b>m08 · Evaluation &amp; Observability</b> is the hub: it owns the whole discipline and every tool.
+      The other chapters each contribute a slice.</p>
+      <div class="diagram" id="d2"><div class="loading">rendering diagram…</div></div>
+      <table class="maptbl">
+        <thead><tr><th style="width:230px">Book module</th><th>Eval &amp; observability it unlocks</th></tr></thead>
+        <tbody id="maprows"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><span class="num">3</span><h2>A learner's path through both halves</h2><span class="tag">the click-path</span></div>
+      <p class="pdesc">A concrete walk: read <code>m08</code> in the Book → jump to a metric lesson → run it in <b>Eval Studio</b> →
+      inspect the run in <b>Trace Explorer</b> → drill a failure in the <b>Incident Simulator</b> → check your own stats in
+      <b>My Sessions</b> → track recall in <b>Mastery</b>. Every step can hand back to the Book, and the Tutor rides along.</p>
+      <div class="diagram" id="d3"><div class="loading">rendering diagram…</div></div>
+      <p class="footnote"><b>The seam in one line:</b> the Book answers <i>“what &amp; why”</i>; the Console answers <i>“is it actually working, right now?”</i></p>
+    </div>
+  </div>
+
+<script>
+// ── module → metric connection table (mirrors the real ../mNN backlinks) ──────
+var MAP = [
+  ["m03","LLM Internals for Agents", [["Schema conformance","schema-conformance"],["Tool-argument validity","tool-argument-validity"]]],
+  ["m04","Single-Agent Architectures (Sherpa)", [["Regression eval set","regression-eval-set"],["CI eval gate","ci-eval-gate"],["Prompt A/B eval","prompt-ab-eval"],["Multi-turn coherence","multi-turn-coherence"]]],
+  ["m05","Memory & Retrieval (RAG)", [["Citation faithfulness","citation-faithfulness"],["Hallucination rate","hallucination-rate"],["Token-usage attribution","token-usage-attribution"]]],
+  ["m07","Tool Integration & MCP", [["Tool trajectory","tool-trajectory"]]],
+  ["m08","Evaluation & Observability", [["the hub — all 41 metrics","dashboard"],["every interactive tool","mastery"]]],
+  ["m09","Production Engineering", [["Latency percentiles","latency-percentiles"],["Tail-latency analysis","tail-latency-analysis"],["Cost per task","cost-per-task"],["Tool-failure recovery","tool-failure-recovery"]]],
+  ["m10","Safety, Alignment & Security", [["Jailbreak resistance","jailbreak-resistance"],["PII leakage","pii-leakage"],["Red-team injection","red-team-injection"],["Refusal rate","refusal-rate"],["Guardrail adherence","safety-guardrail-adherence"]]],
+  ["m14","Claude-Specific Architect Topics", [["Schema conformance","schema-conformance"],["Citation faithfulness","citation-faithfulness"],["Cost per task","cost-per-task"],["Tool-argument validity","tool-argument-validity"]]]
+];
+(function(){
+  var esc = function(s){ return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); };
+  document.getElementById("maprows").innerHTML = MAP.map(function(r){
+    var chips = r[2].map(function(m){
+      return '<a class="mchip" href="'+m[1]+'.html">'+esc(m[0])+'</a>';
+    }).join("");
+    return '<tr><td class="mod"><a href="../'+r[0]+'/index.html">'+r[0]+' · '+esc(r[1])+'</a></td><td>'+chips+'</td></tr>';
+  }).join("");
+})();
+</script>
+
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  securityLevel: 'loose',
+  themeVariables: {
+    fontFamily: 'Inter, -apple-system, sans-serif',
+    fontSize: '14px',
+    background: '#0b1120',
+    primaryColor: '#101a30',
+    primaryBorderColor: 'rgba(120,150,210,0.40)',
+    primaryTextColor: '#e6ecf7',
+    secondaryColor: '#141c30',
+    tertiaryColor: '#0b1120',
+    lineColor: '#7184ad',
+    textColor: '#e6ecf7',
+    titleColor: '#38bdf8',
+    clusterBkg: 'rgba(20,28,48,0.45)',
+    clusterBorder: 'rgba(120,150,210,0.22)',
+    edgeLabelBackground: '#0b1120',
+    nodeTextColor: '#e6ecf7'
+  }
+});
+
+const D1 = `flowchart TB
+  HOME(["Unified home<br/>Agentic Systems"])
+  subgraph BK["📖 The Book — learn the theory"]
+    direction TB
+    BOOK["book.html · index.html<br/>14 modules · m01 Foundations → m14 Claude-specific<br/>capstones · scenarios · concepts"]
+  end
+  subgraph CS["🛰️ Eval &amp; Observability Console — make it measurable"]
+    direction TB
+    DASH["dashboard.html<br/>15 interactive tools"]
+    SUITE["knowledge-graph · eval-studio · trace-explorer<br/>incident-sim · my-sessions · mastery"]
+    DASH --> SUITE
+  end
+  subgraph SPINE["one journey, four moves"]
+    direction LR
+    L1["① Learn<br/>read the module"] --> L2["② Practice<br/>run the metric live"] --> L3["③ Observe<br/>read the agent's trace"] --> L4["④ Master<br/>recall-tested"]
+  end
+  TUT{{"Eval Tutor<br/>grounded · cited · ambient"}}
+
+  HOME --> BK
+  HOME --> CS
+  HOME --> SPINE
+  BOOK <== "module ⇄ its live eval" ==> DASH
+  L1 -.-> BOOK
+  L2 -.-> DASH
+  L3 -.-> SUITE
+  L4 -.-> SUITE
+  TUT -. "cite a lesson" .-> BOOK
+  TUT -. "open a trace" .-> SUITE
+
+  classDef book fill:#2a2410,stroke:#f59e0b,color:#fef3d6;
+  classDef console fill:#0d2238,stroke:#38bdf8,color:#dff1ff;
+  classDef spine fill:#1b1538,stroke:#a78bfa,color:#efe9ff;
+  classDef tutor fill:#0f2a2c,stroke:#22d3ee,color:#d7f7f7;
+  classDef home fill:#0f2a1e,stroke:#34d399,color:#d7f7e8;
+  class BOOK book; class DASH,SUITE console; class L1,L2,L3,L4 spine; class TUT tutor; class HOME home;`;
+
+const D2 = `flowchart LR
+  subgraph BOOK["📖 Book modules with eval coverage"]
+    direction TB
+    M03["m03 · LLM Internals"]
+    M04["m04 · Single-Agent (Sherpa)"]
+    M05["m05 · Memory &amp; RAG"]
+    M07["m07 · Tools &amp; MCP"]
+    M08["m08 · Evaluation &amp; Observability"]
+    M09["m09 · Production Engineering"]
+    M10["m10 · Safety &amp; Security"]
+    M14["m14 · Claude-Specific"]
+  end
+  subgraph CATS["41 metrics · 9 categories"]
+    direction TB
+    OC["Output correctness<br/>schema · citation · ECE · match"]
+    BT["Behavior &amp; tool use<br/>trajectory · arg-validity · recovery"]
+    CL["Cost &amp; latency<br/>p95/p99 · tail · cost · tokens"]
+    SR["Safety &amp; robustness<br/>jailbreak · PII · red-team · refusal · guardrail"]
+    EO["Eval ops<br/>regression set · CI gate · A/B · freshness"]
+    OBS["Observability<br/>traces · metrics · dashboards · sampling"]
+  end
+  subgraph TOOLS["Where you practise &amp; observe"]
+    direction TB
+    STU["Eval Studio"]
+    TRC["Trace Explorer"]
+    INC["Incident Simulator"]
+    MAS["Mastery"]
+  end
+
+  M03 --> OC
+  M03 --> BT
+  M04 --> EO
+  M04 --> OC
+  M05 --> OC
+  M05 --> CL
+  M07 --> BT
+  M08 ==> OC
+  M08 ==> BT
+  M08 ==> CL
+  M08 ==> SR
+  M08 ==> EO
+  M08 ==> OBS
+  M09 --> CL
+  M09 --> BT
+  M10 --> SR
+  M14 --> OC
+  M14 --> CL
+  M14 --> BT
+
+  OC --> STU
+  BT --> STU
+  CL --> STU
+  SR --> STU
+  EO --> STU
+  OBS --> TRC
+  SR --> INC
+  CL --> INC
+  STU --> MAS
+  TRC --> MAS
+  INC --> MAS
+
+  classDef book fill:#2a2410,stroke:#f59e0b,color:#fef3d6;
+  classDef hub fill:#3a2c08,stroke:#fbbf24,color:#fff7e0;
+  classDef cat fill:#1b1538,stroke:#a78bfa,color:#efe9ff;
+  classDef tool fill:#0d2238,stroke:#38bdf8,color:#dff1ff;
+  class M03,M04,M05,M07,M09,M10,M14 book;
+  class M08 hub;
+  class OC,BT,CL,SR,EO,OBS cat;
+  class STU,TRC,INC,MAS tool;`;
+
+const D3 = `flowchart TD
+  START(["Reader picks up<br/>m08 · Evaluation &amp; Observability"]) --> READ["📖 Read the chapter<br/>what to measure &amp; why"]
+  READ --> LES["Metric lesson<br/>scenario → mind map → math → tech"]
+  LES -->|"run it"| STU["🛰️ Eval Studio<br/>paste output → PASS / FAIL + chart"]
+  STU -->|"inspect the run"| TRC["Trace Explorer<br/>span waterfall · cost · latency"]
+  TRC -->|"a span failed"| INC["Incident Simulator<br/>triage · walk the playbook"]
+  STU --> MINE["My Sessions<br/>your refusal rate · faithfulness · p95"]
+  TRC --> MINE
+  INC --> MAST["Mastery tracker<br/>spaced-repetition recall"]
+  MINE --> MAST
+  LES --> MAST
+  MAST --> DONE(["Confident across 41 metrics"])
+
+  LES -. "back to theory" .-> READ
+  ASK{{"Eval Tutor — ambient<br/>cite · re-ask · open trace"}}
+  LES -. ask .-> ASK
+  STU -. ask .-> ASK
+  ASK -->|"cite"| LES
+  ASK -->|"trace"| TRC
+
+  classDef book fill:#2a2410,stroke:#f59e0b,color:#fef3d6;
+  classDef tool fill:#0d2238,stroke:#38bdf8,color:#dff1ff;
+  classDef tutor fill:#0f2a2c,stroke:#22d3ee,color:#d7f7f7;
+  classDef goal fill:#0f2a1e,stroke:#34d399,color:#d7f7e8;
+  class START,READ,LES book;
+  class STU,TRC,INC,MINE,MAST tool;
+  class ASK tutor;
+  class DONE goal;`;
+
+async function draw(id, def){
+  const host = document.getElementById(id);
+  try{
+    const { svg } = await mermaid.render(id + "-svg", def);
+    host.innerHTML = svg;
+    const el = host.querySelector("svg");
+    const vb = el.viewBox && el.viewBox.baseVal;
+    if (vb && vb.width){
+      const avail = host.clientWidth - 36;
+      let scale = Math.min(1, avail / vb.width);
+      const FLOOR = 0.55;
+      const scroll = scale < FLOOR;
+      if (scroll) scale = 1;
+      el.removeAttribute("width");
+      el.style.maxWidth = "none";
+      el.style.width  = Math.round(vb.width  * scale) + "px";
+      el.style.height = Math.round(vb.height * scale) + "px";
+      let msg = "";
+      if (scroll) msg = "↔ wide diagram — scroll horizontally to see all of it";
+      else if (scale < 1) msg = "shown at " + Math.round(scale*100) + "% to fit your screen";
+      if (msg){
+        const hint = document.createElement("div");
+        hint.className = "scrollhint";
+        hint.textContent = msg;
+        host.parentNode.insertBefore(hint, host.nextSibling);
+      }
+    }
+  }catch(e){
+    host.innerHTML = '<div class="loading">diagram failed to render: ' + (e && e.message ? e.message : e) + '</div>';
+    console.error(id, e);
+  }
+}
+draw("d1", D1);
+draw("d2", D2);
+draw("d3", D3);
+</script>
+</body>
+</html>

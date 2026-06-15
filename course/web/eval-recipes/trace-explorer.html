@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trace Explorer · Eval & Observability · AdaptLearn</title>
+<script src="lessons-data.js"></script>
+<style>
+  :root{
+    --bg0:#05070f; --panel:rgba(15,21,38,0.86); --panel2:rgba(20,28,48,0.7);
+    --border:rgba(120,150,210,0.18); --border2:rgba(120,150,210,0.34);
+    --txt:#e6ecf7; --muted:#8b9bc0; --faint:#5d6b8e;
+    --accent:#38bdf8; --good:#34d399; --warn:#fbbf24; --bad:#f87171; --violet:#a78bfa;
+    --cyan:#22d3ee; --teal:#2dd4bf; --code:#0b1120;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1100px 700px at 10% -8%, rgba(56,189,248,0.10), transparent 60%),
+      radial-gradient(1000px 700px at 100% 0%, rgba(167,139,250,0.10), transparent 55%),
+      var(--bg0);
+    color:var(--txt);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    min-height:100vh;
+  }
+  a{color:inherit;}
+  code,.mono{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;}
+
+  .topnav{display:flex;align-items:center;gap:18px;padding:16px 24px;flex-wrap:wrap;}
+  .brand{font-weight:800;font-size:15px;}
+  .brand .dot{color:var(--accent);}
+  .topnav .links{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;}
+  .topnav .links a{font-size:13px;text-decoration:none;color:var(--muted);padding:6px 12px;border-radius:999px;
+    border:1px solid transparent;transition:.15s;font-weight:600;}
+  .topnav .links a:hover{color:var(--txt);border-color:var(--border2);background:var(--panel2);}
+  .topnav .links a.active{color:#06121f;background:var(--accent);}
+
+  .layout{display:grid;grid-template-columns:268px 1fr;gap:20px;max-width:1320px;margin:0 auto;padding:6px 24px 80px;}
+  @media(max-width:920px){.layout{grid-template-columns:1fr;}}
+
+  /* rail */
+  .rail{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px;height:max-content;position:sticky;top:14px;}
+  .rail h2{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:4px 6px 10px;}
+  .tlist{display:flex;flex-direction:column;gap:6px;}
+  .titem{padding:10px 11px;border-radius:11px;cursor:pointer;border:1px solid transparent;transition:.12s;background:var(--panel2);}
+  .titem:hover{border-color:var(--border2);}
+  .titem.on{border-color:var(--border2);box-shadow:inset 0 0 0 1px var(--border2);}
+  .titem .tname{font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;}
+  .titem .tdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
+  .titem .tdesc{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.4;}
+  .titem .tmeta{font-size:11px;color:var(--faint);margin-top:6px;font-variant-numeric:tabular-nums;}
+  .titem.on .tname{color:var(--accent);}
+  .titem .ttag{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--violet);background:rgba(167,139,250,0.14);border:1px solid rgba(167,139,250,0.32);border-radius:5px;padding:1px 5px;margin-left:auto;}
+  .railnote{font-size:11px;color:var(--faint);margin:12px 6px 2px;line-height:1.5;}
+
+  /* head */
+  .head{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px 20px;}
+  .head .top{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+  .head h1{margin:0;font-size:21px;font-weight:800;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;}
+  .head .scen{color:var(--muted);font-size:13.5px;margin:6px 0 0;max-width:760px;line-height:1.5;}
+  .head .lessonlink{font-size:12.5px;text-decoration:none;color:var(--accent);font-weight:700;white-space:nowrap;}
+  .sums{display:flex;gap:10px;flex-wrap:wrap;margin-top:13px;}
+  .sum{background:var(--panel2);border:1px solid var(--border);border-radius:11px;padding:8px 13px;min-width:84px;}
+  .sum .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);}
+  .sum .v{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px;}
+  .statepill{font-size:11.5px;font-weight:800;padding:3px 11px;border-radius:999px;border:1px solid var(--border2);}
+  .statepill.ok{color:var(--good);border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.1);}
+  .statepill.warn{color:var(--warn);border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.1);}
+  .statepill.bad{color:var(--bad);border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.1);}
+
+  .sample{font-size:12.5px;margin-top:13px;background:linear-gradient(135deg,rgba(192,132,252,.1),rgba(56,189,248,.06));
+    border:1px solid var(--border2);border-radius:11px;padding:10px 13px;line-height:1.5;}
+  .sample b{color:var(--violet);}
+  .sample a{color:var(--accent);text-decoration:none;font-weight:700;}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-top:16px;}
+  .panel .ptitle{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;margin:0 0 12px;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;margin-left:auto;font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:600;}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .legend i{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+  /* waterfall */
+  .ruler{display:grid;grid-template-columns:210px 1fr;font-size:10.5px;color:var(--faint);margin-bottom:4px;}
+  .ruler .ticks{position:relative;height:14px;}
+  .ruler .ticks span{position:absolute;transform:translateX(-50%);}
+  .ruler .ticks span:first-child{transform:none;}
+  .ruler .ticks span:last-child{transform:translateX(-100%);}
+  .gantt{display:flex;flex-direction:column;gap:3px;}
+  .span{display:grid;grid-template-columns:210px 1fr;align-items:center;cursor:pointer;border-radius:7px;padding:2px 0;transition:.1s;}
+  .span:hover{background:var(--panel2);}
+  .span.sel{background:var(--panel2);box-shadow:inset 0 0 0 1px var(--border2);}
+  .span .lab{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:10px;}
+  .span .lab .ic{color:var(--faint);font-size:10px;margin-right:5px;}
+  .span .track{position:relative;height:20px;}
+  .span .bar{position:absolute;top:2px;height:16px;border-radius:4px;min-width:3px;display:flex;align-items:center;
+    box-shadow:0 0 0 1px rgba(0,0,0,.25) inset;}
+  .span .bar .blab{font-size:10px;font-weight:700;color:#06121f;padding:0 6px;white-space:nowrap;}
+  .span .bar.lite .blab{color:var(--txt);}
+  .span .badge{font-size:9.5px;font-weight:800;margin-left:6px;padding:1px 5px;border-radius:5px;}
+
+  /* detail */
+  .detail{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:760px){.detail{grid-template-columns:1fr;}}
+  .attrs{display:flex;flex-direction:column;gap:7px;}
+  .arow{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:12.5px;border-bottom:1px dashed var(--border);padding-bottom:6px;}
+  .arow .k{color:var(--muted);}
+  .arow .v{font-weight:700;font-variant-numeric:tabular-nums;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;}
+  .arow .v.err{color:var(--bad);}
+  .events{list-style:none;margin:0;padding:0;}
+  .events li{display:flex;gap:10px;font-size:12px;padding:4px 0;align-items:baseline;}
+  .events li .t{color:var(--faint);font-variant-numeric:tabular-nums;min-width:54px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;}
+  .events li .e{color:var(--txt);}
+  .events li.bad .e{color:var(--bad);}
+  .feeds{margin-top:14px;}
+  .feeds .fl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin-bottom:7px;}
+  .feeds a{display:inline-block;font-size:12px;font-weight:700;text-decoration:none;color:var(--accent);background:var(--panel2);
+    border:1px solid var(--border2);border-radius:999px;padding:4px 11px;margin:0 6px 6px 0;}
+  .feeds a:hover{border-color:var(--accent);}
+  .hint{color:var(--muted);font-size:13px;line-height:1.55;}
+
+  table.roll{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.roll th{text-align:left;color:var(--faint);font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;
+    padding:0 10px 8px;border-bottom:1px solid var(--border);}
+  table.roll td{padding:8px 10px;border-bottom:1px dashed var(--border);font-variant-numeric:tabular-nums;}
+  table.roll td:first-child{font-weight:700;}
+  table.roll td .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:7px;}
+  table.roll td.err{color:var(--bad);font-weight:700;}
+
+  .replay{margin-top:14px;}
+  .btn{font-weight:700;font-size:13px;padding:9px 15px;border-radius:10px;border:1px solid var(--border2);background:var(--panel2);color:var(--txt);cursor:pointer;transition:.15s;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .replaynote{display:none;margin-top:12px;font-size:13px;line-height:1.55;background:linear-gradient(135deg,rgba(45,212,191,.1),rgba(56,189,248,.06));
+    border:1px solid var(--border2);border-radius:12px;padding:13px 15px;}
+  .replaynote.show{display:block;}
+  .replaynote b{color:var(--teal);}
+  .foot{color:var(--faint);font-size:12px;margin-top:22px;text-align:center;line-height:1.6;}
+  .foot a{color:var(--muted);text-decoration:none;}
+  .foot a:hover{color:var(--accent);}
+</style>
+</head>
+<body>
+  <nav class="topnav">
+    <span class="brand">Apex<span class="dot">·</span>Trace Explorer</span>
+    <div class="links">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="knowledge-graph.html">Graph</a>
+      <a href="playground.html">Playground</a>
+      <a href="incident-simulator.html">Incidents</a>
+      <a href="eval-studio.html">Studio</a>
+      <a href="trace-explorer.html" class="active">Traces</a>
+      <a href="tutor.html">Tutor</a>
+      <a href="my-sessions.html">My Sessions</a>
+      <a href="mastery.html">Mastery</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="journey.html">Journey</a>
+    </div>
+  </nav>
+
+  <div class="layout">
+    <aside class="rail">
+      <h2>Captured traces</h2>
+      <div class="tlist" id="tlist"></div>
+      <div class="railnote">Each trace is one task = one tree of spans. These four were <b>stored by the sampler</b> — failures, anomalies, and a slice of routine traffic. Click a span to inspect its attributes &amp; events.</div>
+    </aside>
+
+    <main>
+      <div class="head">
+        <div class="top">
+          <div>
+            <h1 id="t-id">—</h1>
+            <p class="scen" id="t-scen"></p>
+          </div>
+          <a class="lessonlink" id="t-lesson" href="lesson.html#obs-trace-tree" target="_blank">Trace-tree lesson ↗</a>
+        </div>
+        <div class="sums" id="t-sums"></div>
+        <div class="sample" id="t-sample"></div>
+      </div>
+
+      <div class="panel">
+        <p class="ptitle">Span waterfall
+          <span class="legend">
+            <span><i style="background:var(--accent)"></i>orchestrator</span>
+            <span><i style="background:var(--violet)"></i>subagent (LLM)</span>
+            <span><i style="background:var(--cyan)"></i>tool call</span>
+            <span><i style="background:var(--warn)"></i>retry</span>
+            <span><i style="background:var(--bad)"></i>error / block</span>
+          </span>
+        </p>
+        <div class="ruler"><div></div><div class="ticks" id="ruler"></div></div>
+        <div class="gantt" id="gantt"></div>
+      </div>
+
+      <div class="panel">
+        <p class="ptitle">Span detail <span id="d-name" style="color:var(--accent);text-transform:none;letter-spacing:0;font-weight:800;"></span></p>
+        <div id="detail"><p class="hint">Click any span in the waterfall above to inspect its attributes, its event timeline, and the eval/observability metrics it feeds.</p></div>
+      </div>
+
+      <div class="panel">
+        <p class="ptitle">Per-agent / per-tool breakdown</p>
+        <table class="roll"><thead><tr><th>Agent / tool</th><th>Calls</th><th>Tokens (in→out)</th><th>Cost</th><th>Self time</th><th>Errors</th></tr></thead>
+          <tbody id="roll"></tbody></table>
+        <div class="replay">
+          <button class="btn" id="replayBtn">▶ Replay this trace with prompt v8</button>
+          <div class="replaynote" id="replaynote"></div>
+        </div>
+      </div>
+
+      <p class="foot">This bench makes the observability metrics concrete:
+        <a href="lesson.html#obs-trace-tree" target="_blank">trace tree</a> ·
+        <a href="lesson.html#obs-spans" target="_blank">spans &amp; attributes</a> ·
+        <a href="lesson.html#obs-events" target="_blank">events</a> ·
+        <a href="lesson.html#obs-per-agent" target="_blank">per-agent breakdown</a> ·
+        <a href="lesson.html#obs-replay" target="_blank">replay</a> ·
+        <a href="lesson.html#obs-sample-failures" target="_blank">trace sampling</a>.
+      </p>
+    </main>
+  </div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const L = window.LESSONS || {};
+const PRICE={sonnet:{in:3e-6,out:15e-6}, haiku:{in:0.8e-6,out:4e-6}};
+const fmtMs=ms=> ms>=1000 ? (ms/1000).toFixed(ms>=10000?1:2)+"s" : Math.round(ms)+"ms";
+const fmtUsd=v=> "$"+(v>=1?v.toFixed(2):v.toFixed(v>=0.1?2:3));
+const fmtTok=n=> n>=1000 ? (n/1000).toFixed(n>=10000?0:1)+"k" : String(n);
+function cost(sp){ if(!sp.model||!PRICE[sp.model]) return 0; return sp.in*PRICE[sp.model].in + sp.out*PRICE[sp.model].out; }
+function lessonTitle(id){ return (L[id]&&L[id].title) || id; }
+
+// span: {name, agent, depth, kind:'agent'|'tool', model, in, out, conf, start, dur, status:'ok'|'retry'|'error'|'block', err, events:[[ms,label,bad?]], feeds:[ids]}
+const TRACES=[
+{
+  id:"HALBERD-4231", status:"warn",
+  short:"trade-finance £4.2M · flaky pricing",
+  scen:"RM Priya's £4.2M trade-finance + cash-management deal for Halberd Logistics. The desk produced a send-ready proposal — but the upstream pricing-rates service flapped, so proposal-pricing retried twice. A textbook latency tail.",
+  sample:{rule:"failure / tool-error sampling", text:"Stored because a tool call (<code>pricing-rates</code>) errored. Failures are <b>always</b> kept regardless of sampling rate.", metric:"obs-sample-failures"},
+  replay:"Replaying with <b>prompt v8</b> (which wraps pricing-rates in a cache + circuit-breaker): the two 503 retries collapse into one cache-read. Estimated <b>−3.6s end-to-end</b> and <b>−$0.00</b> (rates calls are free) — same verdict, p95 drops back under the 15s SLA.",
+  spans:[
+    {name:"sales-orchestrator", agent:"sales-orchestrator", depth:0, kind:"agent", model:"sonnet", in:62000, out:2400, conf:0.88, start:0, dur:12400, status:"warn",
+      events:[[0,"deal received from RM"],[1380,"plan: qualify→solution→price→comply"],[12380,"send-ready proposal handed to RM"]], feeds:["obs-trace-tree"]},
+    {name:"lead-qualifier", agent:"lead-qualifier", depth:1, kind:"agent", model:"haiku", in:22000, out:1600, conf:0.82, start:200, dur:1100, status:"ok",
+      events:[[260,"BANT extracted from intake"],[1180,"score 82 → QUALIFIED"]], feeds:["schema-conformance","obs-per-agent"]},
+    {name:"presales-solution-advisor", agent:"presales-solution-advisor", depth:1, kind:"agent", model:"sonnet", in:41000, out:3100, conf:0.80, start:1400, dur:1800, status:"ok",
+      events:[[1460,"bundle: trade-finance + cash-mgmt"],[3180,"eligibility + suitability OK"]], feeds:["tool-argument-validity"]},
+    {name:"proposal-pricing", agent:"proposal-pricing", depth:1, kind:"agent", model:"sonnet", in:52000, out:4200, conf:0.77, start:3300, dur:6200, status:"retry", err:"upstream 503 ×2 before success",
+      events:[[3320,"need indicative rates"],[8050,"rates received → drafting quote"],[9380,"quote schema validated"]], feeds:["tail-latency-analysis","tool-failure-recovery"]},
+    {name:"tool: pricing-rates", agent:"pricing-rates", depth:2, kind:"tool", model:null, in:0, out:0, start:3500, dur:1400, status:"error", err:"HTTP 503 Service Unavailable",
+      events:[[3500,"GET /rates?ccy=GBP"],[4900,"503 Service Unavailable",1]], feeds:["tool-failure-recovery"]},
+    {name:"tool: pricing-rates (retry 1)", agent:"pricing-rates", depth:2, kind:"tool", model:null, in:0, out:0, start:5100, dur:1500, status:"error", err:"HTTP 503 (backoff 400ms)",
+      events:[[5100,"retry after 400ms backoff"],[6600,"503 Service Unavailable",1]], feeds:["tool-failure-recovery"]},
+    {name:"tool: pricing-rates (retry 2)", agent:"pricing-rates", depth:2, kind:"tool", model:null, in:0, out:0, start:6700, dur:1300, status:"ok",
+      events:[[6700,"retry after 800ms backoff"],[8000,"200 OK · rates payload"]], feeds:["tool-failure-recovery"]},
+    {name:"compliance-risk-reviewer", agent:"compliance-risk-reviewer", depth:1, kind:"agent", model:"haiku", in:31000, out:2100, conf:0.91, start:9600, dur:1900, status:"ok",
+      events:[[9660,"KYC/AML status OK"],[10800,"sanctions screen clear"],[11480,"cleared to send"]], feeds:["refusal-rate","obs-per-agent"]}
+  ]
+},
+{
+  id:"HALBERD-CLEAN", status:"ok",
+  short:"renewal · routine, fast",
+  scen:"A simple cash-management renewal for the same client — qualified, designed, and compliance-checked in one clean pass. Nothing went wrong, which is exactly why the sampler kept a slice of it: you need healthy baselines to detect drift.",
+  sample:{rule:"1% routine-success sample", text:"Nothing failed here. A <b>statistical 1% sample</b> of healthy traffic is stored so dashboards have a baseline and storage stays bounded.", metric:"obs-sample-routine"},
+  replay:"Replaying with <b>prompt v8</b>: no material change — this run was already well inside every gate. Replay confirms the new prompt doesn't <i>regress</i> the easy cases (the thing that usually breaks).",
+  spans:[
+    {name:"sales-orchestrator", agent:"sales-orchestrator", depth:0, kind:"agent", model:"sonnet", in:28000, out:1200, conf:0.93, start:0, dur:4200, status:"ok",
+      events:[[0,"renewal request received"],[4180,"proposal sent"]], feeds:["obs-trace-tree"]},
+    {name:"lead-qualifier", agent:"lead-qualifier", depth:1, kind:"agent", model:"haiku", in:14000, out:1100, conf:0.9, start:150, dur:900, status:"ok",
+      events:[[200,"existing client → fast-path"],[1000,"score 91 → QUALIFIED"]], feeds:["obs-per-agent"]},
+    {name:"presales-solution-advisor", agent:"presales-solution-advisor", depth:1, kind:"agent", model:"sonnet", in:22000, out:1800, conf:0.89, start:1100, dur:1500, status:"ok",
+      events:[[1140,"reuse prior bundle"],[2560,"terms unchanged"]], feeds:["tool-argument-validity"]},
+    {name:"compliance-risk-reviewer", agent:"compliance-risk-reviewer", depth:1, kind:"agent", model:"haiku", in:18000, out:1400, conf:0.94, start:2700, dur:1300, status:"ok",
+      events:[[2760,"KYC current"],[3900,"cleared to send"]], feeds:["refusal-rate","obs-per-agent"]}
+  ]
+},
+{
+  id:"NORTHWIND-7782", status:"bad",
+  short:"new client · compliance BLOCK",
+  scen:"A new prospect, Northwind Freight, requested supply-chain finance. The desk designed and priced a bundle — then compliance hit a sanctions-list match and BLOCKED the deal. The correct refusal: a blocked deal is a success for compliance, but it must be visible in the trace.",
+  sample:{rule:"escalation / override sampling", text:"A <b>refusal / hard block</b> is an escalation event — always stored so you can audit that the gate fired correctly and measure the refusal rate.", metric:"obs-sample-failures"},
+  replay:"Replaying with <b>prompt v8</b>: <b>same BLOCK</b>. The compliance gate is deterministic against the SDN list — a prompt change must never be able to talk it out of a sanctions hit. Replay proves the gate is robust to the new prompt.",
+  spans:[
+    {name:"sales-orchestrator", agent:"sales-orchestrator", depth:0, kind:"agent", model:"sonnet", in:40000, out:1500, conf:0.7, start:0, dur:7800, status:"block",
+      events:[[0,"new-client request"],[7700,"BLOCKED — returned refusal to RM"]], feeds:["obs-trace-tree"]},
+    {name:"lead-qualifier", agent:"lead-qualifier", depth:1, kind:"agent", model:"haiku", in:15000, out:1200, conf:0.78, start:200, dur:1000, status:"ok",
+      events:[[260,"BANT extracted"],[1180,"score 74 → QUALIFIED"]], feeds:["obs-per-agent"]},
+    {name:"presales-solution-advisor", agent:"presales-solution-advisor", depth:1, kind:"agent", model:"sonnet", in:24000, out:2000, conf:0.81, start:1300, dur:1700, status:"ok",
+      events:[[1360,"bundle: supply-chain finance"],[2980,"eligibility OK"]], feeds:["tool-argument-validity"]},
+    {name:"proposal-pricing", agent:"proposal-pricing", depth:1, kind:"agent", model:"sonnet", in:30000, out:2600, conf:0.79, start:3100, dur:2300, status:"ok",
+      events:[[3140,"fetch rates"],[5300,"indicative quote drafted"]], feeds:["tail-latency-analysis"]},
+    {name:"tool: pricing-rates", agent:"pricing-rates", depth:2, kind:"tool", model:null, in:0, out:0, start:3300, dur:900, status:"ok",
+      events:[[3300,"GET /rates"],[4200,"200 OK"]], feeds:["tool-failure-recovery"]},
+    {name:"compliance-risk-reviewer", agent:"compliance-risk-reviewer", depth:1, kind:"agent", model:"haiku", in:26000, out:900, conf:0.96, start:5500, dur:2100, status:"block", err:"SDN sanctions-list match → hard block",
+      events:[[5560,"KYC ok"],[6200,"sanctions screen running"],[6900,"SDN list MATCH → BLOCK",1],[7600,"refusal returned with reason code"]], feeds:["refusal-rate","obs-per-agent"]}
+  ]
+},
+{
+  id:"ORINOCO-9920", status:"warn",
+  short:"complex deal · runaway cost",
+  scen:"A complex multi-currency deal where proposal-pricing got stuck in a reasoning loop — re-reading the full deal history on every step instead of summarising it. The output was correct, but it cost 3× a normal deal. The sampler caught it on cost, not on failure.",
+  sample:{rule:"anomalous-cost capture", text:"This trace cost far more than <b>2× the p95</b> cost-per-task, so the anomalous-cost rule stored it even though nothing technically failed. Cost blow-ups hide in 'successful' traffic.", metric:"obs-sample-anomalous-cost"},
+  replay:"Replaying with <b>prompt v8</b> (which summarises history every 3 turns and caps loop depth): the three full re-reads collapse to one rolling summary. Estimated <b>−$1.7 per deal</b> and <b>−10s</b> — same final quote.",
+  spans:[
+    {name:"sales-orchestrator", agent:"sales-orchestrator", depth:0, kind:"agent", model:"sonnet", in:90000, out:3000, conf:0.84, start:0, dur:21000, status:"warn",
+      events:[[0,"complex deal received"],[20900,"proposal sent (over budget)"]], feeds:["obs-trace-tree"]},
+    {name:"lead-qualifier", agent:"lead-qualifier", depth:1, kind:"agent", model:"haiku", in:18000, out:1300, conf:0.83, start:200, dur:1100, status:"ok",
+      events:[[260,"BANT extracted"],[1280,"score 79 → QUALIFIED"]], feeds:["obs-per-agent"]},
+    {name:"presales-solution-advisor", agent:"presales-solution-advisor", depth:1, kind:"agent", model:"sonnet", in:34000, out:2400, conf:0.8, start:1400, dur:1800, status:"ok",
+      events:[[1460,"multi-currency bundle"],[3180,"eligibility OK"]], feeds:["tool-argument-validity"]},
+    {name:"proposal-pricing (loop ×3)", agent:"proposal-pricing", depth:1, kind:"agent", model:"sonnet", in:480000, out:42000, conf:0.77, start:3300, dur:16000, status:"warn", err:"re-read full history 3× — no summarisation / cache",
+      events:[[3320,"draft v1"],[6000,"re-read FULL history (60k tok)",1],[9000,"draft v2"],[12000,"re-read FULL history (60k tok)",1],[15000,"draft v3"],[18800,"converged → quote"]], feeds:["cost-per-task","obs-histograms"]},
+    {name:"tool: pricing-rates", agent:"pricing-rates", depth:2, kind:"tool", model:null, in:0, out:0, start:3500, dur:1000, status:"ok",
+      events:[[3500,"GET /rates (multi-ccy)"],[4500,"200 OK"]], feeds:["tool-failure-recovery"]},
+    {name:"compliance-risk-reviewer", agent:"compliance-risk-reviewer", depth:1, kind:"agent", model:"haiku", in:33000, out:2000, conf:0.9, start:19300, dur:1600, status:"ok",
+      events:[[19360,"KYC ok"],[20800,"cleared to send"]], feeds:["refusal-rate","obs-per-agent"]}
+  ]
+}
+];
+
+// Merge live tutor traces (written by tutor.html / the Ask widget via window.ApexTutor).
+// Newest first, capped — these share the exact span/trace shape the renderers expect.
+(function mergeTutorTraces(){
+  try{
+    const raw = localStorage.getItem("apex-tutor-traces");
+    if(!raw) return;
+    const live = JSON.parse(raw);
+    if(!Array.isArray(live) || !live.length) return;
+    const seen = {};
+    TRACES.forEach(t=>{ seen[t.id]=1; });
+    // prepend live tutor traces (most recent first) so they surface at the top of the rail
+    for(let i=live.length-1;i>=0;i--){
+      const t=live[i];
+      if(t && t.id && t.spans && !seen[t.id]){ TRACES.unshift(t); seen[t.id]=1; }
+    }
+  }catch(e){ /* ignore malformed storage */ }
+})();
+
+function barColor(sp){
+  if(sp.status==="error"||sp.status==="block") return "var(--bad)";
+  if(sp.status==="retry"||sp.status==="warn") return "var(--warn)";
+  if(sp.kind==="tool") return "var(--cyan)";
+  if(sp.depth===0) return "var(--accent)";
+  return "var(--violet)";
+}
+const STATE_LABEL={ok:"OK",retry:"RETRY",warn:"WARN",error:"ERROR",block:"BLOCK",bad:"BLOCKED"};
+const STATE_CLS={ok:"ok",retry:"warn",warn:"warn",error:"bad",block:"bad",bad:"bad"};
+
+let curTrace=null, selIdx=-1;
+
+function totalDur(t){ return Math.max.apply(null, t.spans.map(s=>s.start+s.dur)); }
+function totalCost(t){ return t.spans.reduce((a,s)=>a+cost(s),0); }
+function totalTok(t){ return t.spans.reduce((a,s)=>a+s.in+s.out,0); }
+
+function renderRail(){
+  $("tlist").innerHTML = TRACES.map(t=>{
+    const dotc = t.status==="ok"?"var(--good)":t.status==="bad"?"var(--bad)":"var(--warn)";
+    const on = curTrace && curTrace.id===t.id ? " on":"";
+    const badge = t.tutor ? '<span class="ttag">tutor</span>' : '';
+    return '<div class="titem'+on+'" data-id="'+esc(t.id)+'">'+
+      '<div class="tname"><span class="tdot" style="background:'+dotc+'"></span>'+esc(t.id)+badge+'</div>'+
+      '<div class="tdesc">'+esc(t.short)+'</div>'+
+      '<div class="tmeta">'+fmtMs(totalDur(t))+' · '+fmtUsd(totalCost(t))+' · '+t.spans.length+' spans</div></div>';
+  }).join("");
+  [].forEach.call(document.querySelectorAll("#tlist .titem"), el=>{
+    el.onclick=()=>selectTrace(el.getAttribute("data-id"));
+  });
+}
+
+function renderRuler(total){
+  const html=[0,0.25,0.5,0.75,1].map(f=>{
+    return '<span style="left:'+(f*100)+'%">'+fmtMs(total*f)+'</span>';
+  }).join("");
+  $("ruler").innerHTML=html;
+}
+
+function renderGantt(t){
+  const total=totalDur(t);
+  renderRuler(total);
+  $("gantt").innerHTML = t.spans.map((sp,i)=>{
+    const left=(sp.start/total*100), w=Math.max(sp.dur/total*100,1.2);
+    const col=barColor(sp);
+    const lite = (col==="var(--violet)"||col==="var(--bad)");
+    const pad = 4 + sp.depth*16;
+    const ic = sp.kind==="tool"?"⛁":(sp.depth===0?"◆":"▸");
+    const badge = (sp.status!=="ok") ? '<span class="badge" style="background:'+col+';color:#06121f">'+STATE_LABEL[sp.status]+'</span>' : "";
+    return '<div class="span'+(i===selIdx?" sel":"")+'" data-i="'+i+'">'+
+      '<div class="lab" style="padding-left:'+pad+'px"><span class="ic">'+ic+'</span>'+esc(sp.name)+'</div>'+
+      '<div class="track"><div class="bar'+(lite?" lite":"")+'" style="left:'+left+'%;width:'+w+'%;background:'+col+'">'+
+        '<span class="blab">'+fmtMs(sp.dur)+badge+'</span></div></div></div>';
+  }).join("");
+  [].forEach.call(document.querySelectorAll("#gantt .span"), el=>{
+    el.onclick=()=>selectSpan(+el.getAttribute("data-i"));
+  });
+}
+
+function renderDetail(t){
+  if(selIdx<0){
+    $("d-name").textContent="";
+    $("detail").innerHTML='<p class="hint">Click any span in the waterfall above to inspect its attributes, its event timeline, and the eval/observability metrics it feeds.</p>';
+    return;
+  }
+  const sp=t.spans[selIdx];
+  $("d-name").textContent="· "+sp.name;
+  const c=cost(sp);
+  const attrs=[];
+  attrs.push(["span.kind", sp.kind]);
+  attrs.push(["agent", sp.agent]);
+  attrs.push(["status", '<span class="statepill '+STATE_CLS[sp.status]+'">'+STATE_LABEL[sp.status]+'</span>', false, true]);
+  attrs.push(["start → end", fmtMs(sp.start)+" → "+fmtMs(sp.start+sp.dur)]);
+  attrs.push(["latency_ms", sp.dur+" ("+fmtMs(sp.dur)+")"]);
+  if(sp.model){
+    attrs.push(["model", sp.model]);
+    attrs.push(["tokens", fmtTok(sp.in)+" in → "+fmtTok(sp.out)+" out"]);
+    attrs.push(["cost_usd", fmtUsd(c)]);
+  }
+  if(sp.conf!=null) attrs.push(["confidence", sp.conf.toFixed(2)]);
+  if(sp.err) attrs.push(["error", sp.err, true]);
+  const attrHtml=attrs.map(a=>{
+    const isHtml=a[3];
+    const v = isHtml ? a[1] : esc(a[1]);
+    return '<div class="arow"><span class="k">'+esc(a[0])+'</span><span class="v'+(a[2]?' err':'')+'">'+v+'</span></div>';
+  }).join("");
+
+  const evHtml='<ul class="events">'+sp.events.map(e=>{
+    return '<li'+(e[2]?' class="bad"':'')+'><span class="t">+'+fmtMs(e[0])+'</span><span class="e">'+esc(e[1])+'</span></li>';
+  }).join("")+'</ul>';
+
+  const feedHtml = (sp.feeds&&sp.feeds.length)
+    ? '<div class="feeds"><div class="fl">This span feeds these metrics</div>'+
+      sp.feeds.map(id=>'<a href="lesson.html#'+esc(id)+'" target="_blank" title="'+esc((L[id]&&L[id].threshold)||"")+'">'+esc(lessonTitle(id))+' ↗</a>').join("")+'</div>'
+    : "";
+
+  $("detail").innerHTML='<div class="detail"><div class="attrs">'+attrHtml+feedHtml+'</div>'+
+    '<div><div class="fl" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin-bottom:7px;">Events (point-in-time markers)</div>'+evHtml+'</div></div>';
+}
+
+function renderRoll(t){
+  const map={};
+  t.spans.forEach(sp=>{
+    const k=sp.agent;
+    if(!map[k]) map[k]={calls:0,in:0,out:0,cost:0,dur:0,err:0,col:barColor(sp),tool:sp.kind==="tool"};
+    const m=map[k];
+    m.calls++; m.in+=sp.in; m.out+=sp.out; m.cost+=cost(sp); m.dur+=sp.dur;
+    if(sp.status==="error"||sp.status==="block") m.err++;
+  });
+  // order: orchestrator first, then by cost desc
+  const keys=Object.keys(map).sort((a,b)=>{
+    if(a==="sales-orchestrator") return -1; if(b==="sales-orchestrator") return 1;
+    return map[b].cost-map[a].cost;
+  });
+  $("roll").innerHTML=keys.map(k=>{
+    const m=map[k];
+    return '<tr><td><span class="sw" style="background:'+m.col+'"></span>'+esc(k)+'</td>'+
+      '<td>'+m.calls+'</td>'+
+      '<td>'+(m.in||m.out?(fmtTok(m.in)+' → '+fmtTok(m.out)):'—')+'</td>'+
+      '<td>'+(m.cost?fmtUsd(m.cost):'—')+'</td>'+
+      '<td>'+fmtMs(m.dur)+'</td>'+
+      '<td'+(m.err?' class="err"':'')+'>'+(m.err||0)+'</td></tr>';
+  }).join("");
+}
+
+function renderHead(t){
+  $("t-id").textContent=t.id;
+  $("t-scen").textContent=t.scen;
+  const sums=[
+    ["status", '<span class="statepill '+STATE_CLS[t.status]+'">'+STATE_LABEL[t.status]+'</span>'],
+    ["duration", fmtMs(totalDur(t))],
+    ["cost", fmtUsd(totalCost(t))],
+    ["tokens", fmtTok(totalTok(t))],
+    ["spans", String(t.spans.length)]
+  ];
+  $("t-sums").innerHTML=sums.map(s=>'<div class="sum"><div class="k">'+s[0]+'</div><div class="v">'+s[1]+'</div></div>').join("");
+  const sm=t.sample;
+  $("t-sample").innerHTML='<b>Why this trace was stored:</b> '+sm.text+' &nbsp;<a href="lesson.html#'+esc(sm.metric)+'" target="_blank">'+esc(lessonTitle(sm.metric))+' ↗</a>';
+  $("replaynote").className="replaynote";
+  $("replaynote").innerHTML=t.replay;
+}
+
+function selectSpan(i){
+  selIdx=i;
+  renderGantt(curTrace);
+  renderDetail(curTrace);
+}
+
+function selectTrace(id){
+  const t=TRACES.find(x=>x.id===id)||TRACES[0];
+  curTrace=t; selIdx=-1;
+  if(location.hash.slice(1)!==id) history.replaceState(null,"","#"+id);
+  renderRail(); renderHead(t); renderGantt(t); renderDetail(t); renderRoll(t);
+}
+
+$("replayBtn").onclick=()=>{ $("replaynote").classList.toggle("show"); };
+
+(function init(){
+  const h=decodeURIComponent(location.hash.slice(1));
+  const start = TRACES.find(t=>t.id===h) ? h : TRACES[0].id;
+  selectTrace(start);
+})();
+window.addEventListener("hashchange",()=>{
+  const h=decodeURIComponent(location.hash.slice(1));
+  if(curTrace && h!==curTrace.id && TRACES.find(t=>t.id===h)) selectTrace(h);
+});
+</script>
+</body>
+</html>
