@@ -1,20 +1,39 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import ScoutProgressBar from "./ScoutProgressBar";
+
+interface AgentResult {
+  topic?: string;
+  skill_count?: number;
+  summary?: string;
+  skill_map_id?: string;
+  cached?: boolean;
+}
 
 interface ChatMessage {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "status";
   content: string;
   intent?: string;
   topic?: string;
   confidence?: number;
   dispatchedTo?: string | null;
+  completedSteps?: string[];
+  agentResult?: AgentResult;
+  /** For status messages — frozen progress bar state. */
+  scoutStatus?: {
+    topic: string;
+    skillCount: number;
+  };
 }
 
 interface ChatProps {
   userId: string;
 }
+
+/** How long to show the 100% done state before adding the response message. */
+const DONE_DISPLAY_MS = 1800;
 
 export default function Chat({ userId }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -27,11 +46,26 @@ export default function Chat({ userId }: ChatProps) {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  /** Tracks whether scout is active (show progress bar). */
+  const [scoutActive, setScoutActive] = useState(false);
+  /** True once the API responds — makes the progress bar snap to 100%. */
+  const [scoutDone, setScoutDone] = useState(false);
+  /** The topic being researched. */
+  const [scoutTopic, setScoutTopic] = useState<string | undefined>();
+  /** Number of skills returned by the scout. */
+  const [scoutSkillCount, setScoutSkillCount] = useState<number | undefined>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, scoutActive, scoutDone]);
+
+  const resetScoutState = useCallback(() => {
+    setScoutActive(false);
+    setScoutDone(false);
+    setScoutTopic(undefined);
+    setScoutSkillCount(undefined);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,6 +81,14 @@ export default function Chat({ userId }: ChatProps) {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
+    resetScoutState();
+
+    // Detect research-like intent to show progress bar immediately
+    const looksLikeResearch =
+      /research|search|find|explore|discover|skills|trend|impact/i.test(trimmed);
+    if (looksLikeResearch) {
+      setScoutActive(true);
+    }
 
     try {
       const res = await fetch("/api/chat", {
@@ -61,6 +103,39 @@ export default function Chat({ userId }: ChatProps) {
         throw new Error(data.error ?? "Something went wrong");
       }
 
+      const isScoutResult = data.dispatchedTo === "scout" && data.completedSteps;
+
+      if (isScoutResult) {
+        const topic = data.topic ?? "your topic";
+        const skillCount = data.agentResult?.skill_count ?? 0;
+
+        // Snap progress bar to 100%
+        setScoutActive(true);
+        setScoutTopic(topic);
+        setScoutSkillCount(skillCount);
+        setScoutDone(true);
+
+        // Hold the 100% completed state so the user can read it
+        await new Promise((resolve) => setTimeout(resolve, DONE_DISPLAY_MS));
+
+        // Freeze the completed progress bar as a permanent status message
+        const statusMsg: ChatMessage = {
+          id: `scout-status-${Date.now()}`,
+          role: "status",
+          content: "",
+          scoutStatus: { topic, skillCount },
+        };
+
+        setMessages((prev) => [...prev, statusMsg]);
+
+        // Hide the live progress bar
+        resetScoutState();
+        setLoading(false);
+
+        // Brief pause then show the response message below
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+
       const assistantMsg: ChatMessage = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
@@ -69,6 +144,8 @@ export default function Chat({ userId }: ChatProps) {
         topic: data.topic,
         confidence: data.confidence,
         dispatchedTo: data.dispatchedTo,
+        completedSteps: data.completedSteps,
+        agentResult: data.agentResult,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
@@ -81,6 +158,7 @@ export default function Chat({ userId }: ChatProps) {
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setLoading(false);
+      resetScoutState();
     }
   }
 
@@ -88,45 +166,104 @@ export default function Chat({ userId }: ChatProps) {
     <div className="flex h-full flex-col">
       {/* Message list */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
+        {messages.map((msg) => {
+          // Frozen scout status message — completed progress bar
+          if (msg.role === "status" && msg.scoutStatus) {
+            return (
+              <div key={msg.id}>
+                <ScoutProgressBar
+                  done={true}
+                  topic={msg.scoutStatus.topic}
+                  skillCount={msg.scoutStatus.skillCount}
+                />
+              </div>
+            );
+          }
+
+          return (
             <div
-              className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                msg.role === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-900 border border-gray-200"
-              }`}
+              key={msg.id}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              <p className="whitespace-pre-wrap">{msg.content}</p>
-              {msg.intent && msg.role === "assistant" && (
-                <div className="mt-2 flex gap-2 flex-wrap">
-                  <span className="inline-block rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                    {msg.intent}
-                  </span>
-                  {msg.topic && (
-                    <span className="inline-block rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-600">
-                      {msg.topic}
+              <div
+                className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                  msg.role === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-900 border border-gray-200"
+                }`}
+              >
+                <p className="whitespace-pre-wrap">{msg.content}</p>
+
+                {/* Completed steps progress */}
+                {msg.completedSteps && msg.completedSteps.length > 0 && (
+                  <div className="mt-3 border-t border-gray-100 pt-3 space-y-2">
+                    {msg.completedSteps.map((step, i) => {
+                      const isNext = step.startsWith("Next step:");
+                      return (
+                        <div key={i} className="flex items-start gap-2 text-sm">
+                          <span className={`mt-0.5 flex-shrink-0 ${isNext ? "text-blue-500" : "text-green-500"}`}>
+                            {isNext ? "\u25B6" : "\u2713"}
+                          </span>
+                          <span className={isNext ? "text-blue-700" : "text-gray-700"}>
+                            {step}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Agent result summary */}
+                {msg.agentResult?.summary && (
+                  <div className="mt-3 rounded bg-gray-50 p-3 text-sm text-gray-700 border border-gray-100">
+                    <p className="font-medium text-gray-900 mb-1">Research Summary</p>
+                    <p>{msg.agentResult.summary}</p>
+                    {msg.agentResult.skill_count != null && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        {msg.agentResult.skill_count} skills identified
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Intent / topic / confidence chips */}
+                {msg.intent && msg.role === "assistant" && (
+                  <div className="mt-2 flex gap-2 flex-wrap">
+                    <span className="inline-block rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                      {msg.intent}
                     </span>
-                  )}
-                  {msg.confidence != null && (
-                    <span className="inline-block rounded bg-green-50 px-2 py-0.5 text-xs text-green-600">
-                      {Math.round(msg.confidence * 100)}% confident
-                    </span>
-                  )}
-                </div>
-              )}
+                    {msg.topic && (
+                      <span className="inline-block rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-600">
+                        {msg.topic}
+                      </span>
+                    )}
+                    {msg.confidence != null && (
+                      <span className="inline-block rounded bg-green-50 px-2 py-0.5 text-xs text-green-600">
+                        {Math.round(msg.confidence * 100)}% confident
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
+
+        {/* Live loading indicator */}
         {loading && (
-          <div className="flex justify-start">
-            <div className="rounded-lg bg-white border border-gray-200 px-4 py-2 text-gray-400">
-              Thinking...
+          scoutActive ? (
+            <ScoutProgressBar
+              done={scoutDone}
+              topic={scoutTopic}
+              skillCount={scoutSkillCount}
+            />
+          ) : (
+            <div className="flex justify-start">
+              <div className="rounded-lg bg-white border border-gray-200 px-4 py-2 text-gray-400">
+                Thinking...
+              </div>
             </div>
-          </div>
+          )
         )}
         <div ref={messagesEndRef} />
       </div>

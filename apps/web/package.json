@@ -4,12 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3004",
     "build": "next build",
     "start": "next start"
   },
   "dependencies": {
     "@adaptlearn/agent-master": "workspace:*",
+    "@adaptlearn/agent-scout": "workspace:*",
     "@adaptlearn/shared": "workspace:*",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.1",

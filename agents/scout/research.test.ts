@@ -3,6 +3,7 @@ import {
   searchTavily,
   searchPerplexity,
   synthesizeSkillMap,
+  researchTopic,
   _setAnthropicClient,
 } from "./research.js";
 
@@ -47,6 +48,23 @@ describe("searchTavily", () => {
     const result = await searchTavily("test");
     expect(result).toBe("[Tavily error: 500]");
   });
+
+  it("returns timeout message when fetch aborts", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    const abortError = new DOMException("The operation was aborted.", "AbortError");
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(abortError);
+
+    const result = await searchTavily("test");
+    expect(result).toBe("[Tavily timeout]");
+  });
+
+  it("returns error message on network failure", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("ECONNREFUSED"));
+
+    const result = await searchTavily("test");
+    expect(result).toBe("[Tavily error: ECONNREFUSED]");
+  });
 });
 
 describe("searchPerplexity", () => {
@@ -85,6 +103,15 @@ describe("searchPerplexity", () => {
 
     const result = await searchPerplexity("test");
     expect(result).toBe("[Perplexity error: 429]");
+  });
+
+  it("returns timeout message when fetch aborts", async () => {
+    process.env.PERPLEXITY_API_KEY = "test-key";
+    const abortError = new DOMException("The operation was aborted.", "AbortError");
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(abortError);
+
+    const result = await searchPerplexity("test");
+    expect(result).toBe("[Perplexity timeout]");
   });
 });
 
@@ -147,5 +174,96 @@ describe("synthesizeSkillMap", () => {
     await expect(synthesizeSkillMap("AI", "data")).rejects.toThrow(
       "No text response from Claude skill map synthesis"
     );
+  });
+});
+
+describe("researchTopic", () => {
+  const originalTavily = process.env.TAVILY_API_KEY;
+  const originalPerplexity = process.env.PERPLEXITY_API_KEY;
+
+  afterEach(() => {
+    process.env.TAVILY_API_KEY = originalTavily;
+    process.env.PERPLEXITY_API_KEY = originalPerplexity;
+    _setAnthropicClient(null);
+    vi.restoreAllMocks();
+  });
+
+  it("throws when both sources fail", async () => {
+    // Both APIs have no keys → both return "[...unavailable...]"
+    delete process.env.TAVILY_API_KEY;
+    delete process.env.PERPLEXITY_API_KEY;
+
+    await expect(researchTopic("Agentic AI")).rejects.toThrow(
+      /Research failed: both sources returned errors/
+    );
+  });
+
+  it("succeeds when only one source is available", async () => {
+    // Tavily unavailable, Perplexity works
+    delete process.env.TAVILY_API_KEY;
+    process.env.PERPLEXITY_API_KEY = "test-key";
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "Key skills: prompt engineering, RAG" } }],
+      }),
+    } as Response);
+
+    const mockResponse = JSON.stringify({
+      topic: "Agentic AI",
+      skills: [{ skill: "Prompt Engineering", demand_score: 0.9, level: "intermediate" }],
+      summary: "Skills identified.",
+    });
+
+    const mock = {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [{ type: "text", text: mockResponse }],
+        }),
+      },
+    } as unknown as import("@anthropic-ai/sdk").default;
+    _setAnthropicClient(mock);
+
+    const result = await researchTopic("Agentic AI");
+    expect(result.topic).toBe("Agentic AI");
+    expect(result.skills).toHaveLength(1);
+  });
+
+  it("uses current year in search queries", async () => {
+    process.env.TAVILY_API_KEY = "test-key";
+    delete process.env.PERPLEXITY_API_KEY;
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        answer: "Skills data",
+        results: [{ title: "Test", content: "Data", url: "https://example.com" }],
+      }),
+    } as Response);
+
+    const mockResponse = JSON.stringify({
+      topic: "Agentic AI",
+      skills: [{ skill: "Test", demand_score: 0.5, level: "beginner" }],
+    });
+
+    const mock = {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [{ type: "text", text: mockResponse }],
+        }),
+      },
+    } as unknown as import("@anthropic-ai/sdk").default;
+    _setAnthropicClient(mock);
+
+    await researchTopic("Agentic AI");
+
+    const currentYear = new Date().getFullYear().toString();
+    const tavilyCall = fetchSpy.mock.calls.find((c) =>
+      (c[0] as string).includes("tavily")
+    );
+    expect(tavilyCall).toBeDefined();
+    const body = JSON.parse(tavilyCall![1]!.body as string);
+    expect(body.query).toContain(currentYear);
   });
 });

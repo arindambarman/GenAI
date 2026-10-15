@@ -50,12 +50,24 @@ function makeMessage(overrides: Partial<AgentMessage> = {}): AgentMessage {
   };
 }
 
-function createMockDb() {
-  const mockSingle = vi.fn();
+/**
+ * Build a chainable Supabase mock.
+ * singleResults is a queue — each .single() call pops the next value.
+ */
+function createMockDb(singleResults: Array<{ data: unknown; error: unknown }>) {
+  let singleIdx = 0;
+  const mockSingle = vi.fn().mockImplementation(() => singleResults[singleIdx++]);
   const mockLimit = vi.fn().mockReturnValue({ single: mockSingle });
+  const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+  const mockGte = vi.fn().mockReturnValue({ order: mockOrder });
   const mockEqActive = vi.fn().mockReturnValue({ limit: mockLimit });
+  const mockEq = vi.fn().mockImplementation(() => ({ gte: mockGte, limit: mockLimit }));
   const mockIlike = vi.fn().mockReturnValue({ eq: mockEqActive });
-  const mockSelect = vi.fn().mockImplementation(() => ({ ilike: mockIlike, single: mockSingle }));
+  const mockSelect = vi.fn().mockImplementation(() => ({
+    ilike: mockIlike,
+    single: mockSingle,
+    eq: mockEq,
+  }));
   const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
 
   return {
@@ -63,21 +75,22 @@ function createMockDb() {
       select: mockSelect,
       insert: mockInsert,
     })),
-    _mockSingle: mockSingle,
-    _mockInsert: mockInsert,
   };
 }
 
 describe("Scout Agent handleMessage", () => {
-  let mockDb: ReturnType<typeof createMockDb>;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    mockDb = createMockDb();
-    vi.mocked(getSupabaseClient).mockReturnValue(mockDb as never);
   });
 
   it("processes a JobDispatch and produces SkillMapReady", async () => {
+    // Queue: [cache miss, insert success]
+    const mockDb = createMockDb([
+      { data: null, error: null },                     // cache miss
+      { data: { id: "skillmap-uuid-789" }, error: null }, // insert
+    ]);
+    vi.mocked(getSupabaseClient).mockReturnValue(mockDb as never);
+
     vi.mocked(claimMessage).mockResolvedValue(makeMessage({ status: "processing" }));
 
     vi.mocked(researchTopic).mockResolvedValue({
@@ -87,12 +100,6 @@ describe("Scout Agent handleMessage", () => {
         { skill: "RAG Architecture", demand_score: 0.85, level: "advanced" },
       ],
       summary: "Key skills for banking AI agents.",
-    });
-
-    // skill_map insert returns an id
-    mockDb._mockSingle.mockReturnValue({
-      data: { id: "skillmap-uuid-789" },
-      error: null,
     });
 
     vi.mocked(dispatchMessage).mockResolvedValue({
@@ -108,10 +115,8 @@ describe("Scout Agent handleMessage", () => {
 
     await handleMessage(makeMessage());
 
-    // Verify research was called with the topic
     expect(researchTopic).toHaveBeenCalledWith("Agentic AI");
 
-    // Verify SkillMapReady was dispatched
     expect(dispatchMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         from_agent: "scout",
@@ -122,11 +127,15 @@ describe("Scout Agent handleMessage", () => {
           topic_id: TOPIC_UUID,
           skill_map_id: "skillmap-uuid-789",
           skill_count: 2,
+          completed_steps: [
+            'Research on "Agentic AI" has been completed by the Scout Agent.',
+            "Skill assessment is complete — 2 skills identified.",
+            "Next step: Content preparation will begin.",
+          ],
         }),
       })
     );
 
-    // Verify original message was completed
     expect(completeMessage).toHaveBeenCalledWith("msg-001");
   });
 
@@ -140,6 +149,11 @@ describe("Scout Agent handleMessage", () => {
   });
 
   it("fails the message on research error", async () => {
+    const mockDb = createMockDb([
+      { data: null, error: null }, // cache miss
+    ]);
+    vi.mocked(getSupabaseClient).mockReturnValue(mockDb as never);
+
     vi.mocked(claimMessage).mockResolvedValue(makeMessage({ status: "processing" }));
     vi.mocked(researchTopic).mockRejectedValue(new Error("API timeout"));
 
@@ -150,6 +164,11 @@ describe("Scout Agent handleMessage", () => {
   });
 
   it("fails the message when topic not found in DB", async () => {
+    const mockDb = createMockDb([
+      { data: null, error: null }, // topic lookup returns nothing
+    ]);
+    vi.mocked(getSupabaseClient).mockReturnValue(mockDb as never);
+
     const msgWithoutTopicId = makeMessage({
       payload: {
         intent: "research",
@@ -161,14 +180,6 @@ describe("Scout Agent handleMessage", () => {
 
     vi.mocked(claimMessage).mockResolvedValue({ ...msgWithoutTopicId, status: "processing" });
 
-    vi.mocked(researchTopic).mockResolvedValue({
-      topic: "Unknown Topic",
-      skills: [{ skill: "Test", demand_score: 0.5, level: "beginner" }],
-    });
-
-    // Topic lookup returns nothing
-    mockDb._mockSingle.mockReturnValue({ data: null, error: null });
-
     await expect(handleMessage(msgWithoutTopicId)).rejects.toThrow(
       'Topic not found in DB: "Unknown Topic"'
     );
@@ -177,5 +188,56 @@ describe("Scout Agent handleMessage", () => {
       "msg-001",
       'Topic not found in DB: "Unknown Topic"'
     );
+  });
+
+  it("returns cached skill map without calling researchTopic", async () => {
+    const cachedData = {
+      id: "cached-skillmap-id",
+      skills: [{ skill: "Cached Skill", demand_score: 0.8, level: "intermediate" }],
+      source_summary: "Cached summary",
+    };
+
+    const mockDb = createMockDb([
+      { data: cachedData, error: null }, // cache hit
+    ]);
+    vi.mocked(getSupabaseClient).mockReturnValue(mockDb as never);
+
+    vi.mocked(claimMessage).mockResolvedValue(makeMessage({ status: "processing" }));
+
+    vi.mocked(dispatchMessage).mockResolvedValue({
+      id: "reply-msg-002",
+      from_agent: "scout",
+      to_agent: "master",
+      message_type: "SkillMapReady",
+      payload: {},
+      status: "pending",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    await handleMessage(makeMessage());
+
+    // Research should NOT be called — cache was used
+    expect(researchTopic).not.toHaveBeenCalled();
+
+    // SkillMapReady should be dispatched with cached data and steps
+    expect(dispatchMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from_agent: "scout",
+        to_agent: "master",
+        message_type: "SkillMapReady",
+        payload: expect.objectContaining({
+          skill_map_id: "cached-skillmap-id",
+          cached: true,
+          completed_steps: [
+            'Research on "Agentic AI" is already available (cached).',
+            "Skill assessment is complete.",
+            "Next step: Content preparation will begin.",
+          ],
+        }),
+      })
+    );
+
+    expect(completeMessage).toHaveBeenCalledWith("msg-001");
   });
 });

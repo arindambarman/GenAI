@@ -12,6 +12,7 @@ const nextConfig = {
   transpilePackages: [
     "@adaptlearn/shared",
     "@adaptlearn/agent-master",
+    "@adaptlearn/agent-scout",
   ],
   webpack: (config) => {
     // Resolve .js imports to .ts files (ESM-style imports in monorepo packages)
